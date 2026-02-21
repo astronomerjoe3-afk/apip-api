@@ -33,9 +33,15 @@ EXPECTED_FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
 
 # Initialize Firebase Admin using ADC (works on Cloud Run)
 # Locally, run: gcloud auth application-default login
+import os
+import firebase_admin
+from firebase_admin import credentials
+
+project_id = os.getenv("FIREBASE_PROJECT_ID")
+
 if not firebase_admin._apps:
     cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {"projectId": project_id})
 
 
 def _extract_bearer_token(authorization: Optional[str]) -> str:
