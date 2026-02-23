@@ -3,25 +3,25 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 import firebase_admin
 from firebase_admin import auth, credentials
-from firebase_admin import exceptions as fb_exceptions
 
+# -----------------------------
+# Logging
+# -----------------------------
+logging.basicConfig(level="INFO")
 logger = logging.getLogger("apip-api")
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
-# Env
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")  # must match Firebase Project ID: apip-dev-487809-c949c
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
 
-app = FastAPI(title="apip-api", version="0.1.0")
+app = FastAPI(title="apip-api", version="1.0.0")
 
-# CORS: allow your frontend + local dev
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -33,113 +33,70 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---- Firebase Admin init (Cloud Run uses ADC) ----
+# -----------------------------
+# Firebase Admin Init
+# -----------------------------
 if not firebase_admin._apps:
     cred = credentials.ApplicationDefault()
-    # NOTE: Do not pass projectId here; verify_id_token uses aud/iss from token.
     firebase_admin.initialize_app(cred)
-    logger.info("Firebase Admin initialized (ADC).")
+    logger.info("Firebase Admin initialized")
 
 
-# ---- Helpers ----
-def _extract_bearer_token(authorization: Optional[str]) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
+# -----------------------------
+# Helpers
+# -----------------------------
+def _extract_token(auth_header: Optional[str]) -> str:
+    if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing Bearer token")
-    return authorization.split(" ", 1)[1].strip()
-
-
-def _verify_expected_project(decoded: Dict[str, Any]) -> None:
-    """
-    Ensure the ID token is from the expected Firebase project.
-    Firebase ID token typically has:
-      aud == <project_id>
-      iss == https://securetoken.google.com/<project_id>
-    """
-    if not FIREBASE_PROJECT_ID:
-        # If you want to HARD require this env var, flip this to raise 500.
-        logger.warning("FIREBASE_PROJECT_ID is not set; skipping aud/iss check.")
-        return
-
-    aud = decoded.get("aud")
-    iss = decoded.get("iss")
-
-    expected_aud = FIREBASE_PROJECT_ID
-    expected_iss = f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}"
-
-    if aud != expected_aud or iss != expected_iss:
-        raise HTTPException(
-            status_code=401,
-            detail={
-                "error": "firebase_project_mismatch",
-                "expected": {"aud": expected_aud, "iss": expected_iss},
-                "got": {"aud": aud, "iss": iss},
-            },
-        )
+    return auth_header.split(" ", 1)[1]
 
 
 def get_current_user(authorization: str | None = Header(default=None)) -> Dict[str, Any]:
-    token = _extract_bearer_token(authorization)
-
+    token = _extract_token(authorization)
     try:
         decoded = auth.verify_id_token(token)
-        _verify_expected_project(decoded)
-        return decoded
-    except auth.ExpiredIdTokenError as e:
-        raise HTTPException(status_code=401, detail={"error": "expired_id_token", "message": str(e)})
-    except auth.RevokedIdTokenError as e:
-        raise HTTPException(status_code=401, detail={"error": "revoked_id_token", "message": str(e)})
-    except auth.InvalidIdTokenError as e:
-        raise HTTPException(status_code=401, detail={"error": "invalid_id_token", "message": str(e)})
-    except fb_exceptions.FirebaseError as e:
-        logger.exception("FirebaseError in verify_id_token")
-        raise HTTPException(status_code=500, detail={"error": "firebase_error", "message": str(e)})
     except Exception as e:
-        logger.exception("Unexpected error in verify_id_token")
-        raise HTTPException(status_code=500, detail={"error": "unexpected_error", "message": str(e)})
+        raise HTTPException(status_code=401, detail=str(e))
+
+    if FIREBASE_PROJECT_ID:
+        expected_iss = f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}"
+        if decoded.get("aud") != FIREBASE_PROJECT_ID or decoded.get("iss") != expected_iss:
+            raise HTTPException(status_code=401, detail="Firebase project mismatch")
+
+    return decoded
 
 
 def require_admin(user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-    role = user.get("role")  # custom claim
-    if role != "admin":
-        raise HTTPException(
-            status_code=403,
-            detail={"error": "forbidden", "message": "Admin role required", "role": role},
-        )
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin required")
     return user
 
 
-# ---- Optional Firestore mirror (won't crash if Firestore not installed/enabled) ----
-def _now_iso() -> str:
+def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
-def upsert_user_doc(uid: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Mirror user info to Firestore: users/{uid}
-    This is NOT used for authorization; it is only for UI/querying.
-    """
+# -----------------------------
+# Firestore (optional mirror)
+# -----------------------------
+def get_firestore():
     try:
-        from google.cloud import firestore  # type: ignore
+        from google.cloud import firestore
+        return firestore.Client(project=FIREBASE_PROJECT_ID or None)
     except Exception:
-        return {"firestore": "skipped", "reason": "google-cloud-firestore not installed"}
-
-    try:
-        db = firestore.Client(project=FIREBASE_PROJECT_ID or None)
-        ref = db.collection("users").document(uid)
-        ref.set(data, merge=True)
-        return {"firestore": "ok"}
-    except Exception as e:
-        # Don’t kill auth flows just because Firestore is unavailable
-        logger.warning("Firestore upsert failed: %r", e)
-        return {"firestore": "failed", "reason": str(e)}
+        return None
 
 
-# ---- Models ----
-class SetRoleBody(BaseModel):
-    role: str = Field(..., description="Role name (e.g. 'admin' or 'user')")
+# -----------------------------
+# Models
+# -----------------------------
+class RoleBody(BaseModel):
+    role: str
 
 
-# ---- Routes ----
+# -----------------------------
+# Routes
+# -----------------------------
 @app.get("/health")
 def health():
     return {"status": "ok", "firebase_project_id": FIREBASE_PROJECT_ID}
@@ -147,14 +104,10 @@ def health():
 
 @app.get("/me")
 def me(user: Dict[str, Any] = Depends(get_current_user)):
-    # Custom claims are directly in decoded token (e.g. user['role']).
     return {
         "uid": user.get("uid") or user.get("sub"),
         "email": user.get("email"),
         "role": user.get("role"),
-        "provider": (user.get("firebase") or {}).get("sign_in_provider"),
-        "aud": user.get("aud"),
-        "iss": user.get("iss"),
     }
 
 
@@ -168,39 +121,69 @@ def profile(user: Dict[str, Any] = Depends(get_current_user)):
     }
 
 
+# -----------------------------
+# ADMIN: Set Role
+# -----------------------------
 @app.post("/admin/users/{uid}/role")
-def admin_set_role(
+def set_role(
     uid: str,
-    body: SetRoleBody,
+    body: RoleBody,
     admin_user: Dict[str, Any] = Depends(require_admin),
 ):
-    # Optional: normalize role values
     role = body.role.strip().lower()
     if role not in {"admin", "user"}:
-        raise HTTPException(status_code=400, detail={"error": "invalid_role", "allowed": ["admin", "user"]})
+        raise HTTPException(status_code=400, detail="Invalid role")
 
-    # 1) Set custom claim (SOURCE OF TRUTH)
     auth.set_custom_user_claims(uid, {"role": role})
 
-    # 2) Verify what’s currently stored for that user
-    rec = auth.get_user(uid)
-    claims = rec.custom_claims or {}
-
-    # 3) Mirror to Firestore (OPTIONAL; not used for auth)
-    mirror = upsert_user_doc(
-        uid,
-        {
-            "uid": uid,
-            "role": role,
-            "updatedAt": _now_iso(),
-            "updatedBy": admin_user.get("uid") or admin_user.get("sub"),
-        },
-    )
+    # Mirror to Firestore (optional)
+    db = get_firestore()
+    if db:
+        db.collection("users").document(uid).set(
+            {
+                "uid": uid,
+                "role": role,
+                "updatedAt": now_iso(),
+                "updatedBy": admin_user.get("uid"),
+            },
+            merge=True,
+        )
 
     return {
         "ok": True,
         "uid": uid,
         "role_set_to": role,
-        "current_custom_claims": claims,
-        "mirror": mirror,
     }
+
+
+# -----------------------------
+# ADMIN: List Users (Firestore)
+# -----------------------------
+@app.get("/admin/users")
+def list_users(admin_user: Dict[str, Any] = Depends(require_admin)):
+    db = get_firestore()
+    if not db:
+        return {"error": "Firestore not available"}
+
+    users = []
+    for doc in db.collection("users").stream():
+        data = doc.to_dict()
+        users.append(data)
+
+    return {"count": len(users), "users": users}
+
+
+# -----------------------------
+# ADMIN: Get One User
+# -----------------------------
+@app.get("/admin/users/{uid}")
+def get_user(uid: str, admin_user: Dict[str, Any] = Depends(require_admin)):
+    db = get_firestore()
+    if not db:
+        return {"error": "Firestore not available"}
+
+    doc = db.collection("users").document(uid).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return doc.to_dict()
