@@ -40,7 +40,7 @@ jobs:
             --region "$REGION" \
             --project "$PROJECT_ID" \
             --allow-unauthenticated \
-            --update-env-vars "FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}" \
+            --update-env-vars "FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID},APP_COMMIT=${GITHUB_SHA}"
             --quiet
 
       - name: Smoke test /health
