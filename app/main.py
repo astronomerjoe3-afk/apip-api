@@ -7,242 +7,139 @@ from typing import Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 import firebase_admin
 from firebase_admin import auth, credentials
 from firebase_admin import exceptions as fb_exceptions
 
-from google.cloud import firestore
-
-
-# -----------------------------------------------------------------------------
-# Logging
-# -----------------------------------------------------------------------------
 logger = logging.getLogger("apip-api")
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
-# -----------------------------------------------------------------------------
-# App
-# -----------------------------------------------------------------------------
+# Env
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")  # must match Firebase Project ID: apip-dev-487809-c949c
+
 app = FastAPI(title="apip-api", version="0.1.0")
 
-# -----------------------------------------------------------------------------
-# CORS
-# -----------------------------------------------------------------------------
-ALLOW_ORIGINS = os.getenv(
-    "CORS_ALLOW_ORIGINS",
-    "https://app.cognispark.tech,http://localhost:3000",
-).split(",")
-
+# CORS: allow your frontend + local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in ALLOW_ORIGINS if o.strip()],
+    allow_origins=[
+        "https://app.cognispark.tech",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# -----------------------------------------------------------------------------
-# Firebase Admin init (Cloud Run-friendly)
-# -----------------------------------------------------------------------------
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
-
+# ---- Firebase Admin init (Cloud Run uses ADC) ----
 if not firebase_admin._apps:
     cred = credentials.ApplicationDefault()
-    options = {"projectId": FIREBASE_PROJECT_ID} if FIREBASE_PROJECT_ID else None
-    firebase_admin.initialize_app(cred, options=options)
-
-# -----------------------------------------------------------------------------
-# Firestore client
-# -----------------------------------------------------------------------------
-# Uses ADC under the hood on Cloud Run. If FIREBASE_PROJECT_ID is set, we pass it.
-FS_PROJECT_ID = FIREBASE_PROJECT_ID or os.getenv("GOOGLE_CLOUD_PROJECT")
-db = firestore.Client(project=FS_PROJECT_ID) if FS_PROJECT_ID else firestore.Client()
+    # NOTE: Do not pass projectId here; verify_id_token uses aud/iss from token.
+    firebase_admin.initialize_app(cred)
+    logger.info("Firebase Admin initialized (ADC).")
 
 
-# -----------------------------------------------------------------------------
-# Optional debug token decoder
-# -----------------------------------------------------------------------------
-try:
-    from app.token_debug import decode_jwt_no_verify
-except Exception:  # pragma: no cover
-    decode_jwt_no_verify = None  # type: ignore
-
-
-# -----------------------------------------------------------------------------
-# Helpers
-# -----------------------------------------------------------------------------
+# ---- Helpers ----
 def _extract_bearer_token(authorization: Optional[str]) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing Bearer token")
     return authorization.split(" ", 1)[1].strip()
 
 
-def _claims(decoded: Dict[str, Any]) -> Dict[str, Any]:
-    role = decoded.get("role")
-    return {
-        "uid": decoded.get("uid"),
-        "email": decoded.get("email"),
-        "role": role,
-        "firebase": decoded.get("firebase", {}),
-        "aud": decoded.get("aud"),
-        "iss": decoded.get("iss"),
-    }
+def _verify_expected_project(decoded: Dict[str, Any]) -> None:
+    """
+    Ensure the ID token is from the expected Firebase project.
+    Firebase ID token typically has:
+      aud == <project_id>
+      iss == https://securetoken.google.com/<project_id>
+    """
+    if not FIREBASE_PROJECT_ID:
+        # If you want to HARD require this env var, flip this to raise 500.
+        logger.warning("FIREBASE_PROJECT_ID is not set; skipping aud/iss check.")
+        return
 
+    aud = decoded.get("aud")
+    iss = decoded.get("iss")
 
-def _require_role(decoded: Dict[str, Any], required_role: str) -> None:
-    role = decoded.get("role")
-    if role != required_role:
+    expected_aud = FIREBASE_PROJECT_ID
+    expected_iss = f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}"
+
+    if aud != expected_aud or iss != expected_iss:
         raise HTTPException(
-            status_code=403,
+            status_code=401,
             detail={
-                "error": "forbidden",
-                "required_role": required_role,
-                "got_role": role,
+                "error": "firebase_project_mismatch",
+                "expected": {"aud": expected_aud, "iss": expected_iss},
+                "got": {"aud": aud, "iss": iss},
             },
         )
 
 
-def upsert_user_doc(decoded: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Create/update users/{uid} in Firestore.
-    - Creates on first login
-    - Updates last_login_at each time
-    - Stores role + email for easy querying
-    - Includes placeholders for the Physics curriculum architecture
-    """
-    c = _claims(decoded)
-    uid = c["uid"]
-    if not uid:
-        raise HTTPException(status_code=500, detail="Token missing uid")
-
-    user_ref = db.collection("users").document(uid)
-    snap = user_ref.get()
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-
-    base_data = {
-        "uid": uid,
-        "email": c["email"],
-        "role": c["role"] or "user",
-        "updated_at": firestore.SERVER_TIMESTAMP,
-        "last_login_at": firestore.SERVER_TIMESTAMP,
-        "last_login_at_iso": now_iso,  # convenient for debugging
-        # --- Physics product architecture fields (extend later) ---
-        "product": "best-way-to-learn-physics",
-        "curriculum": {
-            "curriculum_id": "physics-core-v1",
-            "current_unit": None,
-            "current_lesson": None,
-            "progress_pct": 0,
-        },
-        "profile": {
-            "display_name": None,
-            "goal_band": None,
-        },
-    }
-
-    if not snap.exists:
-        # First login
-        first_data = {
-            **base_data,
-            "created_at": firestore.SERVER_TIMESTAMP,
-            "created_at_iso": now_iso,
-        }
-        user_ref.set(first_data, merge=True)
-        return {"created": True, "uid": uid}
-
-    # Existing user
-    user_ref.set(base_data, merge=True)
-    return {"created": False, "uid": uid}
-
-
-# -----------------------------------------------------------------------------
-# Auth dependency
-# -----------------------------------------------------------------------------
 def get_current_user(authorization: str | None = Header(default=None)) -> Dict[str, Any]:
     token = _extract_bearer_token(authorization)
 
-    # Optional debug logging only
-    if decode_jwt_no_verify is not None:
-        try:
-            unverified = decode_jwt_no_verify(token)
-            hdr = unverified.get("header") or {}
-            coi = unverified.get("claims_of_interest") or {}
-            logger.info(
-                "Incoming token (unverified) aud=%s iss=%s sub=%s kid=%s provider=%s",
-                coi.get("aud"),
-                coi.get("iss"),
-                coi.get("sub"),
-                hdr.get("kid"),
-                coi.get("firebase.sign_in_provider"),
-            )
-        except Exception as e:
-            logger.warning("Token debug decode failed (ignored): %r", e)
-
     try:
         decoded = auth.verify_id_token(token)
-
-        # Guardrail: ensure project matches expected project id
-        if FIREBASE_PROJECT_ID:
-            expected_aud = FIREBASE_PROJECT_ID
-            expected_iss = f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}"
-            if decoded.get("aud") != expected_aud or decoded.get("iss") != expected_iss:
-                raise HTTPException(
-                    status_code=401,
-                    detail={
-                        "error": "firebase_project_mismatch",
-                        "expected": {"aud": expected_aud, "iss": expected_iss},
-                        "got": {"aud": decoded.get("aud"), "iss": decoded.get("iss")},
-                    },
-                )
-
+        _verify_expected_project(decoded)
         return decoded
-
     except auth.ExpiredIdTokenError as e:
-        raise HTTPException(
-            status_code=401,
-            detail={"error": "expired_id_token", "message": str(e), "type": e.__class__.__name__},
-        )
-
+        raise HTTPException(status_code=401, detail={"error": "expired_id_token", "message": str(e)})
     except auth.RevokedIdTokenError as e:
-        raise HTTPException(
-            status_code=401,
-            detail={"error": "revoked_id_token", "message": str(e), "type": e.__class__.__name__},
-        )
-
+        raise HTTPException(status_code=401, detail={"error": "revoked_id_token", "message": str(e)})
     except auth.InvalidIdTokenError as e:
-        raise HTTPException(
-            status_code=401,
-            detail={"error": "invalid_id_token", "message": str(e), "type": e.__class__.__name__},
-        )
-
+        raise HTTPException(status_code=401, detail={"error": "invalid_id_token", "message": str(e)})
     except fb_exceptions.FirebaseError as e:
-        logger.exception("Firebase Admin error during verify_id_token")
-        raise HTTPException(
-            status_code=500,
-            detail={"error": "firebase_error", "message": str(e), "type": e.__class__.__name__},
-        )
-
-    except HTTPException:
-        raise
-
+        logger.exception("FirebaseError in verify_id_token")
+        raise HTTPException(status_code=500, detail={"error": "firebase_error", "message": str(e)})
     except Exception as e:
-        logger.exception("Unexpected error during verify_id_token")
-        raise HTTPException(
-            status_code=500,
-            detail={"error": "unexpected_error", "message": str(e), "type": e.__class__.__name__},
-        )
+        logger.exception("Unexpected error in verify_id_token")
+        raise HTTPException(status_code=500, detail={"error": "unexpected_error", "message": str(e)})
 
 
 def require_admin(user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-    _require_role(user, "admin")
+    role = user.get("role")  # custom claim
+    if role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "forbidden", "message": "Admin role required", "role": role},
+        )
     return user
 
 
-# -----------------------------------------------------------------------------
-# Routes
-# -----------------------------------------------------------------------------
+# ---- Optional Firestore mirror (won't crash if Firestore not installed/enabled) ----
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def upsert_user_doc(uid: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Mirror user info to Firestore: users/{uid}
+    This is NOT used for authorization; it is only for UI/querying.
+    """
+    try:
+        from google.cloud import firestore  # type: ignore
+    except Exception:
+        return {"firestore": "skipped", "reason": "google-cloud-firestore not installed"}
+
+    try:
+        db = firestore.Client(project=FIREBASE_PROJECT_ID or None)
+        ref = db.collection("users").document(uid)
+        ref.set(data, merge=True)
+        return {"firestore": "ok"}
+    except Exception as e:
+        # Don’t kill auth flows just because Firestore is unavailable
+        logger.warning("Firestore upsert failed: %r", e)
+        return {"firestore": "failed", "reason": str(e)}
+
+
+# ---- Models ----
+class SetRoleBody(BaseModel):
+    role: str = Field(..., description="Role name (e.g. 'admin' or 'user')")
+
+
+# ---- Routes ----
 @app.get("/health")
 def health():
     return {"status": "ok", "firebase_project_id": FIREBASE_PROJECT_ID}
@@ -250,57 +147,60 @@ def health():
 
 @app.get("/me")
 def me(user: Dict[str, Any] = Depends(get_current_user)):
-    # Auto-provision user doc on ANY authenticated hit
-    provision = upsert_user_doc(user)
-
-    c = _claims(user)
+    # Custom claims are directly in decoded token (e.g. user['role']).
     return {
-        "uid": c["uid"],
-        "email": c["email"],
-        "role": c["role"],
-        "provider": (c["firebase"] or {}).get("sign_in_provider"),
-        "provisioned": provision,
+        "uid": user.get("uid") or user.get("sub"),
+        "email": user.get("email"),
+        "role": user.get("role"),
+        "provider": (user.get("firebase") or {}).get("sign_in_provider"),
+        "aud": user.get("aud"),
+        "iss": user.get("iss"),
     }
 
 
 @app.get("/profile")
 def profile(user: Dict[str, Any] = Depends(get_current_user)):
-    # Auto-provision here too (in case you prefer using /profile on the client)
-    provision = upsert_user_doc(user)
-
-    c = _claims(user)
     return {
         "message": "Secure profile",
-        "uid": c["uid"],
-        "email": c["email"],
-        "role": c["role"],
-        "provisioned": provision,
+        "uid": user.get("uid") or user.get("sub"),
+        "email": user.get("email"),
+        "role": user.get("role"),
     }
 
 
-@app.get("/admin-only")
-def admin_only(user: Dict[str, Any] = Depends(require_admin)):
-    # Optional: ensure admin users also get provisioned
-    provision = upsert_user_doc(user)
+@app.post("/admin/users/{uid}/role")
+def admin_set_role(
+    uid: str,
+    body: SetRoleBody,
+    admin_user: Dict[str, Any] = Depends(require_admin),
+):
+    # Optional: normalize role values
+    role = body.role.strip().lower()
+    if role not in {"admin", "user"}:
+        raise HTTPException(status_code=400, detail={"error": "invalid_role", "allowed": ["admin", "user"]})
 
-    c = _claims(user)
+    # 1) Set custom claim (SOURCE OF TRUTH)
+    auth.set_custom_user_claims(uid, {"role": role})
+
+    # 2) Verify what’s currently stored for that user
+    rec = auth.get_user(uid)
+    claims = rec.custom_claims or {}
+
+    # 3) Mirror to Firestore (OPTIONAL; not used for auth)
+    mirror = upsert_user_doc(
+        uid,
+        {
+            "uid": uid,
+            "role": role,
+            "updatedAt": _now_iso(),
+            "updatedBy": admin_user.get("uid") or admin_user.get("sub"),
+        },
+    )
+
     return {
-        "message": "Admin access granted",
-        "uid": c["uid"],
-        "email": c["email"],
-        "role": c["role"],
-        "provisioned": provision,
+        "ok": True,
+        "uid": uid,
+        "role_set_to": role,
+        "current_custom_claims": claims,
+        "mirror": mirror,
     }
-
-
-@app.get("/debug-token")
-def debug_token(authorization: str | None = Header(default=None)):
-    """
-    TEMP endpoint for debugging only.
-    Returns decoded JWT header/payload WITHOUT verifying signature.
-    Remove after debugging.
-    """
-    if decode_jwt_no_verify is None:
-        raise HTTPException(status_code=404, detail="debug-token not enabled")
-    token = _extract_bearer_token(authorization)
-    return decode_jwt_no_verify(token)
