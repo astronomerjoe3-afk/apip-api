@@ -12,12 +12,10 @@ env:
   PROJECT_ID: apip-dev-487809-c949c
   REGION: asia-southeast1
   SERVICE: apip-api
-  FIREBASE_PROJECT_ID: apip-dev-487809-c949c
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,17 +32,22 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
 
       - name: Deploy to Cloud Run (build from source)
+        shell: bash
         run: |
-          gcloud run services update apip-api \
-            --region asia-southeast1 \
-            --update-env-vars CORS_ORIGINS=https://app.cognispark.tech,http://localhost:3000
-            --project "$PROJECT_ID" \
+          set -euo pipefail
+          echo "Deploying commit: $GITHUB_SHA"
+          gcloud run deploy "${SERVICE}" \
+            --source . \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
             --allow-unauthenticated \
-            --update-env-vars "FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID},APP_COMMIT=${GITHUB_SHA}" \
+            --update-env-vars "APP_COMMIT=${GITHUB_SHA}" \
             --quiet
 
-      - name: Smoke test /health
+      - name: Smoke test /__build
+        shell: bash
         run: |
-          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format="value(status.url)")
+          set -euo pipefail
+          URL="$(gcloud run services describe "${SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format="value(status.url)")"
           echo "Service URL: $URL"
-          curl -fsS "$URL/health"
+          curl -fsS "$URL/__build"
