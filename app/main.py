@@ -1,5 +1,7 @@
 import os
 import datetime
+import secrets
+import hashlib
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Header
@@ -9,6 +11,16 @@ import firebase_admin
 from firebase_admin import auth as fb_auth
 from firebase_admin import credentials
 from firebase_admin import firestore
+
+# ----------------------------
+# API KEY UTILITIES
+# ----------------------------
+
+def generate_api_key() -> str:
+    return "ak_live_" + secrets.token_urlsafe(32)
+
+def hash_key(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.encode()).hexdigest()
 
 # ----------------------------
 # App metadata / build markers
@@ -131,6 +143,32 @@ def require_admin(user: Dict[str, Any] = Depends(require_auth)) -> Dict[str, Any
         raise HTTPException(status_code=403, detail="Admin only")
 
     return user
+def require_api_key(x_api_key: Optional[str] = Header(default=None)):
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing X-API-Key header")
+
+    db = get_firestore()
+    if not db:
+        raise HTTPException(status_code=503, detail="Firestore unavailable")
+
+    hashed = hash_key(x_api_key)
+
+    docs = db.collection("api_keys").where("hashed_key", "==", hashed).limit(1).stream()
+    key_doc = next(docs, None)
+
+    if not key_doc:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    data = key_doc.to_dict()
+
+    if data.get("revoked"):
+        raise HTTPException(status_code=403, detail="API key revoked")
+
+    db.collection("api_keys").document(key_doc.id).update({
+        "lastUsedAt": firestore.SERVER_TIMESTAMP
+    })
+
+    return data
 
 
 # ----------------------------
@@ -180,6 +218,77 @@ def profile(user: Dict[str, Any] = Depends(require_user)):
 @app.get("/admin-only")
 def admin_only(admin_user: Dict[str, Any] = Depends(require_admin)):
     return {"message": "Hello admin", "uid": admin_user.get("uid"), "role": admin_user.get("role")}
+
+
+# ----------------------------
+# USER API KEY MANAGEMENT
+# ----------------------------
+
+@app.post("/keys")
+def create_api_key(user: Dict[str, Any] = Depends(require_user)):
+    db = get_firestore()
+    if not db:
+        raise HTTPException(status_code=503, detail="Firestore unavailable")
+
+    raw_key = generate_api_key()
+    hashed = hash_key(raw_key)
+
+    doc_ref = db.collection("api_keys").document()
+
+    doc_ref.set({
+        "uid": user["uid"],
+        "name": "Default Key",
+        "hashed_key": hashed,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        "revoked": False,
+        "lastUsedAt": None
+    })
+
+    return {
+        "id": doc_ref.id,
+        "api_key": raw_key   # Only returned once
+    }
+
+
+@app.get("/keys")
+def list_keys(user: Dict[str, Any] = Depends(require_user)):
+    db = get_firestore()
+    if not db:
+        raise HTTPException(status_code=503, detail="Firestore unavailable")
+
+    docs = db.collection("api_keys").where("uid", "==", user["uid"]).stream()
+
+    results = []
+    for doc in docs:
+        d = doc.to_dict()
+        results.append({
+            "id": doc.id,
+            "createdAt": d.get("createdAt"),
+            "revoked": d.get("revoked"),
+            "lastUsedAt": d.get("lastUsedAt")
+        })
+
+    return results
+
+
+@app.delete("/keys/{key_id}")
+def revoke_key(key_id: str, user: Dict[str, Any] = Depends(require_user)):
+    db = get_firestore()
+    doc = db.collection("api_keys").document(key_id).get()
+
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Key not found")
+
+    data = doc.to_dict()
+
+    if data.get("uid") != user["uid"]:
+        raise HTTPException(status_code=403, detail="Not your key")
+
+    db.collection("api_keys").document(key_id).update({
+        "revoked": True
+    })
+
+    return {"revoked": True}
 
 
 # ----------------------------
