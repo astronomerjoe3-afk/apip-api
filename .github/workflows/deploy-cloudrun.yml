@@ -35,9 +35,9 @@ jobs:
 
       - name: Deploy to Cloud Run (build from source)
         run: |
-          gcloud run deploy "$SERVICE" \
-            --source . \
-            --region "$REGION" \
+          gcloud run services update apip-api \
+            --region asia-southeast1 \
+            --update-env-vars CORS_ORIGINS=https://app.cognispark.tech,http://localhost:3000
             --project "$PROJECT_ID" \
             --allow-unauthenticated \
             --update-env-vars "FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID},APP_COMMIT=${GITHUB_SHA}" \
