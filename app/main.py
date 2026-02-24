@@ -17,6 +17,7 @@ APP_NAME = os.getenv("APP_NAME", "apip-api")
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 APP_COMMIT = os.getenv("APP_COMMIT")  # set by GitHub Actions / Cloud Run
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")  # MUST match Firebase token aud/iss project
+BOOTSTRAP_ADMIN_UID = os.getenv("BOOTSTRAP_ADMIN_UID", "").strip()
 
 # Comma-separated list of allowed origins
 # Example:
@@ -108,10 +109,27 @@ def require_user(authorization: Optional[str] = Header(default=None)) -> Dict[st
     return verify_firebase_token(authorization)
 
 
-def require_admin(user: Dict[str, Any] = Depends(require_user)) -> Dict[str, Any]:
-    role = user.get("role")
+from fastapi import Depends, HTTPException
+from typing import Any, Dict
+
+def require_admin(user: Dict[str, Any] = Depends(require_auth)) -> Dict[str, Any]:
+    """
+    Allows admin access if:
+      - token custom claim role == "admin"
+      - OR caller uid matches BOOTSTRAP_ADMIN_UID (break-glass admin)
+    """
+    uid = (user.get("uid") or "").strip()
+    role = (user.get("role") or "").strip()
+
+    # Break-glass admin: allow if uid matches env var
+    if BOOTSTRAP_ADMIN_UID and uid == BOOTSTRAP_ADMIN_UID:
+        # Normalize role to admin for downstream
+        user["role"] = "admin"
+        return user
+
     if role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
+
     return user
 
 
