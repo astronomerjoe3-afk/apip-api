@@ -1,12 +1,12 @@
 import os
 import time
 import uuid
+import json
 import hashlib
 import secrets as py_secrets
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List
 
-import httpx
 from fastapi import FastAPI, Depends, Header, HTTPException, Body, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -27,7 +27,6 @@ from app.rate_limit import (
     COL_SECURITY,
 )
 
-
 APP_NAME = "apip-api"
 APP_VERSION = "0.1.0"
 
@@ -38,14 +37,15 @@ BOOTSTRAP_ADMIN_UID = os.getenv("BOOTSTRAP_ADMIN_UID", "").strip()
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 APP_COMMIT = os.getenv("APP_COMMIT", "(unset)").strip()
 
-ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "").strip()  # optional
-
 COL_KEYS = "api_keys"
 COL_AUDIT = "audit_logs"
 
+# Optional: enforce HTTPS-only downstream clients (Cloud Run already terminates TLS)
+SEC_HSTS = os.getenv("SEC_HSTS", "1").strip() == "1"
+
 
 # -------------------------
-# CORS
+# CORS origins
 # -------------------------
 _CORS_ORIGINS_ENV = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
 if _CORS_ORIGINS_ENV:
@@ -77,10 +77,6 @@ def get_firestore() -> firestore.Client:
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _audit_expires_at(days: int = 30) -> datetime:
-    return _now() + timedelta(days=days)
 
 
 def _hash_secret(secret: str) -> str:
@@ -156,15 +152,12 @@ def _get_api_key_record(db: firestore.Client, key_id: str) -> Optional[Dict[str,
     return d
 
 
-async def _maybe_alert(payload: Dict[str, Any]) -> None:
-    if not ALERT_WEBHOOK_URL:
-        return
+def _log_json(payload: Dict[str, Any]) -> None:
+    # Cloud Run captures stdout to Cloud Logging
     try:
-        async with httpx.AsyncClient(timeout=2.5) as client:
-            await client.post(ALERT_WEBHOOK_URL, json=payload)
+        print(json.dumps(payload, ensure_ascii=False))
     except Exception:
-        # best-effort: do not fail requests
-        return
+        pass
 
 
 # -------------------------
@@ -183,17 +176,15 @@ app.add_middleware(
 
 
 # =========================
-# Exception handler: attach X-Request-Id + RL headers for errors too
+# Exception handlers: guarantee Request-Id + RL headers
 # =========================
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     headers = dict(exc.headers or {})
-
     rid = getattr(request.state, "request_id", None)
     if rid:
-        headers["X-Request-Id"] = rid
+        headers.setdefault("X-Request-Id", rid)
 
-    # If RL headers were computed but response didn't exist, attach them here
     rl_headers = getattr(request.state, "rate_limit_headers", None)
     if isinstance(rl_headers, dict):
         for k, v in rl_headers.items():
@@ -202,8 +193,32 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=headers)
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    # Always give request id for debugging
+    rid = getattr(request.state, "request_id", None)
+    headers: Dict[str, str] = {}
+    if rid:
+        headers["X-Request-Id"] = rid
+
+    # Best-effort structured log
+    _log_json(
+        {
+            "severity": "ERROR",
+            "event": "api.unhandled_exception",
+            "request_id": rid,
+            "path": str(request.url.path),
+            "method": str(request.method),
+            "utc": _now().isoformat(),
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+        }
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"}, headers=headers)
+
+
 # =========================
-# Middleware: Request ID + latency + audit (exception-safe)
+# Middleware: request-id, latency, security headers, structured logs, audit
 # =========================
 @app.middleware("http")
 async def request_context(request: Request, call_next):
@@ -212,54 +227,68 @@ async def request_context(request: Request, call_next):
 
     start = time.perf_counter()
     status_code = 500
-    response: Optional[Response] = None
-    exc: Optional[BaseException] = None
 
     try:
         response = await call_next(request)
         status_code = response.status_code
-    except BaseException as e:
-        exc = e
-        if isinstance(e, HTTPException):
-            status_code = e.status_code
-        else:
-            status_code = 500
+    except HTTPException as e:
+        status_code = e.status_code
+        raise
     finally:
         duration_ms = int((time.perf_counter() - start) * 1000)
 
-        # Attach request-id + RL headers if we already have a response object
-        if response is not None:
-            response.headers["X-Request-Id"] = request_id
-            rl_headers = getattr(request.state, "rate_limit_headers", None)
-            if isinstance(rl_headers, dict):
-                for k, v in rl_headers.items():
-                    response.headers[k] = str(v)
+        # Structured latency log (Cloud Logging friendly)
+        _log_json(
+            {
+                "severity": "INFO",
+                "event": "api.request",
+                "request_id": request_id,
+                "path": str(request.url.path),
+                "method": str(request.method),
+                "status_code": status_code,
+                "duration_ms": duration_ms,
+                "key_id": getattr(request.state, "api_key_id", None),
+                "utc": _now().isoformat(),
+            }
+        )
 
-        # Best-effort audit write
-        db: firestore.Client = request.app.state.db
+        # Best-effort audit write (keep as you already use)
         try:
+            db: firestore.Client = request.app.state.db
             db.collection(COL_AUDIT).add(
                 {
                     "event_type": "api.request",
                     "ts": _now(),
-                    "expires_at_utc": _audit_expires_at(30),
                     "request_id": request_id,
                     "path": request.url.path,
                     "method": request.method,
                     "status_code": status_code,
                     "duration_ms": duration_ms,
                     "key_id": getattr(request.state, "api_key_id", None),
-                    "user_uid": getattr(request.state, "user_uid", None),
                 }
             )
         except Exception:
             pass
 
-    if exc is not None:
-        raise exc
+    # Attach headers on normal responses
+    response.headers["X-Request-Id"] = request_id
 
-    # response is guaranteed here
-    return response  # type: ignore[return-value]
+    # Security headers
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    # You can tighten CSP once frontend is fixed:
+    response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+    if SEC_HSTS:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+
+    # Rate limit headers (success-path)
+    rl_headers = getattr(request.state, "rate_limit_headers", None)
+    if isinstance(rl_headers, dict):
+        for k, v in rl_headers.items():
+            response.headers[k] = str(v)
+
+    return response
 
 
 # -------------------------
@@ -279,12 +308,6 @@ class CreateKeyResponse(BaseModel):
     key_id: str
     api_key: str
     created_at_utc: str
-
-
-class RevokeKeyResponse(BaseModel):
-    ok: bool
-    key_id: str
-    revoked: bool
 
 
 class PatchRateLimitReq(BaseModel):
@@ -318,22 +341,8 @@ def build_marker_alias():
     return build_marker()
 
 
-@app.get("/me")
-def me(user: Dict[str, Any] = Depends(get_current_user), request: Request = None):
-    if request is not None:
-        request.state.user_uid = user.get("uid")
-    return {"uid": user["uid"], "email": user.get("email"), "role": user.get("role")}
-
-
-@app.get("/profile")
-def profile(user: Dict[str, Any] = Depends(get_current_user), request: Request = None):
-    if request is not None:
-        request.state.user_uid = user.get("uid")
-    return {"message": "ok", "uid": user["uid"], "email": user.get("email"), "role": user.get("role")}
-
-
 # -------------------------
-# API Key auth dependency (+ Step 2.2/2.3 RL + alert on auto-disable)
+# API Key dependency (+ RL)
 # -------------------------
 def require_api_key(required_scopes: Optional[List[str]] = None):
     def _dep(
@@ -366,62 +375,35 @@ def require_api_key(required_scopes: Optional[List[str]] = None):
                 if s not in scopes and "admin:*" not in scopes:
                     raise HTTPException(status_code=403, detail=f"Missing scope: {s}")
 
-        request.state.api_key_id = rec.get("key_id")
+        request.state.api_key_id = rec["key_id"]
 
-        # RL enforcement (may raise 429 with headers)
-        try:
-            enforce_rate_limit_or_429(db, request, rec["key_id"], rec)
-        except HTTPException as e:
-            # If the limiter auto-disabled the key, emit best-effort webhook alert
-            # (auto_disable info is conveyed via request.state.rate_limit_headers)
-            adis = None
-            rl_headers = getattr(request.state, "rate_limit_headers", None)
-            if isinstance(rl_headers, dict):
-                adis = rl_headers.get("X-API-Key-Auto-Disabled")
-            if adis == "true":
-                # fire-and-forget: don't block request
-                try:
-                    payload = {
-                        "event": "api_key.auto_disabled",
-                        "key_id": rec["key_id"],
-                        "request_id": getattr(request.state, "request_id", None),
-                        "utc": _now().isoformat(),
-                    }
-                    # schedule asynchronously
-                    import asyncio
-                    asyncio.create_task(_maybe_alert(payload))
-                except Exception:
-                    pass
-            raise e
+        # RL (may raise HTTPException(429) with headers)
+        enforce_rate_limit_or_429(db, request, rec["key_id"], rec)
 
-        # Usage counters (best-effort)
+        # Usage counters best-effort
         try:
-            db.collection(COL_KEYS).document(rec["key_id"]).update(
+            db.collection(COL_KEYS).document(rec["key_id"]).set(
                 {
                     "last_used_at_utc": _now(),
                     "total_requests": firestore.Increment(1),
                     "updated_at_utc": _now(),
-                }
+                },
+                merge=True,
             )
         except Exception:
             pass
 
-        return {"key_id": rec.get("key_id"), "label": rec.get("label"), "scopes": scopes, "active": rec.get("active", False)}
+        return {"key_id": rec["key_id"], "label": rec.get("label"), "scopes": scopes, "active": rec.get("active", False)}
 
     return _dep
 
 
 # -------------------------
-# Protected
+# Protected routes
 # -------------------------
 @app.get("/protected")
 def protected(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["profile:read"]))):
     return {"ok": True, "key_id": api_key["key_id"]}
-
-
-@app.get("/protected/admin")
-def protected_admin(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["admin:*"]))):
-    return {"ok": True, "key_id": api_key["key_id"], "scopes": api_key.get("scopes", [])}
 
 
 # -------------------------
@@ -445,8 +427,6 @@ def create_key(req: CreateKeyRequest = Body(...), admin: Dict[str, Any] = Depend
         "created_at_utc": _now().isoformat(),
         "created_by_uid": admin.get("uid"),
         "created_by_email": admin.get("email"),
-        "revoked_at_utc": None,
-        "revoked_by_uid": None,
         "auto_disabled_at_utc": None,
         "auto_disabled_reason": None,
         "total_requests": 0,
@@ -462,41 +442,6 @@ def create_key(req: CreateKeyRequest = Body(...), admin: Dict[str, Any] = Depend
     return {"ok": True, "key_id": key_id, "api_key": api_key, "created_at_utc": doc["created_at_utc"]}
 
 
-@app.post("/keys/{key_id}/revoke", response_model=RevokeKeyResponse)
-def revoke_key(key_id: str, admin: Dict[str, Any] = Depends(require_admin)):
-    db = app.state.db
-    ref = db.collection(COL_KEYS).document(key_id)
-    snap = ref.get()
-    if not snap.exists:
-        raise HTTPException(status_code=404, detail="Key not found")
-
-    ref.update({"active": False, "revoked_at_utc": _now().isoformat(), "revoked_by_uid": admin.get("uid"), "updated_at_utc": _now()})
-    return {"ok": True, "key_id": key_id, "revoked": True}
-
-
-@app.get("/keys/{key_id}")
-def get_key(key_id: str, admin: Dict[str, Any] = Depends(require_admin)):
-    db = app.state.db
-    rec = _get_api_key_record(db, key_id)
-    if not rec:
-        raise HTTPException(status_code=404, detail="Key not found")
-    rec.pop("secret_hash", None)
-    return {"ok": True, "key": rec}
-
-
-@app.get("/keys")
-def list_keys(admin: Dict[str, Any] = Depends(require_admin), limit: int = Query(default=50, ge=1, le=200)):
-    db = app.state.db
-    snaps = db.collection(COL_KEYS).order_by("created_at_utc", direction=firestore.Query.DESCENDING).limit(limit).get()
-    keys: List[Dict[str, Any]] = []
-    for s in snaps:
-        d = s.to_dict() or {}
-        d["key_id"] = s.id
-        d.pop("secret_hash", None)
-        keys.append(d)
-    return {"ok": True, "count": len(keys), "keys": keys}
-
-
 @app.patch("/keys/{key_id}/rate-limit")
 def patch_rate_limit(key_id: str, body: PatchRateLimitReq, admin: Dict[str, Any] = Depends(require_admin)):
     db = app.state.db
@@ -510,12 +455,13 @@ def patch_rate_limit(key_id: str, body: PatchRateLimitReq, admin: Dict[str, Any]
         v = getattr(body, f)
         if v is not None:
             updates[f] = v
-    ref.update(updates)
+
+    ref.set(updates, merge=True)
     return {"ok": True, "key_id": key_id, "updated": True, "rate_limit": updates}
 
 
 # -------------------------
-# Admin metrics (Step 2.3)
+# Admin metrics (global + top keys from TTL counters)
 # -------------------------
 def _doc_int(d: Dict[str, Any], k: str) -> int:
     try:
@@ -527,28 +473,24 @@ def _doc_int(d: Dict[str, Any], k: str) -> int:
 @app.get("/admin/metrics")
 def admin_metrics(admin: Dict[str, Any] = Depends(require_admin), top_n: int = Query(default=10, ge=1, le=50)):
     db = app.state.db
-    utc = _now().isoformat()
 
-    # Key counts (simple scan)
-    snaps = db.collection(COL_KEYS).get()
+    # Key counts (simple scan ok at small scale; later move to agg)
     total_keys = 0
     active_keys = 0
-    auto_disabled_keys = 0
-    for s in snaps:
+    auto_disabled = 0
+    for s in db.collection(COL_KEYS).get():
         total_keys += 1
         d = s.to_dict() or {}
         if d.get("active", False):
             active_keys += 1
         if d.get("auto_disabled_at_utc"):
-            auto_disabled_keys += 1
+            auto_disabled += 1
 
-    # Global counters (no query indexes needed)
     g1 = db.collection(COL_GLOBAL_ABUSE_1H).document("global").get()
     g24 = db.collection(COL_GLOBAL_ABUSE_24H).document("global").get()
     g1d = g1.to_dict() if g1.exists else {}
     g24d = g24.to_dict() if g24.exists else {}
 
-    # Top keys (order by count_total desc — single-field index auto)
     top_1h: List[Dict[str, Any]] = []
     for s in db.collection(COL_ABUSE_1H).order_by("count_total", direction=firestore.Query.DESCENDING).limit(top_n).get():
         d = s.to_dict() or {}
@@ -559,26 +501,21 @@ def admin_metrics(admin: Dict[str, Any] = Depends(require_admin), top_n: int = Q
         d = s.to_dict() or {}
         top_24h.append({"key_id": s.id, "count": _doc_int(d, "count_total")})
 
-    # Posture + warnings
     posture = db.collection(COL_SECURITY).document("posture").get()
     pd = posture.to_dict() if posture.exists else {}
 
     warnings: List[str] = []
-    if auto_disabled_keys > 0:
-        warnings.append(f"auto_disabled_keys={auto_disabled_keys}")
+    if auto_disabled > 0:
+        warnings.append(f"auto_disabled_keys={auto_disabled}")
     if _doc_int(g1d, "count_total") > 0:
         warnings.append(f"global_violations_1h={_doc_int(g1d,'count_total')}")
     if _doc_int(g24d, "count_total") > 0:
         warnings.append(f"global_violations_24h={_doc_int(g24d,'count_total')}")
-    if ALERT_WEBHOOK_URL:
-        warnings.append("alerts=enabled")
-    else:
-        warnings.append("alerts=disabled")
 
     return {
         "ok": True,
-        "utc": utc,
-        "keys": {"total": total_keys, "active": active_keys, "auto_disabled": auto_disabled_keys},
+        "utc": _now().isoformat(),
+        "keys": {"total": total_keys, "active": active_keys, "auto_disabled": auto_disabled},
         "rate_limit": {
             "global_last_hour": {
                 "total": _doc_int(g1d, "count_total"),
