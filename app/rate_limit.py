@@ -1,315 +1,392 @@
-from __future__ import annotations
-
-import math
+import os
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional, Tuple
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 from google.cloud import firestore
 
 
-# -------------------------
-# Helpers
-# -------------------------
+# =========================
+# Collections
+# =========================
+COL_KEYS = "api_keys"               # existing keys collection
+COL_RL = "api_key_rl"               # per-key rate limit counters (buckets + daily)
+COL_ABUSE_1H = "api_key_abuse_1h"   # per-key violation counters for last hour (TTL doc)
+COL_ABUSE_24H = "api_key_abuse_24h" # per-key violation counters for last 24h (TTL doc)
 
+
+# =========================
+# Defaults / env controls
+# =========================
+DEFAULT_WINDOW_LIMIT = int(os.getenv("RL_DEFAULT_WINDOW_LIMIT", "60"))
+DEFAULT_WINDOW_SECONDS = int(os.getenv("RL_DEFAULT_WINDOW_SECONDS", "60"))
+DEFAULT_BUCKET_SECONDS = int(os.getenv("RL_DEFAULT_BUCKET_SECONDS", "10"))
+DEFAULT_DAILY_LIMIT = int(os.getenv("RL_DEFAULT_DAILY_LIMIT", "0"))  # 0 => disabled
+
+# Auto-disable thresholds (violations within time windows)
+AUTO_DISABLE_1H_THRESHOLD = int(os.getenv("RL_AUTO_DISABLE_1H_THRESHOLD", "30"))
+AUTO_DISABLE_24H_THRESHOLD = int(os.getenv("RL_AUTO_DISABLE_24H_THRESHOLD", "200"))
+
+# TTL durations for abuse counter docs
+ABUSE_1H_TTL_SECONDS = int(os.getenv("RL_ABUSE_1H_TTL_SECONDS", "3600"))
+ABUSE_24H_TTL_SECONDS = int(os.getenv("RL_ABUSE_24H_TTL_SECONDS", str(24 * 3600)))
+
+# TTL durations for rate-limit counters
+RL_BUCKET_TTL_SECONDS = int(os.getenv("RL_BUCKET_TTL_SECONDS", "7200"))  # keep buckets ~2h
+RL_DAILY_TTL_SECONDS = int(os.getenv("RL_DAILY_TTL_SECONDS", str(3 * 24 * 3600)))  # keep daily ~3d
+
+
+# =========================
+# Helpers
+# =========================
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
-def _epoch_seconds(dt: datetime) -> int:
+
+def _epoch(dt: datetime) -> int:
     return int(dt.timestamp())
 
-def _floor_to_bucket(epoch_s: int, bucket_seconds: int) -> int:
-    return (epoch_s // bucket_seconds) * bucket_seconds
 
-def _today_utc_str(dt: datetime) -> str:
+def _day_key(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
-# -------------------------
-# Rate-limit primitives
-# -------------------------
-
-@dataclass(frozen=True)
-class RateLimitPolicy:
-    window_limit: int
-    window_seconds: int
-    bucket_seconds: int
-    daily_limit: int
-
-    @staticmethod
-    def from_key_doc(d: Dict[str, Any]) -> "RateLimitPolicy":
-        # sane defaults
-        wl = int(d.get("rl_window_limit") or 10)
-        ws = int(d.get("rl_window_seconds") or 60)
-        bs = int(d.get("rl_bucket_seconds") or 10)
-        dl = int(d.get("rl_daily_limit") or 1000)
-
-        # harden
-        if ws <= 0:
-            ws = 60
-        if bs <= 0:
-            bs = 10
-        # avoid silly configs
-        bs = min(bs, ws)
-        wl = max(1, wl)
-        dl = max(1, dl)
-
-        return RateLimitPolicy(
-            window_limit=wl,
-            window_seconds=ws,
-            bucket_seconds=bs,
-            daily_limit=dl,
-        )
+def _ceil_div(a: int, b: int) -> int:
+    return (a + b - 1) // b
 
 
-@dataclass(frozen=True)
-class RateLimitMeta:
-    allowed: bool
-    violation_type: Optional[str]  # "window" | "daily" | None
-    # window counters
-    window_limit: int
-    window_used: int
-    window_remaining: int
-    window_reset_epoch: int
-    # daily counters
-    daily_limit: int
-    daily_used: int
-    daily_remaining: int
-    daily_reset_epoch: int
-    # retry
-    retry_after: int
-    # debug
-    bucket_start_epoch: int
-    now_epoch: int
+def _safe_int(v: Any, default: int) -> int:
+    try:
+        if v is None:
+            return default
+        return int(v)
+    except Exception:
+        return default
 
 
-def build_rate_limit_headers(meta: RateLimitMeta) -> Dict[str, str]:
-    # Note: Retry-After is only meaningful on 429 responses, but we return it always for convenience.
+def _policy_from_key_doc(key_doc: Dict[str, Any]) -> Dict[str, int]:
+    """
+    Per-key policy overrides (stored on api_keys/{key_id}) fall back to env defaults.
+    """
+    window_limit = _safe_int(key_doc.get("rl_window_limit"), DEFAULT_WINDOW_LIMIT)
+    window_seconds = _safe_int(key_doc.get("rl_window_seconds"), DEFAULT_WINDOW_SECONDS)
+    bucket_seconds = _safe_int(key_doc.get("rl_bucket_seconds"), DEFAULT_BUCKET_SECONDS)
+    daily_limit = _safe_int(key_doc.get("rl_daily_limit"), DEFAULT_DAILY_LIMIT)
+
+    # Guardrails
+    if window_limit <= 0:
+        window_limit = DEFAULT_WINDOW_LIMIT
+    if window_seconds <= 0:
+        window_seconds = DEFAULT_WINDOW_SECONDS
+    if bucket_seconds <= 0:
+        bucket_seconds = DEFAULT_BUCKET_SECONDS
+    if bucket_seconds > window_seconds:
+        bucket_seconds = max(1, window_seconds)
+
     return {
-        "X-RateLimit-Limit": str(meta.window_limit),
-        "X-RateLimit-Remaining": str(max(0, meta.window_remaining)),
-        "X-RateLimit-Reset": str(meta.window_reset_epoch),
-        "X-RateLimit-Daily-Limit": str(meta.daily_limit),
-        "X-RateLimit-Daily-Remaining": str(max(0, meta.daily_remaining)),
-        "X-RateLimit-Daily-Reset": str(meta.daily_reset_epoch),
-        "Retry-After": str(max(0, meta.retry_after)),
+        "window_limit": window_limit,
+        "window_seconds": window_seconds,
+        "bucket_seconds": bucket_seconds,
+        "daily_limit": max(0, daily_limit),
     }
 
 
-# -------------------------
-# Storage layout (Firestore)
-# -------------------------
+@dataclass
+class RLMeta:
+    violation_type: Optional[str] = None  # "window" | "daily" | None
+    window_limit: int = 0
+    window_remaining: int = 0
+    window_reset: int = 0
+
+    daily_limit: int = 0
+    daily_remaining: Optional[int] = None
+    daily_reset: Optional[int] = None
+
+    retry_after: int = 0
+    auto_disabled: bool = False
+
+
+def build_rate_limit_headers(meta: RLMeta) -> Dict[str, str]:
+    """
+    Standard-ish headers + daily quota.
+    """
+    headers: Dict[str, str] = {
+        "X-RateLimit-Limit": str(meta.window_limit),
+        "X-RateLimit-Remaining": str(max(0, meta.window_remaining)),
+        "X-RateLimit-Reset": str(meta.window_reset),
+        "Retry-After": str(max(0, meta.retry_after)),
+    }
+
+    # Daily (optional)
+    if meta.daily_limit and meta.daily_limit > 0:
+        headers["X-RateLimit-Daily-Limit"] = str(meta.daily_limit)
+        headers["X-RateLimit-Daily-Remaining"] = str(max(0, int(meta.daily_remaining or 0)))
+        headers["X-RateLimit-Daily-Reset"] = str(int(meta.daily_reset or 0))
+
+    # Violation split + disable signal
+    if meta.violation_type:
+        headers["X-RateLimit-Violation"] = meta.violation_type
+    if meta.auto_disabled:
+        headers["X-API-Key-Auto-Disabled"] = "true"
+
+    return headers
+
+
+# =========================
+# Firestore schema (per key)
+# =========================
+# api_key_rl/{key_id}:
+#   buckets: { "<bucket_epoch>": <count> }   (optional large map but OK for low TPS)
+#   bucket_expires_at_utc: <dt>              (TTL hint)
+#   daily: { "<YYYY-MM-DD>": <count> }
+#   daily_expires_at_utc: <dt>               (TTL hint)
 #
-# rl_counters/{key_id}/buckets/{bucket_start_epoch}
-#   - count: int
-#   - bucket_start_epoch: int
-#   - ts: datetime
-#   - expires_at_utc: datetime   (TTL)
+# api_key_abuse_1h/{key_id}:
+#   count_window: <int>
+#   count_daily: <int>
+#   count_total: <int>
+#   expires_at_utc: <dt> (TTL)
 #
-# rl_counters/{key_id}/days/{YYYY-MM-DD}
-#   - count: int
-#   - day: "YYYY-MM-DD"
-#   - day_start_epoch: int
-#   - ts: datetime
-#   - expires_at_utc: datetime   (TTL)
-#
-# This design:
-# - avoids scanning audit_logs for enforcement
-# - is transaction-safe under concurrency
-# - supports TTL cleanup
-#
+# api_key_abuse_24h/{key_id}:
+#   same fields, TTL 24h
 
 
-def _bucket_docref(db: firestore.Client, key_id: str, bucket_start_epoch: int) -> firestore.DocumentReference:
-    return (
-        db.collection("rl_counters")
-          .document(key_id)
-          .collection("buckets")
-          .document(str(bucket_start_epoch))
-    )
-
-def _day_docref(db: firestore.Client, key_id: str, day_str: str) -> firestore.DocumentReference:
-    return (
-        db.collection("rl_counters")
-          .document(key_id)
-          .collection("days")
-          .document(day_str)
-    )
-
-
-def _bucket_expires_at(now_dt: datetime, policy: RateLimitPolicy) -> datetime:
-    # Keep bucket docs long enough to cover any window lookback + minor skew.
-    return now_dt + timedelta(seconds=policy.window_seconds * 2)
-
-def _day_expires_at(now_dt: datetime) -> datetime:
-    # Keep daily docs slightly longer than 24h to cover time skew.
-    return now_dt + timedelta(days=2)
+def _abuse_doc_update(violation_type: str) -> Dict[str, Any]:
+    """
+    Split counts by violation_type + total.
+    """
+    update: Dict[str, Any] = {
+        "count_total": firestore.Increment(1),
+        "updated_at_utc": _now(),
+    }
+    if violation_type == "window":
+        update["count_window"] = firestore.Increment(1)
+    elif violation_type == "daily":
+        update["count_daily"] = firestore.Increment(1)
+    else:
+        # unknown – count_total is still incremented
+        update["count_other"] = firestore.Increment(1)
+    return update
 
 
-# -------------------------
-# Core enforcement
-# -------------------------
+def _read_count_field(doc: Optional[Dict[str, Any]], field: str) -> int:
+    try:
+        return int((doc or {}).get(field) or 0)
+    except Exception:
+        return 0
+
 
 def enforce_rate_limit(
-    *,
     db: firestore.Client,
+    request: Request,
     key_id: str,
-    policy_dict: Dict[str, Any],
-) -> RateLimitMeta:
+    key_doc: Dict[str, Any],
+) -> Tuple[bool, RLMeta]:
     """
-    Transaction-safe rate limit enforcement using:
-    - rolling window sum over last N buckets (N = window_seconds / bucket_seconds)
-    - daily counter doc
+    Deterministic API-key rate limiting using Firestore atomic increments.
+
+    Also implements Step 2.2:
+      - violation_type split: window vs daily
+      - per-key violation counters (1h + 24h) via TTL docs
+      - auto-disable if thresholds exceeded (no audit scan)
     """
-    policy = RateLimitPolicy.from_key_doc(policy_dict)
+    policy = _policy_from_key_doc(key_doc)
+    now = _now()
 
-    now_dt = _now()
-    now_epoch = _epoch_seconds(now_dt)
+    window_limit = policy["window_limit"]
+    window_seconds = policy["window_seconds"]
+    bucket_seconds = policy["bucket_seconds"]
+    daily_limit = policy["daily_limit"]
 
-    bucket_start = _floor_to_bucket(now_epoch, policy.bucket_seconds)
-    bucket_count = int(math.ceil(policy.window_seconds / policy.bucket_seconds))
-    # We sum over these bucket start epochs:
-    # [bucket_start - (N-1)*bucket_seconds, ..., bucket_start]
-    bucket_epochs = [bucket_start - i * policy.bucket_seconds for i in range(bucket_count)]
-    bucket_epochs.reverse()
+    # Compute bucket epoch aligned to bucket_seconds
+    now_epoch = _epoch(now)
+    bucket_epoch = (now_epoch // bucket_seconds) * bucket_seconds
 
-    day_str = _today_utc_str(now_dt)
+    # Window reset = end of current window interval aligned to window_seconds
+    window_start = (now_epoch // window_seconds) * window_seconds
+    window_reset = window_start + window_seconds
 
-    # reset epochs (for headers)
-    window_reset_epoch = bucket_start + policy.bucket_seconds  # next bucket boundary
-    # daily reset at next midnight UTC
-    tomorrow = (now_dt.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1))
-    daily_reset_epoch = _epoch_seconds(tomorrow)
+    # Daily reset = next UTC midnight
+    tomorrow = (now + timedelta(days=1)).date()
+    daily_reset_dt = datetime(tomorrow.year, tomorrow.month, tomorrow.day, tzinfo=timezone.utc)
+    daily_reset = _epoch(daily_reset_dt)
+    day_key = _day_key(now)
 
-    # retry-after default: seconds until next bucket boundary
-    retry_after = max(0, window_reset_epoch - now_epoch)
+    rl_ref = db.collection(COL_RL).document(key_id)
+    key_ref = db.collection(COL_KEYS).document(key_id)
+
+    abuse_1h_ref = db.collection(COL_ABUSE_1H).document(key_id)
+    abuse_24h_ref = db.collection(COL_ABUSE_24H).document(key_id)
+
+    meta = RLMeta(
+        violation_type=None,
+        window_limit=window_limit,
+        window_remaining=window_limit,
+        window_reset=window_reset,
+        daily_limit=daily_limit,
+        daily_remaining=(daily_limit if daily_limit > 0 else None),
+        daily_reset=(daily_reset if daily_limit > 0 else None),
+        retry_after=0,
+        auto_disabled=False,
+    )
 
     @firestore.transactional
-    def _tx(transaction: firestore.Transaction) -> RateLimitMeta:
-        # Read all relevant buckets + daily in one transaction.
-        bucket_refs = [_bucket_docref(db, key_id, e) for e in bucket_epochs]
-        day_ref = _day_docref(db, key_id, day_str)
+    def _tx(transaction: firestore.Transaction) -> Tuple[bool, RLMeta]:
+        # Read current RL doc (counters)
+        rl_snap = rl_ref.get(transaction=transaction)
+        rl_data = rl_snap.to_dict() if rl_snap.exists else {}
 
-        bucket_snaps = [transaction.get(r) for r in bucket_refs]
-        day_snap = transaction.get(day_ref)
+        buckets: Dict[str, Any] = (rl_data.get("buckets") or {})
+        daily: Dict[str, Any] = (rl_data.get("daily") or {})
 
-        # Sum rolling window usage
+        # Clean-ish: drop old buckets outside window horizon (+ a buffer)
+        # (We do this lazily to avoid huge maps.)
+        horizon = window_start - (2 * window_seconds)
+        buckets_clean: Dict[str, int] = {}
+        for k, v in buckets.items():
+            try:
+                k_int = int(k)
+                if k_int >= horizon:
+                    buckets_clean[str(k_int)] = int(v)
+            except Exception:
+                continue
+
+        # Compute window usage across last N buckets
+        # Number of buckets in a window:
+        buckets_per_window = max(1, _ceil_div(window_seconds, bucket_seconds))
+        # Earliest included bucket epoch:
+        earliest_bucket = bucket_epoch - (buckets_per_window - 1) * bucket_seconds
+
         window_used = 0
-        for snap in bucket_snaps:
-            if snap.exists:
-                d = snap.to_dict() or {}
-                window_used += int(d.get("count") or 0)
+        for be in range(earliest_bucket, bucket_epoch + 1, bucket_seconds):
+            window_used += int(buckets_clean.get(str(be), 0))
 
-        daily_used = 0
-        if day_snap.exists:
-            dday = day_snap.to_dict() or {}
-            daily_used = int(dday.get("count") or 0)
+        # Daily usage
+        daily_used = int(daily.get(day_key, 0))
 
-        # Decide allow/deny WITHOUT consuming quota on deny.
-        violation_type: Optional[str] = None
-        if daily_used >= policy.daily_limit:
-            violation_type = "daily"
-        elif window_used >= policy.window_limit:
-            violation_type = "window"
+        # Determine if this request would violate limits
+        violates_daily = (daily_limit > 0) and (daily_used + 1 > daily_limit)
+        violates_window = (window_used + 1 > window_limit)
 
-        allowed = violation_type is None
+        # If violates, record violation counters and maybe auto-disable
+        if violates_daily or violates_window:
+            vtype = "daily" if violates_daily else "window"
+            meta.violation_type = vtype
 
-        # If allowed, increment current bucket + daily.
-        if allowed:
-            # increment bucket doc
-            cur_ref = _bucket_docref(db, key_id, bucket_start)
-            cur_snap = next((s for s in bucket_snaps if s.reference.id == str(bucket_start)), None)
-
-            if cur_snap and cur_snap.exists:
-                transaction.update(cur_ref, {
-                    "count": firestore.Increment(1),
-                    "ts": now_dt,
-                    "expires_at_utc": _bucket_expires_at(now_dt, policy),
-                })
+            # Retry-After:
+            if vtype == "window":
+                meta.retry_after = max(0, window_reset - now_epoch)
             else:
-                transaction.set(cur_ref, {
-                    "count": 1,
-                    "bucket_start_epoch": bucket_start,
-                    "ts": now_dt,
-                    "expires_at_utc": _bucket_expires_at(now_dt, policy),
-                }, merge=True)
+                meta.retry_after = max(0, daily_reset - now_epoch)
 
-            # increment daily doc
-            if day_snap.exists:
-                transaction.update(day_ref, {
-                    "count": firestore.Increment(1),
-                    "ts": now_dt,
-                    "expires_at_utc": _day_expires_at(now_dt),
-                })
-            else:
-                day_start = now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-                transaction.set(day_ref, {
-                    "count": 1,
-                    "day": day_str,
-                    "day_start_epoch": _epoch_seconds(day_start),
-                    "ts": now_dt,
-                    "expires_at_utc": _day_expires_at(now_dt),
-                }, merge=True)
+            # Remaining stays at 0 for violating dimension
+            meta.window_remaining = max(0, window_limit - window_used)
+            if daily_limit > 0:
+                meta.daily_remaining = max(0, daily_limit - daily_used)
 
-            # Update the “used” values in the response as if the increment already happened.
-            window_used_after = window_used + 1
-            daily_used_after = daily_used + 1
-        else:
-            window_used_after = window_used
-            daily_used_after = daily_used
+            # 1h abuse doc (TTL)
+            transaction.set(
+                abuse_1h_ref,
+                {
+                    "key_id": key_id,
+                    "expires_at_utc": now + timedelta(seconds=ABUSE_1H_TTL_SECONDS),
+                },
+                merge=True,
+            )
+            transaction.update(abuse_1h_ref, _abuse_doc_update(vtype))
 
-        meta = RateLimitMeta(
-            allowed=allowed,
-            violation_type=violation_type,
-            window_limit=policy.window_limit,
-            window_used=window_used_after,
-            window_remaining=policy.window_limit - window_used_after,
-            window_reset_epoch=window_reset_epoch,
-            daily_limit=policy.daily_limit,
-            daily_used=daily_used_after,
-            daily_remaining=policy.daily_limit - daily_used_after,
-            daily_reset_epoch=daily_reset_epoch,
-            retry_after=retry_after,
-            bucket_start_epoch=bucket_start,
-            now_epoch=now_epoch,
+            # 24h abuse doc (TTL)
+            transaction.set(
+                abuse_24h_ref,
+                {
+                    "key_id": key_id,
+                    "expires_at_utc": now + timedelta(seconds=ABUSE_24H_TTL_SECONDS),
+                },
+                merge=True,
+            )
+            transaction.update(abuse_24h_ref, _abuse_doc_update(vtype))
+
+            # Read current abuse counts to decide auto-disable
+            a1 = abuse_1h_ref.get(transaction=transaction).to_dict() or {}
+            a24 = abuse_24h_ref.get(transaction=transaction).to_dict() or {}
+
+            c1 = _read_count_field(a1, "count_total")
+            c24 = _read_count_field(a24, "count_total")
+
+            # Auto-disable if exceeded thresholds
+            if (AUTO_DISABLE_1H_THRESHOLD > 0 and c1 >= AUTO_DISABLE_1H_THRESHOLD) or (
+                AUTO_DISABLE_24H_THRESHOLD > 0 and c24 >= AUTO_DISABLE_24H_THRESHOLD
+            ):
+                meta.auto_disabled = True
+                transaction.update(
+                    key_ref,
+                    {
+                        "active": False,
+                        "auto_disabled_at_utc": now,
+                        "auto_disabled_reason": f"rate_limit_violations:{c1}in1h,{c24}in24h",
+                        "updated_at_utc": now,
+                    },
+                )
+
+            return False, meta
+
+        # Otherwise: allow request, increment counters atomically
+        # Update bucket count
+        bkey = str(bucket_epoch)
+        buckets_clean[bkey] = int(buckets_clean.get(bkey, 0)) + 1
+
+        # Update daily
+        daily_new = dict(daily)
+        daily_new[day_key] = int(daily_new.get(day_key, 0)) + 1
+
+        # Persist
+        transaction.set(
+            rl_ref,
+            {
+                "key_id": key_id,
+                "buckets": buckets_clean,
+                "daily": daily_new,
+                "bucket_expires_at_utc": now + timedelta(seconds=RL_BUCKET_TTL_SECONDS),
+                "daily_expires_at_utc": now + timedelta(seconds=RL_DAILY_TTL_SECONDS),
+                "updated_at_utc": now,
+            },
+            merge=True,
         )
-        return meta
+
+        # Compute remaining
+        window_used2 = window_used + 1
+        meta.window_remaining = max(0, window_limit - window_used2)
+        if daily_limit > 0:
+            daily_used2 = daily_used + 1
+            meta.daily_remaining = max(0, daily_limit - daily_used2)
+
+        return True, meta
 
     tx = db.transaction()
-    return _tx(tx)
+    allowed, meta = _tx(tx)
+
+    # store for middleware/header attachment
+    request.state.rate_limit_meta = meta
+    request.state.rate_limit_headers = build_rate_limit_headers(meta)
+
+    return allowed, meta
 
 
-# -------------------------
-# FastAPI dependency
-# -------------------------
+# FastAPI-friendly helper: raise 429 if not allowed
+def enforce_rate_limit_or_429(
+    db: firestore.Client,
+    request: Request,
+    key_id: str,
+    key_doc: Dict[str, Any],
+) -> None:
+    allowed, meta = enforce_rate_limit(db, request, key_id, key_doc)
+    if allowed:
+        return
 
-class RateLimitDepends:
-    """
-    Reads request.state.key_policy and request.state.key_id, enforces RL,
-    and stores headers in request.state.rate_limit_headers for a response middleware to attach.
-    """
-    def __init__(self) -> None:
-        pass
-
-    def __call__(self, request: Request) -> Any:
-        db: Optional[firestore.Client] = getattr(request.app.state, "db", None)  # set in main.py
-        if db is None:
-            raise HTTPException(status_code=503, detail="Firestore not available")
-
-        key_id: Optional[str] = getattr(request.state, "api_key_id", None) or getattr(request.state, "key_id", None)
-        policy: Optional[Dict[str, Any]] = getattr(request.state, "key_policy", None)
-
-        if not key_id or not isinstance(policy, dict):
-            # programmer error: dependency order is wrong
-            raise HTTPException(status_code=500, detail="RateLimitDepends requires api_key auth first")
-
-        meta = enforce_rate_limit(db=db, key_id=key_id, policy_dict=policy)
-        headers = build_rate_limit_headers(meta)
-        request.state.rate_limit_headers = headers  # middleware in main.py will attach these
-
-        if not meta.allowed:
-            # The caller will return 429
-            raise HTTPException(status_code=429, detail={"error": "rate_limited", "type": meta.violation_type})
-
-        return {"ok": True}
+    raise HTTPException(
+        status_code=429,
+        detail={"error": "rate_limited", "violation": meta.violation_type or "unknown"},
+        headers=build_rate_limit_headers(meta),
+    )
