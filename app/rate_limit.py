@@ -10,7 +10,7 @@ from google.cloud import firestore
 # Collections
 # =========================
 COL_KEYS = "api_keys"                 # api_keys/{key_id}
-COL_RL = "api_key_rl"                 # api_key_rl/{key_id} (buckets + daily)
+COL_RL = "api_key_rl"                 # api_key_rl/{key_id}
 
 # Per-key violation counters (TTL docs)
 COL_ABUSE_1H = "api_key_abuse_1h"     # api_key_abuse_1h/{key_id}
@@ -22,7 +22,6 @@ COL_GLOBAL_ABUSE_24H = "global_abuse_24h" # global_abuse_24h/global
 
 # Global posture (non-TTL)
 COL_SECURITY = "security"             # security/posture
-
 
 # =========================
 # Defaults / env controls
@@ -41,25 +40,20 @@ ABUSE_24H_TTL_SECONDS = int(os.getenv("RL_ABUSE_24H_TTL_SECONDS", str(24 * 3600)
 RL_BUCKET_TTL_SECONDS = int(os.getenv("RL_BUCKET_TTL_SECONDS", "7200"))  # ~2h
 RL_DAILY_TTL_SECONDS = int(os.getenv("RL_DAILY_TTL_SECONDS", str(3 * 24 * 3600)))  # ~3d
 
-
 # =========================
 # Helpers
 # =========================
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
-
 def _epoch(dt: datetime) -> int:
     return int(dt.timestamp())
-
 
 def _day_key(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d")
 
-
 def _ceil_div(a: int, b: int) -> int:
     return (a + b - 1) // b
-
 
 def _safe_int(v: Any, default: int) -> int:
     try:
@@ -68,7 +62,6 @@ def _safe_int(v: Any, default: int) -> int:
         return int(v)
     except Exception:
         return default
-
 
 def _policy_from_key_doc(key_doc: Dict[str, Any]) -> Dict[str, int]:
     window_limit = _safe_int(key_doc.get("rl_window_limit"), DEFAULT_WINDOW_LIMIT)
@@ -92,6 +85,27 @@ def _policy_from_key_doc(key_doc: Dict[str, Any]) -> Dict[str, int]:
         "daily_limit": max(0, daily_limit),
     }
 
+def _read_int(doc: Dict[str, Any], field: str) -> int:
+    try:
+        return int(doc.get(field) or 0)
+    except Exception:
+        return 0
+
+def _abuse_merge_fields(doc_key: str, violation_type: str, ttl_seconds: int) -> Dict[str, Any]:
+    # transaction.set(..., merge=True) supports Increment safely
+    fields: Dict[str, Any] = {
+        "key_id": doc_key,
+        "updated_at_utc": _now(),
+        "expires_at_utc": _now() + timedelta(seconds=ttl_seconds),
+        "count_total": firestore.Increment(1),
+    }
+    if violation_type == "window":
+        fields["count_window"] = firestore.Increment(1)
+    elif violation_type == "daily":
+        fields["count_daily"] = firestore.Increment(1)
+    else:
+        fields["count_other"] = firestore.Increment(1)
+    return fields
 
 @dataclass
 class RLMeta:
@@ -107,7 +121,6 @@ class RLMeta:
     retry_after: int = 0
     auto_disabled: bool = False
 
-
 def build_rate_limit_headers(meta: RLMeta) -> Dict[str, str]:
     headers: Dict[str, str] = {
         "X-RateLimit-Limit": str(meta.window_limit),
@@ -115,44 +128,19 @@ def build_rate_limit_headers(meta: RLMeta) -> Dict[str, str]:
         "X-RateLimit-Reset": str(meta.window_reset),
         "Retry-After": str(max(0, meta.retry_after)),
     }
-
     if meta.daily_limit and meta.daily_limit > 0:
         headers["X-RateLimit-Daily-Limit"] = str(meta.daily_limit)
         headers["X-RateLimit-Daily-Remaining"] = str(max(0, int(meta.daily_remaining or 0)))
         headers["X-RateLimit-Daily-Reset"] = str(int(meta.daily_reset or 0))
-
     if meta.violation_type:
         headers["X-RateLimit-Violation"] = meta.violation_type
     if meta.auto_disabled:
         headers["X-API-Key-Auto-Disabled"] = "true"
-
     return headers
 
-
-def _abuse_merge_fields(key_id: str, violation_type: str, ttl_seconds: int) -> Dict[str, Any]:
-    # IMPORTANT: use only transaction.set(... merge=True) with increments (NO transaction.update)
-    fields: Dict[str, Any] = {
-        "key_id": key_id,
-        "updated_at_utc": _now(),
-        "expires_at_utc": _now() + timedelta(seconds=ttl_seconds),
-        "count_total": firestore.Increment(1),
-    }
-    if violation_type == "window":
-        fields["count_window"] = firestore.Increment(1)
-    elif violation_type == "daily":
-        fields["count_daily"] = firestore.Increment(1)
-    else:
-        fields["count_other"] = firestore.Increment(1)
-    return fields
-
-
-def _read_int(doc: Dict[str, Any], field: str) -> int:
-    try:
-        return int(doc.get(field) or 0)
-    except Exception:
-        return 0
-
-
+# =========================
+# Core enforcement
+# =========================
 def enforce_rate_limit(
     db: firestore.Client,
     request: Request,
@@ -183,10 +171,8 @@ def enforce_rate_limit(
 
     abuse_1h_ref = db.collection(COL_ABUSE_1H).document(key_id)
     abuse_24h_ref = db.collection(COL_ABUSE_24H).document(key_id)
-
     g1_ref = db.collection(COL_GLOBAL_ABUSE_1H).document("global")
     g24_ref = db.collection(COL_GLOBAL_ABUSE_24H).document("global")
-
     posture_ref = db.collection(COL_SECURITY).document("posture")
 
     meta = RLMeta(
@@ -203,9 +189,15 @@ def enforce_rate_limit(
 
     @firestore.transactional
     def _tx(transaction: firestore.Transaction) -> Tuple[bool, RLMeta]:
-        # Read current bucket state
+        # ✅ READS FIRST (Firestore transaction rule)
         rl_snap = rl_ref.get(transaction=transaction)
         rl_data = rl_snap.to_dict() if rl_snap.exists else {}
+
+        # We also read abuse docs up front so we can compute projected counts
+        a1_snap = abuse_1h_ref.get(transaction=transaction)
+        a24_snap = abuse_24h_ref.get(transaction=transaction)
+        a1 = a1_snap.to_dict() if a1_snap.exists else {}
+        a24 = a24_snap.to_dict() if a24_snap.exists else {}
 
         buckets: Dict[str, Any] = (rl_data.get("buckets") or {})
         daily: Dict[str, Any] = (rl_data.get("daily") or {})
@@ -234,6 +226,7 @@ def enforce_rate_limit(
         violates_window = (window_used + 1 > window_limit)
 
         if violates_daily or violates_window:
+            # ---- Prepare meta
             vtype = "daily" if violates_daily else "window"
             meta.violation_type = vtype
 
@@ -246,7 +239,19 @@ def enforce_rate_limit(
                 (daily_reset - now_epoch) if vtype == "daily" else (window_reset - now_epoch),
             )
 
-            # ✅ Violation counters (per-key + global) via merge SET with increments (no update)
+            # ---- Projected counts (no reads after writes)
+            projected_1h = _read_int(a1, "count_total") + 1
+            projected_24h = _read_int(a24, "count_total") + 1
+
+            should_disable = (
+                (AUTO_DISABLE_1H_THRESHOLD > 0 and projected_1h >= AUTO_DISABLE_1H_THRESHOLD)
+                or (AUTO_DISABLE_24H_THRESHOLD > 0 and projected_24h >= AUTO_DISABLE_24H_THRESHOLD)
+            )
+
+            if should_disable:
+                meta.auto_disabled = True
+
+            # ✅ WRITES AFTER ALL READS
             transaction.set(
                 abuse_1h_ref,
                 _abuse_merge_fields(key_id, vtype, ABUSE_1H_TTL_SECONDS),
@@ -268,22 +273,13 @@ def enforce_rate_limit(
                 merge=True,
             )
 
-            # Read snapshots (safe: read is allowed) to evaluate auto-disable
-            a1 = abuse_1h_ref.get(transaction=transaction).to_dict() or {}
-            a24 = abuse_24h_ref.get(transaction=transaction).to_dict() or {}
-            c1 = _read_int(a1, "count_total")
-            c24 = _read_int(a24, "count_total")
-
-            if (AUTO_DISABLE_1H_THRESHOLD > 0 and c1 >= AUTO_DISABLE_1H_THRESHOLD) or (
-                AUTO_DISABLE_24H_THRESHOLD > 0 and c24 >= AUTO_DISABLE_24H_THRESHOLD
-            ):
-                meta.auto_disabled = True
+            if should_disable:
                 transaction.set(
                     key_ref,
                     {
                         "active": False,
                         "auto_disabled_at_utc": now,
-                        "auto_disabled_reason": f"rate_limit_violations:{c1}in1h,{c24}in24h",
+                        "auto_disabled_reason": f"rate_limit_violations:{projected_1h}in1h,{projected_24h}in24h",
                         "updated_at_utc": now,
                     },
                     merge=True,
@@ -300,7 +296,7 @@ def enforce_rate_limit(
 
             return False, meta
 
-        # Allow: increment bucket and daily
+        # Allowed: increment bucket and daily
         bkey = str(bucket_epoch)
         buckets_clean[bkey] = int(buckets_clean.get(bkey, 0)) + 1
 
