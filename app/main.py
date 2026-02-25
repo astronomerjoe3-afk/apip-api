@@ -6,7 +6,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List, Callable, Tuple
 
-from fastapi import FastAPI, Depends, Header, HTTPException, Body, Request, Response
+from fastapi import FastAPI, Depends, Header, HTTPException, Body, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -281,7 +281,6 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
             raise HTTPException(status_code=401, detail="Invalid API key")
 
         if not rec.get("active", False):
-            # Avoid serving stale cached revoked keys
             _cache_invalidate(parsed["key_id"])
             raise HTTPException(status_code=403, detail="API key revoked")
 
@@ -310,6 +309,27 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
         }
 
     return _dep
+
+
+def _sanitize_key_record(rec: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Never return secret_hash or other sensitive internals.
+    """
+    return {
+        "key_id": rec.get("key_id"),
+        "label": rec.get("label"),
+        "scopes": rec.get("scopes") or [],
+        "active": bool(rec.get("active", False)),
+        "created_at_utc": rec.get("created_at_utc"),
+        "created_by_uid": rec.get("created_by_uid"),
+        "created_by_email": rec.get("created_by_email"),
+        "revoked_at_utc": rec.get("revoked_at_utc"),
+        "revoked_by_uid": rec.get("revoked_by_uid"),
+        "rl_window_limit": rec.get("rl_window_limit"),
+        "rl_window_seconds": rec.get("rl_window_seconds"),
+        "rl_bucket_seconds": rec.get("rl_bucket_seconds"),
+        "rl_daily_limit": rec.get("rl_daily_limit"),
+    }
 
 
 # -------------------------
@@ -494,7 +514,6 @@ def revoke_api_key(
         }
     )
 
-    # Invalidate cache immediately
     _cache_invalidate(key_id)
 
     return {"ok": True, "key_id": key_id, "revoked": True}
@@ -537,10 +556,55 @@ def admin_update_key_rate_limit(
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "firestore_update_failed", "message": str(e)})
 
-    # Invalidate cache so the next request reads the latest policy
     _cache_invalidate(key_id)
 
     return {"ok": True, "key_id": key_id, "updated": True, "rate_limit": updates}
+
+
+# -------------------------
+# ✅ Admin: get/list keys (new)
+# -------------------------
+
+@app.get("/keys/{key_id}")
+def admin_get_key(
+    key_id: str,
+    _: Dict[str, Any] = Depends(require_admin),
+):
+    db = get_firestore()
+    if not db:
+        raise HTTPException(status_code=503, detail="Firestore not available")
+
+    rec = get_api_key_record(db, key_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Key not found")
+
+    return {"ok": True, "key": _sanitize_key_record(rec)}
+
+
+@app.get("/keys")
+def admin_list_keys(
+    limit: int = Query(default=50, ge=1, le=200),
+    _: Dict[str, Any] = Depends(require_admin),
+):
+    """
+    Lists API keys (metadata only; never returns secret or secret_hash).
+    Ordered by created_at_utc desc.
+    """
+    db = get_firestore()
+    if not db:
+        raise HTTPException(status_code=503, detail="Firestore not available")
+
+    try:
+        q = db.collection("api_keys").order_by("created_at_utc", direction=firestore.Query.DESCENDING).limit(int(limit))
+        keys: List[Dict[str, Any]] = []
+        for snap in q.stream():
+            rec = snap.to_dict() or {}
+            rec["key_id"] = snap.id
+            keys.append(_sanitize_key_record(rec))
+        return {"ok": True, "count": len(keys), "keys": keys}
+    except Exception as e:
+        # If Firestore complains about index, it will mention it in message.
+        raise HTTPException(status_code=500, detail={"error": "list_keys_failed", "message": str(e)})
 
 
 # -------------------------
