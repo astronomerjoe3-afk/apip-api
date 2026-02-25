@@ -682,24 +682,38 @@ def admin_list_keys(limit: int = Query(default=50, ge=1, le=200), _: Dict[str, A
 def _count_query_safe(q) -> Optional[int]:
     """
     Best-effort Firestore count aggregation (fast) with fallback to streaming count (slower).
+
+    NOTE: In google-cloud-firestore, aggregation_query.get() often returns a list of tuples:
+      [(AggregationResult, read_time)]
+    where AggregationResult has a .value attribute.
     """
-    # Aggregation count() exists in newer firestore client versions.
+    # Aggregation count() (fast)
     try:
         agg = q.count()
         res = agg.get()
-        if res and hasattr(res[0], "value"):
-            return int(res[0].value)
-        # Some versions use .to_dict()
-        if res and hasattr(res[0], "to_dict"):
-            d = res[0].to_dict()
-            # key may vary; try common patterns
-            for k in ("count", "value"):
-                if k in d:
-                    return int(d[k])
+
+        if res:
+            first = res[0]
+
+            # Common shape: (AggregationResult, read_time)
+            if isinstance(first, (tuple, list)) and len(first) >= 1 and hasattr(first[0], "value"):
+                return int(first[0].value)
+
+            # Alternate shape: AggregationResult directly
+            if hasattr(first, "value"):
+                return int(first.value)
+
+            # Some SDK variants use to_dict()
+            if hasattr(first, "to_dict"):
+                d = first.to_dict()
+                for k in ("count", "value"):
+                    if k in d:
+                        return int(d[k])
+
     except Exception:
         pass
 
-    # Fallback: stream and count (avoid if large datasets)
+    # Fallback: stream and count (slow; avoid for large datasets)
     try:
         n = 0
         for _ in q.stream():
