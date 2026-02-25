@@ -1,12 +1,14 @@
 import os
+import time
 import secrets as py_secrets
 import hashlib
+import threading
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, List, Callable
+from typing import Any, Dict, Optional, List, Callable, Tuple
 
 from fastapi import FastAPI, Depends, Header, HTTPException, Body, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import firebase_admin
 from firebase_admin import auth as fb_auth
@@ -28,7 +30,10 @@ BOOTSTRAP_ADMIN_UID = os.getenv("BOOTSTRAP_ADMIN_UID", "").strip()
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 APP_COMMIT = os.getenv("APP_COMMIT", "(unset)").strip()
 
-# CORS origins: comma-separated. Falls back to common dev/prod.
+# API key record cache TTL (seconds). Lower = faster revocation effect, higher = fewer reads.
+API_KEY_CACHE_TTL_SECONDS = int(os.getenv("API_KEY_CACHE_TTL_SECONDS", "10"))
+
+# CORS origins
 _CORS_ORIGINS_ENV = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
 if _CORS_ORIGINS_ENV:
     CORS_ALLOW_ORIGINS = [o.strip() for o in _CORS_ORIGINS_ENV.split(",") if o.strip()]
@@ -67,7 +72,7 @@ def get_firestore() -> Optional[firestore.Client]:
 
 
 # -------------------------
-# App (✅ DEFINE FIRST)
+# App
 # -------------------------
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
@@ -82,7 +87,7 @@ app.add_middleware(
 
 
 # -------------------------
-# ✅ Middleware: attach RL headers to ALL responses (200 + 429)
+# Middleware: attach RL headers to ALL responses
 # -------------------------
 
 @app.middleware("http")
@@ -194,6 +199,43 @@ def _parse_api_key(api_key: str) -> Optional[Dict[str, str]]:
     return {"key_id": key_id, "secret": secret}
 
 
+def _cache_now() -> float:
+    return time.time()
+
+
+# In-memory per-instance cache: key_id -> (expires_epoch, record_dict)
+_api_key_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+_api_key_cache_lock = threading.Lock()
+
+
+def _cache_get(key_id: str) -> Optional[Dict[str, Any]]:
+    if API_KEY_CACHE_TTL_SECONDS <= 0:
+        return None
+    now = _cache_now()
+    with _api_key_cache_lock:
+        item = _api_key_cache.get(key_id)
+        if not item:
+            return None
+        exp, rec = item
+        if exp <= now:
+            _api_key_cache.pop(key_id, None)
+            return None
+        return dict(rec)
+
+
+def _cache_put(key_id: str, rec: Dict[str, Any]) -> None:
+    if API_KEY_CACHE_TTL_SECONDS <= 0:
+        return
+    exp = _cache_now() + float(API_KEY_CACHE_TTL_SECONDS)
+    with _api_key_cache_lock:
+        _api_key_cache[key_id] = (exp, dict(rec))
+
+
+def _cache_invalidate(key_id: str) -> None:
+    with _api_key_cache_lock:
+        _api_key_cache.pop(key_id, None)
+
+
 def get_api_key_record(db: firestore.Client, key_id: str) -> Optional[Dict[str, Any]]:
     snap = db.collection("api_keys").document(key_id).get()
     if not snap.exists:
@@ -203,10 +245,21 @@ def get_api_key_record(db: firestore.Client, key_id: str) -> Optional[Dict[str, 
     return data
 
 
+def get_api_key_record_cached(db: firestore.Client, key_id: str) -> Optional[Dict[str, Any]]:
+    cached = _cache_get(key_id)
+    if cached is not None:
+        return cached
+    rec = get_api_key_record(db, key_id)
+    if rec is not None:
+        _cache_put(key_id, rec)
+    return rec
+
+
 def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[..., Dict[str, Any]]:
     """
     Dependency factory. Verifies X-API-Key, checks active, checks secret hash, checks scopes.
-    ✅ Patch: sets request.state.api_key_id for rate limiting.
+    Sets request.state.api_key_id for rate limiting.
+    Uses TTL cache to reduce Firestore reads per instance.
     """
     def _dep(
         request: Request,
@@ -223,17 +276,18 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
         if not db:
             raise HTTPException(status_code=503, detail="Firestore not available")
 
-        rec = get_api_key_record(db, parsed["key_id"])
+        rec = get_api_key_record_cached(db, parsed["key_id"])
         if not rec:
             raise HTTPException(status_code=401, detail="Invalid API key")
 
         if not rec.get("active", False):
+            # Avoid serving stale cached revoked keys
+            _cache_invalidate(parsed["key_id"])
             raise HTTPException(status_code=403, detail="API key revoked")
 
         expected_hash = rec.get("secret_hash") or ""
         provided_hash = _hash_secret(parsed["secret"])
 
-        # constant-time compare
         if not py_secrets.compare_digest(str(expected_hash), str(provided_hash)):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
@@ -243,7 +297,6 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
                 if s not in scopes and "admin:*" not in scopes:
                     raise HTTPException(status_code=403, detail=f"Missing scope: {s}")
 
-        # ✅ make key id available for rate limiter
         request.state.api_key_id = rec.get("key_id")
 
         return {
@@ -268,10 +321,10 @@ class CreateKeyRequest(BaseModel):
     scopes: Optional[List[str]] = None
 
     # Optional per-key RL policy (Option B)
-    rl_window_limit: Optional[int] = None
-    rl_window_seconds: Optional[int] = None
-    rl_bucket_seconds: Optional[int] = None
-    rl_daily_limit: Optional[int] = None
+    rl_window_limit: Optional[int] = Field(default=None, ge=1)
+    rl_window_seconds: Optional[int] = Field(default=None, ge=1)
+    rl_bucket_seconds: Optional[int] = Field(default=None, ge=1)
+    rl_daily_limit: Optional[int] = Field(default=None, ge=0)
 
 
 class CreateKeyResponse(BaseModel):
@@ -289,6 +342,14 @@ class RevokeKeyResponse(BaseModel):
 
 class SetRoleReq(BaseModel):
     role: str
+
+
+class UpdateRateLimitRequest(BaseModel):
+    # PATCH semantics: only provided fields are updated
+    rl_window_limit: Optional[int] = Field(default=None, ge=1)
+    rl_window_seconds: Optional[int] = Field(default=None, ge=1)
+    rl_bucket_seconds: Optional[int] = Field(default=None, ge=1)
+    rl_daily_limit: Optional[int] = Field(default=None, ge=0)
 
 
 # -------------------------
@@ -370,7 +431,6 @@ def create_api_key(
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
 
-    # key_id is the Firestore doc id; secret is only returned once
     key_id = py_secrets.token_urlsafe(12).replace("-", "").replace("_", "")
     secret = py_secrets.token_urlsafe(32)
 
@@ -401,6 +461,9 @@ def create_api_key(
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "firestore_write_failed", "message": str(e)})
 
+    # Cache the just-created key record (safe; includes secret_hash not secret)
+    _cache_put(key_id, doc)
+
     return {
         "ok": True,
         "key_id": key_id,
@@ -430,7 +493,54 @@ def revoke_api_key(
             "revoked_by_uid": admin["uid"],
         }
     )
+
+    # Invalidate cache immediately
+    _cache_invalidate(key_id)
+
     return {"ok": True, "key_id": key_id, "revoked": True}
+
+
+@app.patch("/keys/{key_id}/rate-limit")
+def admin_update_key_rate_limit(
+    key_id: str,
+    body: UpdateRateLimitRequest,
+    _: Dict[str, Any] = Depends(require_admin),
+):
+    """
+    Update per-key rate limit policy without recreating the key.
+    PATCH semantics: only provided fields are updated.
+    """
+    db = get_firestore()
+    if not db:
+        raise HTTPException(status_code=503, detail="Firestore not available")
+
+    ref = db.collection("api_keys").document(key_id)
+    snap = ref.get()
+    if not snap.exists:
+        raise HTTPException(status_code=404, detail="Key not found")
+
+    updates: Dict[str, Any] = {}
+    if body.rl_window_limit is not None:
+        updates["rl_window_limit"] = int(body.rl_window_limit)
+    if body.rl_window_seconds is not None:
+        updates["rl_window_seconds"] = int(body.rl_window_seconds)
+    if body.rl_bucket_seconds is not None:
+        updates["rl_bucket_seconds"] = int(body.rl_bucket_seconds)
+    if body.rl_daily_limit is not None:
+        updates["rl_daily_limit"] = int(body.rl_daily_limit)
+
+    if not updates:
+        return {"ok": True, "key_id": key_id, "updated": False, "message": "No fields provided"}
+
+    try:
+        ref.update(updates)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": "firestore_update_failed", "message": str(e)})
+
+    # Invalidate cache so the next request reads the latest policy
+    _cache_invalidate(key_id)
+
+    return {"ok": True, "key_id": key_id, "updated": True, "rate_limit": updates}
 
 
 # -------------------------

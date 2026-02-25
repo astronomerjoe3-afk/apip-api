@@ -23,7 +23,6 @@ def _firestore_client() -> firestore.Client:
 
 _db = _firestore_client()
 
-
 # -------------------------
 # Defaults (env)
 # -------------------------
@@ -43,6 +42,7 @@ class RateLimitDecision:
     window_limit: int
     daily_remaining: Optional[int]
     daily_limit: Optional[int]
+    reset_epoch_seconds: int  # next bucket boundary (client-friendly)
 
 
 def _utc_now() -> datetime:
@@ -58,6 +58,7 @@ def _bucket_id(epoch_seconds: int, bucket_seconds: int) -> int:
 
 
 def _active_bucket_ids(now_epoch: int, bucket_seconds: int, window_seconds: int) -> Tuple[int, ...]:
+    # e.g. window=60, bucket=10 -> 6 buckets: current and previous 5
     n = max(1, window_seconds // bucket_seconds)
     current = _bucket_id(now_epoch, bucket_seconds)
     return tuple(current - i for i in range(n))
@@ -70,6 +71,11 @@ def _trim_buckets(buckets: Dict[str, int], keep_ids: Tuple[int, ...]) -> Dict[st
 
 def _sum_buckets(buckets: Dict[str, int], ids: Tuple[int, ...]) -> int:
     return sum(int(buckets.get(str(bid), 0)) for bid in ids)
+
+
+def _next_bucket_boundary_epoch(now_epoch: int, bucket_seconds: int) -> int:
+    # next boundary: (floor(now/bucket)+1) * bucket
+    return (_bucket_id(now_epoch, bucket_seconds) + 1) * bucket_seconds
 
 
 def _calc_retry_after(now_epoch: int, bucket_seconds: int) -> int:
@@ -89,8 +95,10 @@ def _get_int_or_none(x: Any) -> Optional[int]:
 def get_rate_limit_policy_for_key(key_id: str) -> dict:
     """
     Option B:
-    Read per-key overrides from api_keys/{key_id} if present.
-    Falls back to env defaults otherwise.
+    - Read per-key overrides from api_keys/{key_id} if present.
+    - Fall back to environment defaults otherwise.
+    Fields supported in api_keys doc:
+      rl_bucket_seconds, rl_window_seconds, rl_window_limit, rl_daily_limit
     """
     bucket_seconds = DEFAULT_BUCKET_SECONDS
     window_seconds = DEFAULT_WINDOW_SECONDS
@@ -119,6 +127,7 @@ def get_rate_limit_policy_for_key(key_id: str) -> dict:
         # Fail closed to defaults if policy fetch fails
         pass
 
+    # Sanity
     bucket_seconds = max(1, int(bucket_seconds))
     window_seconds = max(bucket_seconds, int(window_seconds))
     window_limit = max(1, int(window_limit))
@@ -133,12 +142,13 @@ def get_rate_limit_policy_for_key(key_id: str) -> dict:
 
 def rate_limit_api_key_dependency(request: Request) -> None:
     """
-    Enforces rate limit only for API-key requests.
-    main.py must set request.state.api_key_id in require_api_key().
+    Enforces rate limit ONLY for API-key requests.
+    main.py must set request.state.api_key_id inside require_api_key().
     """
+
     key_id = getattr(request.state, "api_key_id", None)
     if not key_id:
-        return
+        return  # Not an API-key request; no-op
 
     policy = get_rate_limit_policy_for_key(str(key_id))
     bucket_seconds = int(policy["bucket_seconds"])
@@ -149,6 +159,7 @@ def rate_limit_api_key_dependency(request: Request) -> None:
     now = _utc_now()
     now_epoch = int(now.timestamp())
     today = _yyyymmdd(now)
+    reset_epoch = _next_bucket_boundary_epoch(now_epoch, bucket_seconds)
 
     bucket_ids = _active_bucket_ids(now_epoch, bucket_seconds, window_seconds)
     current_bucket = str(bucket_ids[0])
@@ -174,7 +185,7 @@ def rate_limit_api_key_dependency(request: Request) -> None:
             stored_day = today
             daily_count = 0
 
-        # Window limit
+        # 1) Window check
         if used_in_window >= window_limit:
             retry_after = _calc_retry_after(now_epoch, bucket_seconds)
             return RateLimitDecision(
@@ -184,12 +195,14 @@ def rate_limit_api_key_dependency(request: Request) -> None:
                 window_limit=window_limit,
                 daily_remaining=(max(0, int(daily_limit) - daily_count) if daily_enabled else None),
                 daily_limit=(int(daily_limit) if daily_enabled else None),
+                reset_epoch_seconds=reset_epoch,
             )
 
-        # Daily limit
+        # 2) Daily check
         if daily_enabled and daily_count >= int(daily_limit):
             tomorrow_utc = int(datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp() + 86400)
             retry_after = max(60, tomorrow_utc - now_epoch)
+            # For daily exhaustion, reset_epoch_seconds is "tomorrow" start for client guidance
             return RateLimitDecision(
                 allowed=False,
                 retry_after_seconds=retry_after,
@@ -197,9 +210,10 @@ def rate_limit_api_key_dependency(request: Request) -> None:
                 window_limit=window_limit,
                 daily_remaining=0,
                 daily_limit=int(daily_limit),
+                reset_epoch_seconds=tomorrow_utc,
             )
 
-        # Increment
+        # 3) Increment current bucket + daily
         buckets[current_bucket] = int(buckets.get(current_bucket, 0)) + 1
         used_after = used_in_window + 1
 
@@ -229,14 +243,18 @@ def rate_limit_api_key_dependency(request: Request) -> None:
             window_limit=window_limit,
             daily_remaining=(max(0, int(daily_limit) - (daily_count + 1)) if daily_enabled else None),
             daily_limit=(int(daily_limit) if daily_enabled else None),
+            reset_epoch_seconds=reset_epoch,
         )
 
     decision = _tx(txn)
 
-    # ✅ Patch: attach headers on ALL responses via request.state
+    # Attach headers for middleware to add on ALL responses
     rl_headers = {
         "X-RateLimit-Limit": str(decision.window_limit),
         "X-RateLimit-Remaining": str(decision.window_remaining),
+        "X-RateLimit-Reset": str(decision.reset_epoch_seconds),
+        "X-RateLimit-Window-Seconds": str(window_seconds),
+        "X-RateLimit-Bucket-Seconds": str(bucket_seconds),
     }
     if decision.daily_limit is not None and decision.daily_remaining is not None:
         rl_headers["X-RateLimit-Daily-Limit"] = str(decision.daily_limit)
@@ -247,7 +265,6 @@ def rate_limit_api_key_dependency(request: Request) -> None:
     if not decision.allowed:
         headers = dict(rl_headers)
         headers["Retry-After"] = str(decision.retry_after_seconds)
-
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Rate limit exceeded",
