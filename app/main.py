@@ -6,6 +6,7 @@ import secrets as py_secrets
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional, List
 
+import httpx
 from fastapi import FastAPI, Depends, Header, HTTPException, Body, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -19,9 +20,11 @@ from google.cloud import firestore
 
 from app.rate_limit import (
     enforce_rate_limit_or_429,
-    build_rate_limit_headers,
     COL_ABUSE_1H,
     COL_ABUSE_24H,
+    COL_GLOBAL_ABUSE_1H,
+    COL_GLOBAL_ABUSE_24H,
+    COL_SECURITY,
 )
 
 
@@ -34,6 +37,8 @@ API_KEY_PREFIX = "ak_"
 BOOTSTRAP_ADMIN_UID = os.getenv("BOOTSTRAP_ADMIN_UID", "").strip()
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 APP_COMMIT = os.getenv("APP_COMMIT", "(unset)").strip()
+
+ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "").strip()  # optional
 
 COL_KEYS = "api_keys"
 COL_AUDIT = "audit_logs"
@@ -75,7 +80,6 @@ def _now() -> datetime:
 
 
 def _audit_expires_at(days: int = 30) -> datetime:
-    # Firestore TTL expects a timestamp field in a document.
     return _now() + timedelta(days=days)
 
 
@@ -113,18 +117,12 @@ def get_current_user(authorization: Optional[str] = Header(default=None)) -> Dic
     uid = decoded.get("uid") or decoded.get("sub")
     email = decoded.get("email")
     role = decoded.get("role") or "user"
-    return {
-        "uid": uid,
-        "email": email,
-        "role": role,
-        "claims": decoded,
-    }
+    return {"uid": uid, "email": email, "role": role, "claims": decoded}
 
 
 def require_admin(user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
     uid = user.get("uid")
     role = user.get("role")
-
     if BOOTSTRAP_ADMIN_UID and uid == BOOTSTRAP_ADMIN_UID:
         return user
     if role != "admin":
@@ -133,9 +131,6 @@ def require_admin(user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str,
 
 
 def _parse_api_key(api_key: str) -> Optional[Dict[str, str]]:
-    """
-    Expected format: ak_<key_id>.<secret>
-    """
     if not api_key:
         return None
     api_key = api_key.strip()
@@ -161,6 +156,17 @@ def _get_api_key_record(db: firestore.Client, key_id: str) -> Optional[Dict[str,
     return d
 
 
+async def _maybe_alert(payload: Dict[str, Any]) -> None:
+    if not ALERT_WEBHOOK_URL:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=2.5) as client:
+            await client.post(ALERT_WEBHOOK_URL, json=payload)
+    except Exception:
+        # best-effort: do not fail requests
+        return
+
+
 # -------------------------
 # App
 # -------------------------
@@ -177,32 +183,57 @@ app.add_middleware(
 
 
 # =========================
-# Middleware: Request ID + latency + audit (NO return in finally)
+# Exception handler: attach X-Request-Id + RL headers for errors too
+# =========================
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    headers = dict(exc.headers or {})
+
+    rid = getattr(request.state, "request_id", None)
+    if rid:
+        headers["X-Request-Id"] = rid
+
+    # If RL headers were computed but response didn't exist, attach them here
+    rl_headers = getattr(request.state, "rate_limit_headers", None)
+    if isinstance(rl_headers, dict):
+        for k, v in rl_headers.items():
+            headers.setdefault(k, str(v))
+
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=headers)
+
+
+# =========================
+# Middleware: Request ID + latency + audit (exception-safe)
 # =========================
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request_id = uuid.uuid4().hex[:16]
     request.state.request_id = request_id
-    start = time.perf_counter()
 
-    response: Optional[Response] = None
+    start = time.perf_counter()
     status_code = 500
+    response: Optional[Response] = None
+    exc: Optional[BaseException] = None
+
     try:
         response = await call_next(request)
         status_code = response.status_code
-        return response
+    except BaseException as e:
+        exc = e
+        if isinstance(e, HTTPException):
+            status_code = e.status_code
+        else:
+            status_code = 500
     finally:
         duration_ms = int((time.perf_counter() - start) * 1000)
 
-        # Attach request id header if response exists
+        # Attach request-id + RL headers if we already have a response object
         if response is not None:
             response.headers["X-Request-Id"] = request_id
-
-        # Attach RL headers (200 and 429) if present
-        rl_headers = getattr(request.state, "rate_limit_headers", None)
-        if response is not None and isinstance(rl_headers, dict):
-            for k, v in rl_headers.items():
-                response.headers[k] = str(v)
+            rl_headers = getattr(request.state, "rate_limit_headers", None)
+            if isinstance(rl_headers, dict):
+                for k, v in rl_headers.items():
+                    response.headers[k] = str(v)
 
         # Best-effort audit write
         db: firestore.Client = request.app.state.db
@@ -224,6 +255,12 @@ async def request_context(request: Request, call_next):
         except Exception:
             pass
 
+    if exc is not None:
+        raise exc
+
+    # response is guaranteed here
+    return response  # type: ignore[return-value]
+
 
 # -------------------------
 # Models
@@ -231,8 +268,6 @@ async def request_context(request: Request, call_next):
 class CreateKeyRequest(BaseModel):
     label: Optional[str] = None
     scopes: Optional[List[str]] = None
-
-    # per-key RL policy overrides
     rl_window_limit: Optional[int] = None
     rl_window_seconds: Optional[int] = None
     rl_bucket_seconds: Optional[int] = None
@@ -292,14 +327,13 @@ def me(user: Dict[str, Any] = Depends(get_current_user), request: Request = None
 
 @app.get("/profile")
 def profile(user: Dict[str, Any] = Depends(get_current_user), request: Request = None):
-    # backward compatibility
     if request is not None:
         request.state.user_uid = user.get("uid")
     return {"message": "ok", "uid": user["uid"], "email": user.get("email"), "role": user.get("role")}
 
 
 # -------------------------
-# API Key auth dependency (+ Step 2.2 RL)
+# API Key auth dependency (+ Step 2.2/2.3 RL + alert on auto-disable)
 # -------------------------
 def require_api_key(required_scopes: Optional[List[str]] = None):
     def _dep(
@@ -321,26 +355,46 @@ def require_api_key(required_scopes: Optional[List[str]] = None):
         if not rec.get("active", False):
             raise HTTPException(status_code=403, detail="API key revoked/disabled")
 
-        # secret hash check
         expected_hash = str(rec.get("secret_hash") or "")
         provided_hash = _hash_secret(parsed["secret"])
         if not py_secrets.compare_digest(expected_hash, provided_hash):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
-        # scope check
         scopes = rec.get("scopes") or []
         if required_scopes:
             for s in required_scopes:
                 if s not in scopes and "admin:*" not in scopes:
                     raise HTTPException(status_code=403, detail=f"Missing scope: {s}")
 
-        # Make available to middleware/audit
         request.state.api_key_id = rec.get("key_id")
 
-        # Step 2.2 RL enforcement (may raise 429 with headers)
-        enforce_rate_limit_or_429(db, request, rec["key_id"], rec)
+        # RL enforcement (may raise 429 with headers)
+        try:
+            enforce_rate_limit_or_429(db, request, rec["key_id"], rec)
+        except HTTPException as e:
+            # If the limiter auto-disabled the key, emit best-effort webhook alert
+            # (auto_disable info is conveyed via request.state.rate_limit_headers)
+            adis = None
+            rl_headers = getattr(request.state, "rate_limit_headers", None)
+            if isinstance(rl_headers, dict):
+                adis = rl_headers.get("X-API-Key-Auto-Disabled")
+            if adis == "true":
+                # fire-and-forget: don't block request
+                try:
+                    payload = {
+                        "event": "api_key.auto_disabled",
+                        "key_id": rec["key_id"],
+                        "request_id": getattr(request.state, "request_id", None),
+                        "utc": _now().isoformat(),
+                    }
+                    # schedule asynchronously
+                    import asyncio
+                    asyncio.create_task(_maybe_alert(payload))
+                except Exception:
+                    pass
+            raise e
 
-        # update usage counters (best-effort)
+        # Usage counters (best-effort)
         try:
             db.collection(COL_KEYS).document(rec["key_id"]).update(
                 {
@@ -352,23 +406,17 @@ def require_api_key(required_scopes: Optional[List[str]] = None):
         except Exception:
             pass
 
-        return {
-            "key_id": rec.get("key_id"),
-            "label": rec.get("label"),
-            "scopes": scopes,
-            "active": rec.get("active", False),
-            "created_at_utc": rec.get("created_at_utc"),
-        }
+        return {"key_id": rec.get("key_id"), "label": rec.get("label"), "scopes": scopes, "active": rec.get("active", False)}
 
     return _dep
 
 
 # -------------------------
-# Protected (API key)
+# Protected
 # -------------------------
 @app.get("/protected")
 def protected(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["profile:read"]))):
-    return {"ok": True, "key_id": api_key["key_id"], "label": api_key.get("label"), "scopes": api_key.get("scopes", [])}
+    return {"ok": True, "key_id": api_key["key_id"]}
 
 
 @app.get("/protected/admin")
@@ -377,7 +425,7 @@ def protected_admin(api_key: Dict[str, Any] = Depends(require_api_key(required_s
 
 
 # -------------------------
-# API Keys: admin CRUD
+# Keys (admin)
 # -------------------------
 @app.post("/keys", response_model=CreateKeyResponse)
 def create_key(req: CreateKeyRequest = Body(...), admin: Dict[str, Any] = Depends(require_admin)):
@@ -404,7 +452,6 @@ def create_key(req: CreateKeyRequest = Body(...), admin: Dict[str, Any] = Depend
         "total_requests": 0,
         "last_used_at_utc": None,
         "updated_at_utc": _now(),
-        # RL policy overrides
         "rl_window_limit": req.rl_window_limit,
         "rl_window_seconds": req.rl_window_seconds,
         "rl_bucket_seconds": req.rl_bucket_seconds,
@@ -412,7 +459,6 @@ def create_key(req: CreateKeyRequest = Body(...), admin: Dict[str, Any] = Depend
     }
 
     db.collection(COL_KEYS).document(key_id).set(doc)
-
     return {"ok": True, "key_id": key_id, "api_key": api_key, "created_at_utc": doc["created_at_utc"]}
 
 
@@ -424,14 +470,7 @@ def revoke_key(key_id: str, admin: Dict[str, Any] = Depends(require_admin)):
     if not snap.exists:
         raise HTTPException(status_code=404, detail="Key not found")
 
-    ref.update(
-        {
-            "active": False,
-            "revoked_at_utc": _now().isoformat(),
-            "revoked_by_uid": admin.get("uid"),
-            "updated_at_utc": _now(),
-        }
-    )
+    ref.update({"active": False, "revoked_at_utc": _now().isoformat(), "revoked_by_uid": admin.get("uid"), "updated_at_utc": _now()})
     return {"ok": True, "key_id": key_id, "revoked": True}
 
 
@@ -441,17 +480,12 @@ def get_key(key_id: str, admin: Dict[str, Any] = Depends(require_admin)):
     rec = _get_api_key_record(db, key_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Key not found")
-
-    # Never expose secret_hash in response
     rec.pop("secret_hash", None)
     return {"ok": True, "key": rec}
 
 
 @app.get("/keys")
-def list_keys(
-    admin: Dict[str, Any] = Depends(require_admin),
-    limit: int = Query(default=50, ge=1, le=200),
-):
+def list_keys(admin: Dict[str, Any] = Depends(require_admin), limit: int = Query(default=50, ge=1, le=200)):
     db = app.state.db
     snaps = db.collection(COL_KEYS).order_by("created_at_utc", direction=firestore.Query.DESCENDING).limit(limit).get()
     keys: List[Dict[str, Any]] = []
@@ -471,31 +505,23 @@ def patch_rate_limit(key_id: str, body: PatchRateLimitReq, admin: Dict[str, Any]
     if not snap.exists:
         raise HTTPException(status_code=404, detail="Key not found")
 
-    updates = {"updated_at_utc": _now()}
+    updates: Dict[str, Any] = {"updated_at_utc": _now()}
     for f in ["rl_window_limit", "rl_window_seconds", "rl_bucket_seconds", "rl_daily_limit"]:
         v = getattr(body, f)
         if v is not None:
             updates[f] = v
-
     ref.update(updates)
     return {"ok": True, "key_id": key_id, "updated": True, "rate_limit": updates}
 
 
 # -------------------------
-# Admin metrics (NO audit scan)
+# Admin metrics (Step 2.3)
 # -------------------------
-def _read_doc_count_fields(doc: Optional[Dict[str, Any]]) -> Dict[str, int]:
-    d = doc or {}
-    def gi(k: str) -> int:
-        try:
-            return int(d.get(k) or 0)
-        except Exception:
-            return 0
-    return {
-        "total": gi("count_total"),
-        "window": gi("count_window"),
-        "daily": gi("count_daily"),
-    }
+def _doc_int(d: Dict[str, Any], k: str) -> int:
+    try:
+        return int(d.get(k) or 0)
+    except Exception:
+        return 0
 
 
 @app.get("/admin/metrics")
@@ -503,7 +529,7 @@ def admin_metrics(admin: Dict[str, Any] = Depends(require_admin), top_n: int = Q
     db = app.state.db
     utc = _now().isoformat()
 
-    # Keys count
+    # Key counts (simple scan)
     snaps = db.collection(COL_KEYS).get()
     total_keys = 0
     active_keys = 0
@@ -516,36 +542,61 @@ def admin_metrics(admin: Dict[str, Any] = Depends(require_admin), top_n: int = Q
         if d.get("auto_disabled_at_utc"):
             auto_disabled_keys += 1
 
-    # Top abusive keys: order_by count_total DESC (single-field index is automatic)
-    top_1h = []
-    try:
-        for s in db.collection(COL_ABUSE_1H).order_by("count_total", direction=firestore.Query.DESCENDING).limit(top_n).get():
-            d = s.to_dict() or {}
-            top_1h.append({"key_id": s.id, "count": int(d.get("count_total") or 0)})
-    except Exception:
-        top_1h = []
+    # Global counters (no query indexes needed)
+    g1 = db.collection(COL_GLOBAL_ABUSE_1H).document("global").get()
+    g24 = db.collection(COL_GLOBAL_ABUSE_24H).document("global").get()
+    g1d = g1.to_dict() if g1.exists else {}
+    g24d = g24.to_dict() if g24.exists else {}
 
-    top_24h = []
-    try:
-        for s in db.collection(COL_ABUSE_24H).order_by("count_total", direction=firestore.Query.DESCENDING).limit(top_n).get():
-            d = s.to_dict() or {}
-            top_24h.append({"key_id": s.id, "count": int(d.get("count_total") or 0)})
-    except Exception:
-        top_24h = []
+    # Top keys (order by count_total desc — single-field index auto)
+    top_1h: List[Dict[str, Any]] = []
+    for s in db.collection(COL_ABUSE_1H).order_by("count_total", direction=firestore.Query.DESCENDING).limit(top_n).get():
+        d = s.to_dict() or {}
+        top_1h.append({"key_id": s.id, "count": _doc_int(d, "count_total")})
 
-    # Aggregate totals by scanning top docs only is not accurate; keep simple:
-    # Use counts from the top docs and expose as "top_keys".
-    # If you need global totals later, we can maintain a global counter doc.
+    top_24h: List[Dict[str, Any]] = []
+    for s in db.collection(COL_ABUSE_24H).order_by("count_total", direction=firestore.Query.DESCENDING).limit(top_n).get():
+        d = s.to_dict() or {}
+        top_24h.append({"key_id": s.id, "count": _doc_int(d, "count_total")})
+
+    # Posture + warnings
+    posture = db.collection(COL_SECURITY).document("posture").get()
+    pd = posture.to_dict() if posture.exists else {}
+
     warnings: List[str] = []
+    if auto_disabled_keys > 0:
+        warnings.append(f"auto_disabled_keys={auto_disabled_keys}")
+    if _doc_int(g1d, "count_total") > 0:
+        warnings.append(f"global_violations_1h={_doc_int(g1d,'count_total')}")
+    if _doc_int(g24d, "count_total") > 0:
+        warnings.append(f"global_violations_24h={_doc_int(g24d,'count_total')}")
+    if ALERT_WEBHOOK_URL:
+        warnings.append("alerts=enabled")
+    else:
+        warnings.append("alerts=disabled")
 
     return {
         "ok": True,
         "utc": utc,
         "keys": {"total": total_keys, "active": active_keys, "auto_disabled": auto_disabled_keys},
         "rate_limit": {
+            "global_last_hour": {
+                "total": _doc_int(g1d, "count_total"),
+                "window": _doc_int(g1d, "count_window"),
+                "daily": _doc_int(g1d, "count_daily"),
+            },
+            "global_last_24h": {
+                "total": _doc_int(g24d, "count_total"),
+                "window": _doc_int(g24d, "count_window"),
+                "daily": _doc_int(g24d, "count_daily"),
+            },
             "top_keys_last_hour": top_1h,
             "top_keys_last_24h": top_24h,
             "top_n": top_n,
+        },
+        "posture": {
+            "auto_disabled_total": _doc_int(pd, "auto_disabled_total"),
+            "auto_disabled_last_at_utc": pd.get("auto_disabled_last_at_utc"),
         },
         "warnings": warnings,
     }
