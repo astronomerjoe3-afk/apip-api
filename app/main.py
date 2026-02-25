@@ -1,9 +1,8 @@
 import os
-import json
-import secrets
+import secrets as py_secrets
 import hashlib
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Callable
 
 from fastapi import FastAPI, Depends, Header, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +18,25 @@ from google.cloud import firestore
 APP_NAME = "apip-api"
 APP_VERSION = "0.1.0"
 
+# -------------------------
+# Env
+# -------------------------
+
+BOOTSTRAP_ADMIN_UID = os.getenv("BOOTSTRAP_ADMIN_UID", "").strip()
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
+APP_COMMIT = os.getenv("APP_COMMIT", "(unset)").strip()
+
+# CORS origins: comma-separated. Falls back to common dev/prod.
+_CORS_ORIGINS_ENV = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+if _CORS_ORIGINS_ENV:
+    CORS_ALLOW_ORIGINS = [o.strip() for o in _CORS_ORIGINS_ENV.split(",") if o.strip()]
+else:
+    CORS_ALLOW_ORIGINS = [
+        "http://localhost:3000",
+        "https://cognispark.tech",
+        "https://www.cognispark.tech",
+    ]
+
 
 # -------------------------
 # Firebase / Firestore init
@@ -28,28 +46,27 @@ def _ensure_firebase() -> None:
     """Initialize firebase_admin exactly once."""
     if firebase_admin._apps:
         return
-
-    # Cloud Run typically uses application default credentials automatically.
-    # If you later choose to use a service account JSON, you can add it here.
     cred = credentials.ApplicationDefault()
     firebase_admin.initialize_app(cred)
 
 
 def get_firestore() -> Optional[firestore.Client]:
+    """
+    Returns a Firestore client or None if initialization fails.
+    Prefer using explicit project if FIREBASE_PROJECT_ID is set.
+    """
     try:
         _ensure_firebase()
+        if FIREBASE_PROJECT_ID:
+            return firestore.Client(project=FIREBASE_PROJECT_ID)
         return firestore.Client()
     except Exception:
         return None
 
 
 # -------------------------
-# Auth helpers
+# Auth helpers (Firebase ID tokens)
 # -------------------------
-
-BOOTSTRAP_ADMIN_UID = os.getenv("BOOTSTRAP_ADMIN_UID", "").strip()
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
-
 
 def _extract_bearer_token(authorization: Optional[str]) -> Optional[str]:
     if not authorization:
@@ -69,13 +86,9 @@ def verify_firebase_id_token(authorization: Optional[str]) -> Dict[str, Any]:
 
     try:
         _ensure_firebase()
-
-        # If FIREBASE_PROJECT_ID is set, enforce it via 'audience' check
-        # Firebase Admin SDK already validates 'aud'/'iss' for the project it’s configured for.
         decoded = fb_auth.verify_id_token(token)
         return decoded
     except Exception as e:
-        # Return structured error for debugging
         raise HTTPException(
             status_code=401,
             detail={"error": "invalid_id_token", "message": str(e), "type": type(e).__name__},
@@ -114,14 +127,108 @@ def require_admin(user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str,
 
 
 # -------------------------
-# API key models
+# API Key helpers (Option 2)
+# -------------------------
+
+API_KEY_HEADER = "X-API-Key"
+API_KEY_PREFIX = "ak_"
+
+
+def _hash_secret(secret: str) -> str:
+    return hashlib.sha256(secret.encode("utf-8")).hexdigest()
+
+
+def _now_utc() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_api_key(api_key: str) -> Optional[Dict[str, str]]:
+    """
+    Expected format: ak_<key_id>.<secret>
+    Returns {"key_id":..., "secret":...} or None
+    """
+    if not api_key:
+        return None
+    api_key = api_key.strip()
+    if not api_key.startswith(API_KEY_PREFIX):
+        return None
+    rest = api_key[len(API_KEY_PREFIX):]
+    if "." not in rest:
+        return None
+    key_id, secret = rest.split(".", 1)
+    key_id = key_id.strip()
+    secret = secret.strip()
+    if not key_id or not secret:
+        return None
+    return {"key_id": key_id, "secret": secret}
+
+
+def get_api_key_record(db: firestore.Client, key_id: str) -> Optional[Dict[str, Any]]:
+    snap = db.collection("api_keys").document(key_id).get()
+    if not snap.exists:
+        return None
+    data = snap.to_dict() or {}
+    data["key_id"] = key_id
+    return data
+
+
+def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[..., Dict[str, Any]]:
+    """
+    Dependency factory. Verifies X-API-Key, checks active, checks secret hash, checks scopes.
+    Returns a dict: {"key_id":..., "label":..., "scopes":[...], "created_by_uid":..., ...}
+    """
+    def _dep(x_api_key: Optional[str] = Header(default=None, alias=API_KEY_HEADER)) -> Dict[str, Any]:
+        if not x_api_key:
+            raise HTTPException(status_code=401, detail="Missing X-API-Key")
+
+        parsed = _parse_api_key(x_api_key)
+        if not parsed:
+            raise HTTPException(status_code=401, detail="Invalid API key format")
+
+        db = get_firestore()
+        if not db:
+            raise HTTPException(status_code=503, detail="Firestore not available")
+
+        rec = get_api_key_record(db, parsed["key_id"])
+        if not rec:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+
+        if not rec.get("active", False):
+            raise HTTPException(status_code=403, detail="API key revoked")
+
+        expected_hash = rec.get("secret_hash") or ""
+        provided_hash = _hash_secret(parsed["secret"])
+
+        # constant-time compare
+        if not py_secrets.compare_digest(str(expected_hash), str(provided_hash)):
+            raise HTTPException(status_code=401, detail="Invalid API key")
+
+        scopes = rec.get("scopes") or []
+        if required_scopes:
+            for s in required_scopes:
+                if s not in scopes and "admin:*" not in scopes:
+                    raise HTTPException(status_code=403, detail=f"Missing scope: {s}")
+
+        return {
+            "key_id": rec.get("key_id"),
+            "label": rec.get("label"),
+            "scopes": scopes,
+            "created_at_utc": rec.get("created_at_utc"),
+            "created_by_uid": rec.get("created_by_uid"),
+            "created_by_email": rec.get("created_by_email"),
+            "active": rec.get("active", False),
+        }
+
+    return _dep
+
+
+# -------------------------
+# Models
 # -------------------------
 
 class CreateKeyRequest(BaseModel):
-    # Optional metadata fields (safe defaults)
     label: Optional[str] = None
-    scopes: Optional[List[str]] = None  # future use
-    expires_in_days: Optional[int] = None  # future use
+    scopes: Optional[List[str]] = None
 
 
 class CreateKeyResponse(BaseModel):
@@ -137,25 +244,36 @@ class RevokeKeyResponse(BaseModel):
     revoked: bool
 
 
+class SetRoleReq(BaseModel):
+    role: str
+
+
 # -------------------------
 # App
 # -------------------------
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
 
-# CORS (adjust for your web app domains)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://cognispark.tech", "https://www.cognispark.tech"],
+    allow_origins=CORS_ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+# -------------------------
+# Basic routes
+# -------------------------
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "firebase_project_id": FIREBASE_PROJECT_ID or "(unset)"}
+    return {
+        "status": "ok",
+        "firebase_project_id": FIREBASE_PROJECT_ID or "(unset)",
+        "commit": APP_COMMIT,
+    }
 
 
 @app.get("/__build")
@@ -163,7 +281,7 @@ def build_marker():
     return {
         "app_name": APP_NAME,
         "app_version": APP_VERSION,
-        "app_commit": os.getenv("APP_COMMIT", "(unset)"),
+        "app_commit": APP_COMMIT,
         "firebase_project_id": FIREBASE_PROJECT_ID or "(unset)",
         "utc": datetime.now(timezone.utc).isoformat(),
     }
@@ -183,7 +301,7 @@ def me(user: Dict[str, Any] = Depends(get_current_user)):
 
 @app.get("/profile")
 def profile(user: Dict[str, Any] = Depends(get_current_user)):
-    # same as /me, but kept because your frontend uses /profile
+    # kept for frontend compatibility
     return {
         "message": "ok",
         "uid": user["uid"],
@@ -201,22 +319,6 @@ def admin_only(admin: Dict[str, Any] = Depends(require_admin)):
 # Admin: user management
 # -------------------------
 
-@app.get("/admin/users/{uid}")
-def admin_get_user(uid: str, _: Dict[str, Any] = Depends(require_admin)):
-    db = get_firestore()
-    if not db:
-        raise HTTPException(status_code=503, detail="Firestore not available")
-
-    doc = db.collection("users").document(uid).get()
-    if not doc.exists:
-        raise HTTPException(status_code=404, detail="User not found")
-    return doc.to_dict()
-
-
-class SetRoleReq(BaseModel):
-    role: str
-
-
 @app.post("/admin/users/{uid}/role")
 def admin_set_user_role(uid: str, body: SetRoleReq, _: Dict[str, Any] = Depends(require_admin)):
     try:
@@ -231,17 +333,9 @@ def admin_set_user_role(uid: str, body: SetRoleReq, _: Dict[str, Any] = Depends(
 # API Keys (Phase 1)
 # -------------------------
 
-def _hash_secret(secret: str) -> str:
-    return hashlib.sha256(secret.encode("utf-8")).hexdigest()
-
-
-def _now_utc() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
 @app.post("/keys", response_model=CreateKeyResponse)
 def create_api_key(
-    req: CreateKeyRequest = Body(default=CreateKeyRequest()),
+    req: CreateKeyRequest = Body(default_factory=CreateKeyRequest),
     admin: Dict[str, Any] = Depends(require_admin),
 ):
     db = get_firestore()
@@ -249,10 +343,10 @@ def create_api_key(
         raise HTTPException(status_code=503, detail="Firestore not available")
 
     # key_id is the Firestore doc id; secret is only returned once
-    key_id = secrets.token_urlsafe(12).replace("-", "").replace("_", "")
-    secret = secrets.token_urlsafe(32)
+    key_id = py_secrets.token_urlsafe(12).replace("-", "").replace("_", "")
+    secret = py_secrets.token_urlsafe(32)
 
-    api_key = f"ak_{key_id}.{secret}"
+    api_key = f"{API_KEY_PREFIX}{key_id}.{secret}"
     secret_hash = _hash_secret(secret)
 
     doc = {
@@ -303,3 +397,32 @@ def revoke_api_key(
         }
     )
     return {"ok": True, "key_id": key_id, "revoked": True}
+
+
+# -------------------------
+# Option 2: API-key protected routes
+# -------------------------
+
+@app.get("/protected")
+def protected(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["profile:read"]))):
+    return {
+        "ok": True,
+        "message": "API key accepted",
+        "api_key": {
+            "key_id": api_key["key_id"],
+            "label": api_key.get("label"),
+            "scopes": api_key.get("scopes", []),
+            "created_at_utc": api_key.get("created_at_utc"),
+            "active": api_key.get("active"),
+        },
+    }
+
+
+@app.get("/protected/admin")
+def protected_admin(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["admin:*"]))):
+    return {
+        "ok": True,
+        "message": "API key has admin scope",
+        "key_id": api_key["key_id"],
+        "scopes": api_key.get("scopes", []),
+    }
