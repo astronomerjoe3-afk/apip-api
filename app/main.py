@@ -67,10 +67,25 @@ def get_firestore() -> Optional[firestore.Client]:
 
 
 # -------------------------
-# ✅ Middleware: attach RL headers to ALL responses
+# App (✅ DEFINE FIRST)
 # -------------------------
 
-@app.middleware("http")  # type: ignore[name-defined]
+app = FastAPI(title=APP_NAME, version=APP_VERSION)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ALLOW_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# -------------------------
+# ✅ Middleware: attach RL headers to ALL responses (200 + 429)
+# -------------------------
+
+@app.middleware("http")
 async def attach_rate_limit_headers(request: Request, call_next):
     response: Response = await call_next(request)
     rl_headers = getattr(request.state, "rate_limit_headers", None)
@@ -218,6 +233,7 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
         expected_hash = rec.get("secret_hash") or ""
         provided_hash = _hash_secret(parsed["secret"])
 
+        # constant-time compare
         if not py_secrets.compare_digest(str(expected_hash), str(provided_hash)):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
@@ -227,6 +243,7 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
                 if s not in scopes and "admin:*" not in scopes:
                     raise HTTPException(status_code=403, detail=f"Missing scope: {s}")
 
+        # ✅ make key id available for rate limiter
         request.state.api_key_id = rec.get("key_id")
 
         return {
@@ -260,7 +277,7 @@ class CreateKeyRequest(BaseModel):
 class CreateKeyResponse(BaseModel):
     ok: bool
     key_id: str
-    api_key: str
+    api_key: str  # returned only once
     created_at_utc: str
 
 
@@ -273,20 +290,6 @@ class RevokeKeyResponse(BaseModel):
 class SetRoleReq(BaseModel):
     role: str
 
-
-# -------------------------
-# App
-# -------------------------
-
-app = FastAPI(title=APP_NAME, version=APP_VERSION)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ALLOW_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # -------------------------
 # Basic routes
@@ -326,6 +329,7 @@ def me(user: Dict[str, Any] = Depends(get_current_user)):
 
 @app.get("/profile")
 def profile(user: Dict[str, Any] = Depends(get_current_user)):
+    # kept for frontend compatibility
     return {
         "message": "ok",
         "uid": user["uid"],
@@ -366,6 +370,7 @@ def create_api_key(
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
 
+    # key_id is the Firestore doc id; secret is only returned once
     key_id = py_secrets.token_urlsafe(12).replace("-", "").replace("_", "")
     secret = py_secrets.token_urlsafe(32)
 
@@ -384,7 +389,7 @@ def create_api_key(
         "revoked_at_utc": None,
         "revoked_by_uid": None,
 
-        # Per-key RL policy (Option B)
+        # Option B: per-key RL policy
         "rl_window_limit": req.rl_window_limit,
         "rl_window_seconds": req.rl_window_seconds,
         "rl_bucket_seconds": req.rl_bucket_seconds,
