@@ -175,36 +175,48 @@ async def request_context(request: Request, call_next):
 # =========================
 
 @app.middleware("http")
-async def attach_rate_limit_headers(request: Request, call_next):
+async def request_context(request: Request, call_next):
+    request_id = uuid.uuid4().hex[:16]
+    request.state.request_id = request_id
+
+    start = time.perf_counter()
+    response: Optional[Response] = None
+    status_code = 500
+
     try:
-        response: Response = await call_next(request)
-    except HTTPException as e:
-        # If RateLimitDepends raised 429, we want headers on the 429 too.
-        # We'll construct JSONResponse and attach headers if present.
-        if e.status_code == 429:
-            headers = getattr(request.state, "rate_limit_headers", None)
-            r = JSONResponse(status_code=429, content={"detail": e.detail})
-            if isinstance(headers, dict):
-                for k, v in headers.items():
-                    r.headers[k] = str(v)
-            # always include request id
-            rid = getattr(request.state, "request_id", None)
-            if rid:
-                r.headers["X-Request-Id"] = rid
-            return r
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+
+    except Exception:
+        # Preserve real exception
         raise
 
-    headers = getattr(request.state, "rate_limit_headers", None)
-    if isinstance(headers, dict):
-        for k, v in headers.items():
-            response.headers[k] = str(v)
+    finally:
+        duration_ms = int((time.perf_counter() - start) * 1000)
 
-    # request id already set in request_context middleware, but keep defensive
-    rid = getattr(request.state, "request_id", None)
-    if rid:
-        response.headers.setdefault("X-Request-Id", rid)
+        if response is not None:
+            response.headers["X-Request-Id"] = request_id
 
-    return response
+        db: Optional[firestore.Client] = getattr(request.app.state, "db", None)
+        if db is None:
+            return
+
+        try:
+            db.collection(COL_AUDIT).add({
+                "event_type": "api.request",
+                "ts": _now(),
+                "expires_at_utc": _audit_expires_at(),
+                "request_id": request_id,
+                "path": request.url.path,
+                "method": request.method,
+                "status_code": status_code,
+                "duration_ms": duration_ms,
+                "key_id": getattr(request.state, "api_key_id", None),
+                "user_uid": getattr(request.state, "user_uid", None),
+            })
+        except Exception:
+            pass
 
 
 # =========================
