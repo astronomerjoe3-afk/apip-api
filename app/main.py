@@ -3,11 +3,12 @@ import time
 import secrets as py_secrets
 import hashlib
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional, List, Callable, Tuple
 
 from fastapi import FastAPI, Depends, Header, HTTPException, Body, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import firebase_admin
@@ -17,6 +18,7 @@ from firebase_admin import credentials
 from google.cloud import firestore
 
 from app.rate_limit import RateLimitDepends
+from app.audit import write_audit_event
 
 
 APP_NAME = "apip-api"
@@ -30,7 +32,6 @@ BOOTSTRAP_ADMIN_UID = os.getenv("BOOTSTRAP_ADMIN_UID", "").strip()
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "").strip()
 APP_COMMIT = os.getenv("APP_COMMIT", "(unset)").strip()
 
-# API key record cache TTL (seconds). Lower = faster revocation effect, higher = fewer reads.
 API_KEY_CACHE_TTL_SECONDS = int(os.getenv("API_KEY_CACHE_TTL_SECONDS", "10"))
 
 # CORS origins
@@ -87,16 +88,78 @@ app.add_middleware(
 
 
 # -------------------------
-# Middleware: attach RL headers to ALL responses
+# Request-ID + error-safe middleware + RL header attachment + audit on failures
 # -------------------------
 
+REQUEST_ID_HEADER = "X-Request-Id"
+
+
+def _make_request_id() -> str:
+    # URL-safe, short enough for logs/headers
+    return py_secrets.token_urlsafe(12)
+
+
+def _should_audit_failure(path: str, status_code: int) -> bool:
+    # Focus on API-key path failures and admin auth failures (optional)
+    if status_code in (401, 403, 429):
+        # Audit failures primarily for API-key-protected routes
+        if path.startswith("/protected"):
+            return True
+        # Also audit admin key ops failures (optional)
+        if path.startswith("/keys") or path.startswith("/admin"):
+            return True
+    return False
+
+
 @app.middleware("http")
-async def attach_rate_limit_headers(request: Request, call_next):
-    response: Response = await call_next(request)
+async def request_id_rl_and_audit_middleware(request: Request, call_next):
+    # 1) request id
+    rid = request.headers.get(REQUEST_ID_HEADER) or _make_request_id()
+    request.state.request_id = rid
+
+    # 2) execute + catch errors so we can always attach headers
+    try:
+        response: Response = await call_next(request)
+    except HTTPException as exc:
+        # Preserve any headers FastAPI would have sent (e.g., RateLimitDepends sets headers on 429)
+        hdrs = dict(exc.headers or {})
+        response = JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=hdrs,
+        )
+    except Exception:
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+    # 3) attach RL headers if present on request.state (for 200 responses)
     rl_headers = getattr(request.state, "rate_limit_headers", None)
     if isinstance(rl_headers, dict):
         for k, v in rl_headers.items():
             response.headers[k] = str(v)
+
+    # 4) always attach request id
+    response.headers[REQUEST_ID_HEADER] = rid
+
+    # 5) audit failures (best effort)
+    status = int(getattr(response, "status_code", 0) or 0)
+    if _should_audit_failure(request.url.path, status):
+        db = get_firestore()
+        if db:
+            key_id = getattr(request.state, "api_key_id", None)
+            write_audit_event(
+                db,
+                event_type=(
+                    "api_key.rate_limited" if status == 429 else
+                    "auth.forbidden" if status == 403 else
+                    "auth.unauthorized"
+                ),
+                request=request,
+                status_code=status,
+                key_id=key_id,
+                request_id=rid,
+                extra={"provider": "api_key" if request.url.path.startswith("/protected") else "firebase"},
+            )
+
     return response
 
 
@@ -203,7 +266,6 @@ def _cache_now() -> float:
     return time.time()
 
 
-# In-memory per-instance cache: key_id -> (expires_epoch, record_dict)
 _api_key_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 _api_key_cache_lock = threading.Lock()
 
@@ -258,7 +320,7 @@ def get_api_key_record_cached(db: firestore.Client, key_id: str) -> Optional[Dic
 def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[..., Dict[str, Any]]:
     """
     Dependency factory. Verifies X-API-Key, checks active, checks secret hash, checks scopes.
-    Sets request.state.api_key_id for rate limiting.
+    Sets request.state.api_key_id for rate limiting + audit logging.
     Uses TTL cache to reduce Firestore reads per instance.
     """
     def _dep(
@@ -312,9 +374,6 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
 
 
 def _sanitize_key_record(rec: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Never return secret_hash or other sensitive internals.
-    """
     return {
         "key_id": rec.get("key_id"),
         "label": rec.get("label"),
@@ -340,7 +399,6 @@ class CreateKeyRequest(BaseModel):
     label: Optional[str] = None
     scopes: Optional[List[str]] = None
 
-    # Optional per-key RL policy (Option B)
     rl_window_limit: Optional[int] = Field(default=None, ge=1)
     rl_window_seconds: Optional[int] = Field(default=None, ge=1)
     rl_bucket_seconds: Optional[int] = Field(default=None, ge=1)
@@ -350,7 +408,7 @@ class CreateKeyRequest(BaseModel):
 class CreateKeyResponse(BaseModel):
     ok: bool
     key_id: str
-    api_key: str  # returned only once
+    api_key: str
     created_at_utc: str
 
 
@@ -365,7 +423,6 @@ class SetRoleReq(BaseModel):
 
 
 class UpdateRateLimitRequest(BaseModel):
-    # PATCH semantics: only provided fields are updated
     rl_window_limit: Optional[int] = Field(default=None, ge=1)
     rl_window_seconds: Optional[int] = Field(default=None, ge=1)
     rl_bucket_seconds: Optional[int] = Field(default=None, ge=1)
@@ -410,41 +467,45 @@ def me(user: Dict[str, Any] = Depends(get_current_user)):
 
 @app.get("/profile")
 def profile(user: Dict[str, Any] = Depends(get_current_user)):
-    # kept for frontend compatibility
-    return {
-        "message": "ok",
-        "uid": user["uid"],
-        "email": user.get("email"),
-        "role": user.get("role"),
-    }
-
-
-@app.get("/admin-only")
-def admin_only(admin: Dict[str, Any] = Depends(require_admin)):
-    return {"message": "Hello admin", "uid": admin["uid"], "role": admin["role"]}
+    return {"message": "ok", "uid": user["uid"], "email": user.get("email"), "role": user.get("role")}
 
 
 # -------------------------
-# Admin: user management
+# Admin: user management (with audit)
 # -------------------------
 
 @app.post("/admin/users/{uid}/role")
-def admin_set_user_role(uid: str, body: SetRoleReq, _: Dict[str, Any] = Depends(require_admin)):
+def admin_set_user_role(uid: str, body: SetRoleReq, request: Request, admin: Dict[str, Any] = Depends(require_admin)):
     try:
         _ensure_firebase()
         fb_auth.set_custom_user_claims(uid, {"role": body.role})
+
+        db = get_firestore()
+        if db:
+            write_audit_event(
+                db,
+                event_type="admin.role_set",
+                request=request,
+                status_code=200,
+                actor_uid=admin.get("uid"),
+                actor_email=admin.get("email"),
+                request_id=getattr(request.state, "request_id", None),
+                extra={"target_uid": uid, "role": body.role},
+            )
+
         return {"ok": True, "uid": uid, "role": body.role}
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "set_role_failed", "message": str(e)})
 
 
 # -------------------------
-# API Keys
+# API Keys (with audit)
 # -------------------------
 
 @app.post("/keys", response_model=CreateKeyResponse)
 def create_api_key(
     req: CreateKeyRequest = Body(default_factory=CreateKeyRequest),
+    request: Request = None,  # FastAPI injects
     admin: Dict[str, Any] = Depends(require_admin),
 ):
     db = get_firestore()
@@ -468,8 +529,6 @@ def create_api_key(
         "created_by_email": admin.get("email"),
         "revoked_at_utc": None,
         "revoked_by_uid": None,
-
-        # Option B: per-key RL policy
         "rl_window_limit": req.rl_window_limit,
         "rl_window_seconds": req.rl_window_seconds,
         "rl_bucket_seconds": req.rl_bucket_seconds,
@@ -478,23 +537,30 @@ def create_api_key(
 
     try:
         db.collection("api_keys").document(key_id).set(doc)
+        _cache_put(key_id, doc)
+
+        write_audit_event(
+            db,
+            event_type="api_key.created",
+            request=request,
+            status_code=200,
+            actor_uid=admin.get("uid"),
+            actor_email=admin.get("email"),
+            key_id=key_id,
+            request_id=getattr(request.state, "request_id", None),
+            extra={"label": req.label, "scopes": req.scopes or []},
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "firestore_write_failed", "message": str(e)})
 
-    # Cache the just-created key record (safe; includes secret_hash not secret)
-    _cache_put(key_id, doc)
-
-    return {
-        "ok": True,
-        "key_id": key_id,
-        "api_key": api_key,
-        "created_at_utc": doc["created_at_utc"],
-    }
+    return {"ok": True, "key_id": key_id, "api_key": api_key, "created_at_utc": doc["created_at_utc"]}
 
 
 @app.post("/keys/{key_id}/revoke", response_model=RevokeKeyResponse)
 def revoke_api_key(
     key_id: str,
+    request: Request,
     admin: Dict[str, Any] = Depends(require_admin),
 ):
     db = get_firestore()
@@ -506,15 +572,19 @@ def revoke_api_key(
     if not snap.exists:
         raise HTTPException(status_code=404, detail="Key not found")
 
-    ref.update(
-        {
-            "active": False,
-            "revoked_at_utc": _now_utc(),
-            "revoked_by_uid": admin["uid"],
-        }
-    )
-
+    ref.update({"active": False, "revoked_at_utc": _now_utc(), "revoked_by_uid": admin["uid"]})
     _cache_invalidate(key_id)
+
+    write_audit_event(
+        db,
+        event_type="api_key.revoked",
+        request=request,
+        status_code=200,
+        actor_uid=admin.get("uid"),
+        actor_email=admin.get("email"),
+        key_id=key_id,
+        request_id=getattr(request.state, "request_id", None),
+    )
 
     return {"ok": True, "key_id": key_id, "revoked": True}
 
@@ -523,12 +593,9 @@ def revoke_api_key(
 def admin_update_key_rate_limit(
     key_id: str,
     body: UpdateRateLimitRequest,
-    _: Dict[str, Any] = Depends(require_admin),
+    request: Request,
+    admin: Dict[str, Any] = Depends(require_admin),
 ):
-    """
-    Update per-key rate limit policy without recreating the key.
-    PATCH semantics: only provided fields are updated.
-    """
     db = get_firestore()
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
@@ -553,23 +620,32 @@ def admin_update_key_rate_limit(
 
     try:
         ref.update(updates)
+        _cache_invalidate(key_id)
+
+        write_audit_event(
+            db,
+            event_type="api_key.rate_limit_policy_updated",
+            request=request,
+            status_code=200,
+            actor_uid=admin.get("uid"),
+            actor_email=admin.get("email"),
+            key_id=key_id,
+            request_id=getattr(request.state, "request_id", None),
+            extra=updates,
+        )
+
+        return {"ok": True, "key_id": key_id, "updated": True, "rate_limit": updates}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "firestore_update_failed", "message": str(e)})
 
-    _cache_invalidate(key_id)
-
-    return {"ok": True, "key_id": key_id, "updated": True, "rate_limit": updates}
-
 
 # -------------------------
-# ✅ Admin: get/list keys (new)
+# Admin: get/list keys (existing)
 # -------------------------
 
 @app.get("/keys/{key_id}")
-def admin_get_key(
-    key_id: str,
-    _: Dict[str, Any] = Depends(require_admin),
-):
+def admin_get_key(key_id: str, _: Dict[str, Any] = Depends(require_admin)):
     db = get_firestore()
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
@@ -582,14 +658,7 @@ def admin_get_key(
 
 
 @app.get("/keys")
-def admin_list_keys(
-    limit: int = Query(default=50, ge=1, le=200),
-    _: Dict[str, Any] = Depends(require_admin),
-):
-    """
-    Lists API keys (metadata only; never returns secret or secret_hash).
-    Ordered by created_at_utc desc.
-    """
+def admin_list_keys(limit: int = Query(default=50, ge=1, le=200), _: Dict[str, Any] = Depends(require_admin)):
     db = get_firestore()
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
@@ -603,8 +672,99 @@ def admin_list_keys(
             keys.append(_sanitize_key_record(rec))
         return {"ok": True, "count": len(keys), "keys": keys}
     except Exception as e:
-        # If Firestore complains about index, it will mention it in message.
         raise HTTPException(status_code=500, detail={"error": "list_keys_failed", "message": str(e)})
+
+
+# -------------------------
+# ✅ Admin metrics (new)
+# -------------------------
+
+def _count_query_safe(q) -> Optional[int]:
+    """
+    Best-effort Firestore count aggregation (fast) with fallback to streaming count (slower).
+    """
+    # Aggregation count() exists in newer firestore client versions.
+    try:
+        agg = q.count()
+        res = agg.get()
+        if res and hasattr(res[0], "value"):
+            return int(res[0].value)
+        # Some versions use .to_dict()
+        if res and hasattr(res[0], "to_dict"):
+            d = res[0].to_dict()
+            # key may vary; try common patterns
+            for k in ("count", "value"):
+                if k in d:
+                    return int(d[k])
+    except Exception:
+        pass
+
+    # Fallback: stream and count (avoid if large datasets)
+    try:
+        n = 0
+        for _ in q.stream():
+            n += 1
+        return n
+    except Exception:
+        return None
+
+
+@app.get("/admin/metrics")
+def admin_metrics(request: Request, admin: Dict[str, Any] = Depends(require_admin)):
+    db = get_firestore()
+    if not db:
+        raise HTTPException(status_code=503, detail="Firestore not available")
+
+    # Key counts
+    total_keys = _count_query_safe(db.collection("api_keys"))
+    active_keys = _count_query_safe(db.collection("api_keys").where("active", "==", True))
+
+    # Audit counts: 429 (rate limited) last hour / last 24h
+    now = datetime.now(timezone.utc)
+    one_hour_ago = now - timedelta(hours=1)
+    one_day_ago = now - timedelta(hours=24)
+
+    rate_limited_last_hour: Optional[int] = None
+    rate_limited_last_24h: Optional[int] = None
+    audit_warn: Optional[str] = None
+
+    try:
+        q1 = (
+            db.collection("audit_logs")
+            .where("event_type", "==", "api_key.rate_limited")
+            .where("ts", ">=", one_hour_ago)
+        )
+        rate_limited_last_hour = _count_query_safe(q1)
+
+        q2 = (
+            db.collection("audit_logs")
+            .where("event_type", "==", "api_key.rate_limited")
+            .where("ts", ">=", one_day_ago)
+        )
+        rate_limited_last_24h = _count_query_safe(q2)
+    except Exception as e:
+        # Firestore may require a composite index (event_type + ts). Return metrics anyway.
+        audit_warn = f"audit_count_unavailable: {type(e).__name__}: {str(e)}"
+
+    # Audit the metrics access (optional but recommended)
+    write_audit_event(
+        db,
+        event_type="admin.metrics_read",
+        request=request,
+        status_code=200,
+        actor_uid=admin.get("uid"),
+        actor_email=admin.get("email"),
+        request_id=getattr(request.state, "request_id", None),
+        extra={"total_keys": total_keys, "active_keys": active_keys},
+    )
+
+    return {
+        "ok": True,
+        "utc": now.isoformat(),
+        "keys": {"total": total_keys, "active": active_keys},
+        "rate_limit": {"429_last_hour": rate_limited_last_hour, "429_last_24h": rate_limited_last_24h},
+        "warnings": [audit_warn] if audit_warn else [],
+    }
 
 
 # -------------------------
