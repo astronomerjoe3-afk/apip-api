@@ -4,7 +4,7 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List, Callable
 
-from fastapi import FastAPI, Depends, Header, HTTPException, Body
+from fastapi import FastAPI, Depends, Header, HTTPException, Body, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -13,6 +13,8 @@ from firebase_admin import auth as fb_auth
 from firebase_admin import credentials
 
 from google.cloud import firestore
+
+from app.rate_limit import RateLimitDepends
 
 
 APP_NAME = "apip-api"
@@ -62,6 +64,20 @@ def get_firestore() -> Optional[firestore.Client]:
         return firestore.Client()
     except Exception:
         return None
+
+
+# -------------------------
+# ✅ Middleware: attach RL headers to ALL responses
+# -------------------------
+
+@app.middleware("http")  # type: ignore[name-defined]
+async def attach_rate_limit_headers(request: Request, call_next):
+    response: Response = await call_next(request)
+    rl_headers = getattr(request.state, "rate_limit_headers", None)
+    if isinstance(rl_headers, dict):
+        for k, v in rl_headers.items():
+            response.headers[k] = str(v)
+    return response
 
 
 # -------------------------
@@ -175,9 +191,12 @@ def get_api_key_record(db: firestore.Client, key_id: str) -> Optional[Dict[str, 
 def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[..., Dict[str, Any]]:
     """
     Dependency factory. Verifies X-API-Key, checks active, checks secret hash, checks scopes.
-    Returns a dict: {"key_id":..., "label":..., "scopes":[...], "created_by_uid":..., ...}
+    ✅ Patch: sets request.state.api_key_id for rate limiting.
     """
-    def _dep(x_api_key: Optional[str] = Header(default=None, alias=API_KEY_HEADER)) -> Dict[str, Any]:
+    def _dep(
+        request: Request,
+        x_api_key: Optional[str] = Header(default=None, alias=API_KEY_HEADER),
+    ) -> Dict[str, Any]:
         if not x_api_key:
             raise HTTPException(status_code=401, detail="Missing X-API-Key")
 
@@ -199,7 +218,6 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
         expected_hash = rec.get("secret_hash") or ""
         provided_hash = _hash_secret(parsed["secret"])
 
-        # constant-time compare
         if not py_secrets.compare_digest(str(expected_hash), str(provided_hash)):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
@@ -208,6 +226,8 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
             for s in required_scopes:
                 if s not in scopes and "admin:*" not in scopes:
                     raise HTTPException(status_code=403, detail=f"Missing scope: {s}")
+
+        request.state.api_key_id = rec.get("key_id")
 
         return {
             "key_id": rec.get("key_id"),
@@ -230,11 +250,17 @@ class CreateKeyRequest(BaseModel):
     label: Optional[str] = None
     scopes: Optional[List[str]] = None
 
+    # Optional per-key RL policy (Option B)
+    rl_window_limit: Optional[int] = None
+    rl_window_seconds: Optional[int] = None
+    rl_bucket_seconds: Optional[int] = None
+    rl_daily_limit: Optional[int] = None
+
 
 class CreateKeyResponse(BaseModel):
     ok: bool
     key_id: str
-    api_key: str  # returned only once
+    api_key: str
     created_at_utc: str
 
 
@@ -261,7 +287,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # -------------------------
 # Basic routes
@@ -301,7 +326,6 @@ def me(user: Dict[str, Any] = Depends(get_current_user)):
 
 @app.get("/profile")
 def profile(user: Dict[str, Any] = Depends(get_current_user)):
-    # kept for frontend compatibility
     return {
         "message": "ok",
         "uid": user["uid"],
@@ -330,7 +354,7 @@ def admin_set_user_role(uid: str, body: SetRoleReq, _: Dict[str, Any] = Depends(
 
 
 # -------------------------
-# API Keys (Phase 1)
+# API Keys
 # -------------------------
 
 @app.post("/keys", response_model=CreateKeyResponse)
@@ -342,7 +366,6 @@ def create_api_key(
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
 
-    # key_id is the Firestore doc id; secret is only returned once
     key_id = py_secrets.token_urlsafe(12).replace("-", "").replace("_", "")
     secret = py_secrets.token_urlsafe(32)
 
@@ -360,6 +383,12 @@ def create_api_key(
         "created_by_email": admin.get("email"),
         "revoked_at_utc": None,
         "revoked_by_uid": None,
+
+        # Per-key RL policy (Option B)
+        "rl_window_limit": req.rl_window_limit,
+        "rl_window_seconds": req.rl_window_seconds,
+        "rl_bucket_seconds": req.rl_bucket_seconds,
+        "rl_daily_limit": req.rl_daily_limit,
     }
 
     try:
@@ -400,11 +429,14 @@ def revoke_api_key(
 
 
 # -------------------------
-# Option 2: API-key protected routes
+# API-key protected routes (rate limited)
 # -------------------------
 
 @app.get("/protected")
-def protected(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["profile:read"]))):
+def protected(
+    api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["profile:read"])),
+    _rl: Any = RateLimitDepends(),
+):
     return {
         "ok": True,
         "message": "API key accepted",
@@ -419,7 +451,10 @@ def protected(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=
 
 
 @app.get("/protected/admin")
-def protected_admin(api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["admin:*"]))):
+def protected_admin(
+    api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["admin:*"])),
+    _rl: Any = RateLimitDepends(),
+):
     return {
         "ok": True,
         "message": "API key has admin scope",
