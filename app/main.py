@@ -34,6 +34,10 @@ APP_COMMIT = os.getenv("APP_COMMIT", "(unset)").strip()
 
 API_KEY_CACHE_TTL_SECONDS = int(os.getenv("API_KEY_CACHE_TTL_SECONDS", "10"))
 
+# Metrics tuning: how many recent audit docs to scan to compute top keys (cost control)
+METRICS_AUDIT_SCAN_LIMIT = int(os.getenv("METRICS_AUDIT_SCAN_LIMIT", "2000"))
+METRICS_TOP_KEYS_LIMIT = int(os.getenv("METRICS_TOP_KEYS_LIMIT", "10"))
+
 # CORS origins
 _CORS_ORIGINS_ENV = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
 if _CORS_ORIGINS_ENV:
@@ -95,17 +99,13 @@ REQUEST_ID_HEADER = "X-Request-Id"
 
 
 def _make_request_id() -> str:
-    # URL-safe, short enough for logs/headers
     return py_secrets.token_urlsafe(12)
 
 
 def _should_audit_failure(path: str, status_code: int) -> bool:
-    # Focus on API-key path failures and admin auth failures (optional)
     if status_code in (401, 403, 429):
-        # Audit failures primarily for API-key-protected routes
         if path.startswith("/protected"):
             return True
-        # Also audit admin key ops failures (optional)
         if path.startswith("/keys") or path.startswith("/admin"):
             return True
     return False
@@ -113,15 +113,12 @@ def _should_audit_failure(path: str, status_code: int) -> bool:
 
 @app.middleware("http")
 async def request_id_rl_and_audit_middleware(request: Request, call_next):
-    # 1) request id
     rid = request.headers.get(REQUEST_ID_HEADER) or _make_request_id()
     request.state.request_id = rid
 
-    # 2) execute + catch errors so we can always attach headers
     try:
         response: Response = await call_next(request)
     except HTTPException as exc:
-        # Preserve any headers FastAPI would have sent (e.g., RateLimitDepends sets headers on 429)
         hdrs = dict(exc.headers or {})
         response = JSONResponse(
             status_code=exc.status_code,
@@ -131,16 +128,13 @@ async def request_id_rl_and_audit_middleware(request: Request, call_next):
     except Exception:
         response = JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
-    # 3) attach RL headers if present on request.state (for 200 responses)
     rl_headers = getattr(request.state, "rate_limit_headers", None)
     if isinstance(rl_headers, dict):
         for k, v in rl_headers.items():
             response.headers[k] = str(v)
 
-    # 4) always attach request id
     response.headers[REQUEST_ID_HEADER] = rid
 
-    # 5) audit failures (best effort)
     status = int(getattr(response, "status_code", 0) or 0)
     if _should_audit_failure(request.url.path, status):
         db = get_firestore()
@@ -199,7 +193,7 @@ def get_current_user(authorization: Optional[str] = Header(default=None)) -> Dic
 
     uid = decoded.get("uid") or decoded.get("sub")
     email = decoded.get("email")
-    role = decoded.get("role") or "user"  # custom claim
+    role = decoded.get("role") or "user"
 
     return {
         "uid": uid,
@@ -216,7 +210,6 @@ def require_admin(user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str,
     uid = user.get("uid")
     role = user.get("role")
 
-    # Break-glass bootstrap admin UID
     if BOOTSTRAP_ADMIN_UID and uid == BOOTSTRAP_ADMIN_UID:
         return user
 
@@ -242,10 +235,6 @@ def _now_utc() -> str:
 
 
 def _parse_api_key(api_key: str) -> Optional[Dict[str, str]]:
-    """
-    Expected format: ak_<key_id>.<secret>
-    Returns {"key_id":..., "secret":...} or None
-    """
     if not api_key:
         return None
     api_key = api_key.strip()
@@ -318,11 +307,6 @@ def get_api_key_record_cached(db: firestore.Client, key_id: str) -> Optional[Dic
 
 
 def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[..., Dict[str, Any]]:
-    """
-    Dependency factory. Verifies X-API-Key, checks active, checks secret hash, checks scopes.
-    Sets request.state.api_key_id for rate limiting + audit logging.
-    Uses TTL cache to reduce Firestore reads per instance.
-    """
     def _dep(
         request: Request,
         x_api_key: Optional[str] = Header(default=None, alias=API_KEY_HEADER),
@@ -348,7 +332,6 @@ def require_api_key(required_scopes: Optional[List[str]] = None) -> Callable[...
 
         expected_hash = rec.get("secret_hash") or ""
         provided_hash = _hash_secret(parsed["secret"])
-
         if not py_secrets.compare_digest(str(expected_hash), str(provided_hash)):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
@@ -435,11 +418,7 @@ class UpdateRateLimitRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "firebase_project_id": FIREBASE_PROJECT_ID or "(unset)",
-        "commit": APP_COMMIT,
-    }
+    return {"status": "ok", "firebase_project_id": FIREBASE_PROJECT_ID or "(unset)", "commit": APP_COMMIT}
 
 
 @app.get("/__build")
@@ -505,7 +484,7 @@ def admin_set_user_role(uid: str, body: SetRoleReq, request: Request, admin: Dic
 @app.post("/keys", response_model=CreateKeyResponse)
 def create_api_key(
     req: CreateKeyRequest = Body(default_factory=CreateKeyRequest),
-    request: Request = None,  # FastAPI injects
+    request: Request = None,
     admin: Dict[str, Any] = Depends(require_admin),
 ):
     db = get_firestore()
@@ -558,11 +537,7 @@ def create_api_key(
 
 
 @app.post("/keys/{key_id}/revoke", response_model=RevokeKeyResponse)
-def revoke_api_key(
-    key_id: str,
-    request: Request,
-    admin: Dict[str, Any] = Depends(require_admin),
-):
+def revoke_api_key(key_id: str, request: Request, admin: Dict[str, Any] = Depends(require_admin)):
     db = get_firestore()
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
@@ -641,7 +616,7 @@ def admin_update_key_rate_limit(
 
 
 # -------------------------
-# Admin: get/list keys (existing)
+# Admin: get/list keys
 # -------------------------
 
 @app.get("/keys/{key_id}")
@@ -676,16 +651,12 @@ def admin_list_keys(limit: int = Query(default=50, ge=1, le=200), _: Dict[str, A
 
 
 # -------------------------
-# ✅ Admin metrics (new)
+# ✅ Admin metrics (hardened + top keys by 429)
 # -------------------------
 
-def _count_query_safe(q) -> Optional[int]:
+def _count_query_safe(q) -> Tuple[Optional[int], Optional[str]]:
     """
-    Best-effort Firestore count aggregation (fast) with fallback to streaming count (slower).
-
-    NOTE: In google-cloud-firestore, aggregation_query.get() often returns a list of tuples:
-      [(AggregationResult, read_time)]
-    where AggregationResult has a .value attribute.
+    Returns (count, warning). Warning is non-null if count couldn't be computed reliably.
     """
     # Aggregation count() (fast)
     try:
@@ -697,30 +668,71 @@ def _count_query_safe(q) -> Optional[int]:
 
             # Common shape: (AggregationResult, read_time)
             if isinstance(first, (tuple, list)) and len(first) >= 1 and hasattr(first[0], "value"):
-                return int(first[0].value)
+                return int(first[0].value), None
 
             # Alternate shape: AggregationResult directly
             if hasattr(first, "value"):
-                return int(first.value)
+                return int(first.value), None
 
             # Some SDK variants use to_dict()
             if hasattr(first, "to_dict"):
                 d = first.to_dict()
                 for k in ("count", "value"):
                     if k in d:
-                        return int(d[k])
+                        return int(d[k]), None
 
-    except Exception:
-        pass
+        return None, "count_aggregation_unrecognized_shape"
+    except Exception as e:
+        # If this is an index issue, Firestore often throws FAILED_PRECONDITION.
+        return None, f"count_aggregation_failed: {type(e).__name__}: {str(e)[:300]}"
 
-    # Fallback: stream and count (slow; avoid for large datasets)
+    # not reached
+
+
+def _top_keys_by_event(
+    db: firestore.Client,
+    *,
+    event_type: str,
+    since_dt: datetime,
+    scan_limit: int,
+    top_n: int,
+) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    """
+    Firestore can't GROUP BY easily; we scan a bounded recent window and aggregate in-memory.
+    Returns (top_list, warning).
+    """
     try:
-        n = 0
-        for _ in q.stream():
-            n += 1
-        return n
-    except Exception:
-        return None
+        q = (
+            db.collection("audit_logs")
+            .where("event_type", "==", event_type)
+            .where("ts", ">=", since_dt)
+            .order_by("ts", direction=firestore.Query.DESCENDING)
+            .limit(int(scan_limit))
+        )
+
+        counts: Dict[str, int] = {}
+        unknown = 0
+
+        for snap in q.stream():
+            d = snap.to_dict() or {}
+            kid = d.get("key_id")
+            if kid:
+                counts[str(kid)] = counts.get(str(kid), 0) + 1
+            else:
+                unknown += 1
+
+        top = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)[: int(top_n)]
+        out = [{"key_id": k, "count": c} for (k, c) in top]
+
+        warn = None
+        if unknown > 0:
+            warn = f"top_keys_missing_key_id: {unknown} event(s) missing key_id"
+
+        return out, warn
+
+    except Exception as e:
+        # Most common: composite index required for (event_type, ts order_by)
+        return [], f"top_keys_query_failed: {type(e).__name__}: {str(e)[:350]}"
 
 
 @app.get("/admin/metrics")
@@ -729,38 +741,65 @@ def admin_metrics(request: Request, admin: Dict[str, Any] = Depends(require_admi
     if not db:
         raise HTTPException(status_code=503, detail="Firestore not available")
 
+    warnings: List[str] = []
+
     # Key counts
-    total_keys = _count_query_safe(db.collection("api_keys"))
-    active_keys = _count_query_safe(db.collection("api_keys").where("active", "==", True))
+    total_keys, w1 = _count_query_safe(db.collection("api_keys"))
+    if w1:
+        warnings.append(f"keys.total: {w1}")
+
+    active_keys, w2 = _count_query_safe(db.collection("api_keys").where("active", "==", True))
+    if w2:
+        warnings.append(f"keys.active: {w2}")
 
     # Audit counts: 429 (rate limited) last hour / last 24h
     now = datetime.now(timezone.utc)
     one_hour_ago = now - timedelta(hours=1)
     one_day_ago = now - timedelta(hours=24)
 
-    rate_limited_last_hour: Optional[int] = None
-    rate_limited_last_24h: Optional[int] = None
-    audit_warn: Optional[str] = None
+    rl_hour_count: Optional[int] = None
+    rl_day_count: Optional[int] = None
 
-    try:
-        q1 = (
-            db.collection("audit_logs")
-            .where("event_type", "==", "api_key.rate_limited")
-            .where("ts", ">=", one_hour_ago)
-        )
-        rate_limited_last_hour = _count_query_safe(q1)
+    q_hour = (
+        db.collection("audit_logs")
+        .where("event_type", "==", "api_key.rate_limited")
+        .where("ts", ">=", one_hour_ago)
+    )
+    rl_hour_count, w3 = _count_query_safe(q_hour)
+    if w3:
+        warnings.append(f"rate_limit.429_last_hour: {w3}")
 
-        q2 = (
-            db.collection("audit_logs")
-            .where("event_type", "==", "api_key.rate_limited")
-            .where("ts", ">=", one_day_ago)
-        )
-        rate_limited_last_24h = _count_query_safe(q2)
-    except Exception as e:
-        # Firestore may require a composite index (event_type + ts). Return metrics anyway.
-        audit_warn = f"audit_count_unavailable: {type(e).__name__}: {str(e)}"
+    q_day = (
+        db.collection("audit_logs")
+        .where("event_type", "==", "api_key.rate_limited")
+        .where("ts", ">=", one_day_ago)
+    )
+    rl_day_count, w4 = _count_query_safe(q_day)
+    if w4:
+        warnings.append(f"rate_limit.429_last_24h: {w4}")
 
-    # Audit the metrics access (optional but recommended)
+    # Top keys (bounded scan)
+    top_hour, w5 = _top_keys_by_event(
+        db,
+        event_type="api_key.rate_limited",
+        since_dt=one_hour_ago,
+        scan_limit=METRICS_AUDIT_SCAN_LIMIT,
+        top_n=METRICS_TOP_KEYS_LIMIT,
+    )
+    if w5:
+        warnings.append(f"rate_limit.top_keys_last_hour: {w5}")
+
+    top_24h, w6 = _top_keys_by_event(
+        db,
+        event_type="api_key.rate_limited",
+        since_dt=one_day_ago,
+        scan_limit=METRICS_AUDIT_SCAN_LIMIT,
+        top_n=METRICS_TOP_KEYS_LIMIT,
+    )
+    if w6:
+        warnings.append(f"rate_limit.top_keys_last_24h: {w6}")
+
+    # Audit the metrics access (best-effort)
     write_audit_event(
         db,
         event_type="admin.metrics_read",
@@ -772,12 +811,27 @@ def admin_metrics(request: Request, admin: Dict[str, Any] = Depends(require_admi
         extra={"total_keys": total_keys, "active_keys": active_keys},
     )
 
+    # Provide actionable index hints
+    index_hints = [
+        "If you see FAILED_PRECONDITION in warnings, create Firestore composite indexes for audit_logs:",
+        " - (event_type ASC, ts DESC) for top-keys queries (order_by ts)",
+        " - (event_type ASC, ts ASC) for count queries with ts filter (depending on console suggestion)",
+    ]
+
     return {
         "ok": True,
         "utc": now.isoformat(),
         "keys": {"total": total_keys, "active": active_keys},
-        "rate_limit": {"429_last_hour": rate_limited_last_hour, "429_last_24h": rate_limited_last_24h},
-        "warnings": [audit_warn] if audit_warn else [],
+        "rate_limit": {
+            "429_last_hour": rl_hour_count,
+            "429_last_24h": rl_day_count,
+            "top_keys_last_hour": top_hour,
+            "top_keys_last_24h": top_24h,
+            "scan_limit": METRICS_AUDIT_SCAN_LIMIT,
+            "top_n": METRICS_TOP_KEYS_LIMIT,
+        },
+        "warnings": warnings,
+        "index_hints": index_hints if warnings else [],
     }
 
 
@@ -808,9 +862,4 @@ def protected_admin(
     api_key: Dict[str, Any] = Depends(require_api_key(required_scopes=["admin:*"])),
     _rl: Any = RateLimitDepends(),
 ):
-    return {
-        "ok": True,
-        "message": "API key has admin scope",
-        "key_id": api_key["key_id"],
-        "scopes": api_key.get("scopes", []),
-    }
+    return {"ok": True, "message": "API key has admin scope", "key_id": api_key["key_id"], "scopes": api_key.get("scopes", [])}
