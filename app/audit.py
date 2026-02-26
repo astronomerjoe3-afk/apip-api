@@ -1,136 +1,112 @@
-from datetime import datetime, timezone
-from typing import Optional
+import os
 import uuid
-import traceback
+from datetime import datetime, timezone, timedelta
+from typing import Any, Dict, Optional
 
+from fastapi import Request
 from google.cloud import firestore
 
-# -------------------------------------------------------
-# Firestore Client (singleton)
-# -------------------------------------------------------
 
-_db = firestore.Client()
+DEFAULT_TTL_DAYS = int(os.getenv("AUDIT_TTL_DAYS", "30"))
 
 
-# -------------------------------------------------------
-# Safe Audit Writer
-# -------------------------------------------------------
+def now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def ttl_utc(days: int = DEFAULT_TTL_DAYS) -> datetime:
+    return now_utc() + timedelta(days=days)
+
+
+def _safe_str(v: Any, max_len: int = 512) -> str:
+    try:
+        s = str(v)
+        return s if len(s) <= max_len else s[:max_len] + "…"
+    except Exception:
+        return "<unstringifiable>"
+
 
 def write_audit_log(
+    db: firestore.Client,
     *,
     event_type: str,
+    request: Optional[Request] = None,
+    status_code: Optional[int] = None,
     actor_uid: Optional[str] = None,
+    actor_role: Optional[str] = None,
     key_id: Optional[str] = None,
-    path: Optional[str] = None,
-    method: Optional[str] = None,
-    status: Optional[int] = None,
-    request_id: Optional[str] = None,
-    ip: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    metadata: Optional[dict] = None,
-) -> None:
+    violation_type: Optional[str] = None,
+    duration_ms: Optional[float] = None,
+    detail: Optional[Dict[str, Any]] = None,
+    ttl_days: int = DEFAULT_TTL_DAYS,
+) -> str:
     """
-    Writes a security / operational audit log entry.
+    Writes an audit log entry to Firestore collection: audit_logs
+    - Exception-safe: never raises (returns log_id best-effort).
+    - TTL: expires_at_utc field (Firestore TTL policy should target this).
+    """
+    log_id = uuid.uuid4().hex[:20]
 
-    IMPORTANT:
-    - This function must NEVER raise.
-    - Audit failures must not break request handling.
-    """
+    doc: Dict[str, Any] = {
+        "event_type": event_type,
+        "ts": now_utc(),
+        "expires_at_utc": ttl_utc(ttl_days),
+    }
+
+    if request is not None:
+        # request_id propagated by middleware (fallback to header if missing)
+        req_id = getattr(request.state, "request_id", None) or request.headers.get("X-Request-Id")
+        if req_id:
+            doc["request_id"] = _safe_str(req_id, 64)
+
+        doc["method"] = request.method
+        doc["path"] = request.url.path
+        doc["query"] = _safe_str(request.url.query, 2048) if request.url.query else ""
+
+        # Best-effort client IP (Cloud Run behind proxy: prefer X-Forwarded-For)
+        xff = request.headers.get("X-Forwarded-For", "")
+        ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "")
+        doc["ip"] = _safe_str(ip, 128)
+
+        ua = request.headers.get("User-Agent", "")
+        if ua:
+            doc["user_agent"] = _safe_str(ua, 512)
+
+    if status_code is not None:
+        doc["status_code"] = int(status_code)
+
+    if duration_ms is not None:
+        # store as float (ms)
+        doc["duration_ms"] = float(duration_ms)
+
+    if actor_uid:
+        doc["actor_uid"] = _safe_str(actor_uid, 128)
+
+    if actor_role:
+        doc["actor_role"] = _safe_str(actor_role, 64)
+
+    if key_id:
+        doc["key_id"] = _safe_str(key_id, 128)
+
+    if violation_type:
+        doc["violation_type"] = _safe_str(violation_type, 64)
+
+    if detail:
+        # keep it bounded; don't store secrets
+        doc["detail"] = detail
 
     try:
-        log_id = str(uuid.uuid4())
-
-        doc = {
-            "event_type": event_type,
-            "actor_uid": actor_uid,
-            "key_id": key_id,
-            "path": path,
-            "method": method,
-            "status": status,
-            "request_id": request_id,
-            "ip": ip,
-            "user_agent": user_agent,
-            "metadata": metadata or {},
-            "utc": datetime.now(timezone.utc),
-        }
-
-        _db.collection("audit_logs").document(log_id).set(doc)
-
-        # Structured console log (Cloud Run JSON ingestion)
-        print({
-            "type": "audit_log_written",
-            "event_type": event_type,
-            "request_id": request_id,
-            "status": status,
-            "utc": doc["utc"].isoformat(),
-        })
-
+        db.collection("audit_logs").document(log_id).set(doc)
     except Exception as e:
-        # NEVER allow audit to break app logic
-        print({
-            "type": "audit_log_error",
-            "error": str(e),
-            "trace": traceback.format_exc(),
-            "utc": datetime.now(timezone.utc).isoformat(),
-        })
+        # Never break requests for audit write failures.
+        print(
+            {
+                "type": "audit_write_failed",
+                "event_type": event_type,
+                "log_id": log_id,
+                "error": _safe_str(e, 1024),
+                "utc": now_utc().isoformat(),
+            }
+        )
 
-
-# -------------------------------------------------------
-# Helper Event Wrappers (optional convenience)
-# -------------------------------------------------------
-
-def audit_rate_limit_violation(
-    *,
-    actor_uid: Optional[str],
-    key_id: Optional[str],
-    path: str,
-    method: str,
-    status: int,
-    request_id: Optional[str],
-    ip: Optional[str],
-    user_agent: Optional[str],
-    violation_type: str,
-):
-    write_audit_log(
-        event_type="rate_limit_violation",
-        actor_uid=actor_uid,
-        key_id=key_id,
-        path=path,
-        method=method,
-        status=status,
-        request_id=request_id,
-        ip=ip,
-        user_agent=user_agent,
-        metadata={
-            "violation_type": violation_type
-        }
-    )
-
-
-def audit_admin_action(
-    *,
-    actor_uid: Optional[str],
-    action: str,
-    path: str,
-    method: str,
-    status: int,
-    request_id: Optional[str],
-    ip: Optional[str],
-    user_agent: Optional[str],
-    metadata: Optional[dict] = None,
-):
-    write_audit_log(
-        event_type="admin_action",
-        actor_uid=actor_uid,
-        key_id=None,
-        path=path,
-        method=method,
-        status=status,
-        request_id=request_id,
-        ip=ip,
-        user_agent=user_agent,
-        metadata={
-            "action": action,
-            **(metadata or {})
-        }
-    )
+    return log_id
