@@ -1,83 +1,136 @@
-from __future__ import annotations
-
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Optional
+import uuid
+import traceback
 
-from fastapi import Request
 from google.cloud import firestore
 
+# -------------------------------------------------------
+# Firestore Client (singleton)
+# -------------------------------------------------------
 
-def utc_now_dt() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def utc_now_iso() -> str:
-    return utc_now_dt().isoformat()
+_db = firestore.Client()
 
 
-def get_client_ip(request: Request) -> Optional[str]:
-    """
-    Cloud Run / proxies often set X-Forwarded-For: client, proxy1, proxy2
-    Prefer first IP.
-    """
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip() or None
-    return request.client.host if request.client else None
+# -------------------------------------------------------
+# Safe Audit Writer
+# -------------------------------------------------------
 
-
-def write_audit_event(
-    db: firestore.Client,
+def write_audit_log(
     *,
     event_type: str,
-    request: Optional[Request] = None,
-    status_code: Optional[int] = None,
     actor_uid: Optional[str] = None,
-    actor_email: Optional[str] = None,
     key_id: Optional[str] = None,
+    path: Optional[str] = None,
+    method: Optional[str] = None,
+    status: Optional[int] = None,
     request_id: Optional[str] = None,
-    extra: Optional[Dict[str, Any]] = None,
+    ip: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    metadata: Optional[dict] = None,
 ) -> None:
     """
-    Best-effort audit logging. Never raise.
-    Stores:
-      - ts (datetime, for range queries)
-      - utc (string)
-      - event_type
-      - actor_* (for Firebase admin actions)
-      - key_id (for API key actions)
-      - request metadata (path/method/ip/ua)
-      - status_code
-      - request_id
-      - extra (small dict)
+    Writes a security / operational audit log entry.
+
+    IMPORTANT:
+    - This function must NEVER raise.
+    - Audit failures must not break request handling.
     """
+
     try:
-        payload: Dict[str, Any] = {
-            "ts": utc_now_dt(),
-            "utc": utc_now_iso(),
+        log_id = str(uuid.uuid4())
+
+        doc = {
             "event_type": event_type,
-            "status_code": status_code,
             "actor_uid": actor_uid,
-            "actor_email": actor_email,
             "key_id": key_id,
+            "path": path,
+            "method": method,
+            "status": status,
             "request_id": request_id,
+            "ip": ip,
+            "user_agent": user_agent,
+            "metadata": metadata or {},
+            "utc": datetime.now(timezone.utc),
         }
 
-        if request is not None:
-            payload.update(
-                {
-                    "path": request.url.path,
-                    "method": request.method,
-                    "ip": get_client_ip(request),
-                    "user_agent": request.headers.get("user-agent"),
-                }
-            )
+        _db.collection("audit_logs").document(log_id).set(doc)
 
-        if extra:
-            # Keep "extra" bounded; don't dump huge objects here
-            payload["extra"] = extra
+        # Structured console log (Cloud Run JSON ingestion)
+        print({
+            "type": "audit_log_written",
+            "event_type": event_type,
+            "request_id": request_id,
+            "status": status,
+            "utc": doc["utc"].isoformat(),
+        })
 
-        db.collection("audit_logs").add(payload)
-    except Exception:
-        # Must never impact request handling
-        return
+    except Exception as e:
+        # NEVER allow audit to break app logic
+        print({
+            "type": "audit_log_error",
+            "error": str(e),
+            "trace": traceback.format_exc(),
+            "utc": datetime.now(timezone.utc).isoformat(),
+        })
+
+
+# -------------------------------------------------------
+# Helper Event Wrappers (optional convenience)
+# -------------------------------------------------------
+
+def audit_rate_limit_violation(
+    *,
+    actor_uid: Optional[str],
+    key_id: Optional[str],
+    path: str,
+    method: str,
+    status: int,
+    request_id: Optional[str],
+    ip: Optional[str],
+    user_agent: Optional[str],
+    violation_type: str,
+):
+    write_audit_log(
+        event_type="rate_limit_violation",
+        actor_uid=actor_uid,
+        key_id=key_id,
+        path=path,
+        method=method,
+        status=status,
+        request_id=request_id,
+        ip=ip,
+        user_agent=user_agent,
+        metadata={
+            "violation_type": violation_type
+        }
+    )
+
+
+def audit_admin_action(
+    *,
+    actor_uid: Optional[str],
+    action: str,
+    path: str,
+    method: str,
+    status: int,
+    request_id: Optional[str],
+    ip: Optional[str],
+    user_agent: Optional[str],
+    metadata: Optional[dict] = None,
+):
+    write_audit_log(
+        event_type="admin_action",
+        actor_uid=actor_uid,
+        key_id=None,
+        path=path,
+        method=method,
+        status=status,
+        request_id=request_id,
+        ip=ip,
+        user_agent=user_agent,
+        metadata={
+            "action": action,
+            **(metadata or {})
+        }
+    )
