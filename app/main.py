@@ -2,7 +2,7 @@ import os
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -119,11 +119,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 request=request,
                 status_code=status_code,
                 duration_ms=duration_ms,
-                detail={
-                    "error": str(err)[:512] if err else None,
-                }
-                if err
-                else None,
+                detail={"error": str(err)[:512]} if err else None,
             )
 
 app.add_middleware(RequestContextMiddleware)
@@ -238,12 +234,11 @@ def get_sim_lab(lab_id: str, user=Depends(require_authenticated_user)):
 
 # -------------------------------------------------------
 # Admin Metrics (Minimal Observability)
-# IMPORTANT: keys live in collection "keys" (not "api_keys")
+# IMPORTANT: read keys from collection "api_keys" (per your instruction)
 # -------------------------------------------------------
 
 @app.get("/admin/metrics")
 def admin_metrics(request: Request, admin=Depends(require_admin)):
-    # Audit the access
     uid = admin.get("uid") or admin.get("user_id") or admin.get("sub")
     role = admin.get("role")
 
@@ -251,8 +246,7 @@ def admin_metrics(request: Request, admin=Depends(require_admin)):
     active = 0
     auto_disabled = 0
 
-    # If your keys collection name differs, change it here
-    keys_docs = db.collection("keys").stream()
+    keys_docs = db.collection("api_keys").stream()
     for d in keys_docs:
         total += 1
         data = d.to_dict() or {}
