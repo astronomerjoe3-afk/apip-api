@@ -1,94 +1,99 @@
+# app/audit.py
 from __future__ import annotations
 
-import datetime as dt
-import json
-from dataclasses import asdict, dataclass
-from typing import Any, Mapping
+from dataclasses import dataclass, asdict
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 from google.cloud import firestore
 
-from app.db.firestore import get_firestore_client
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
-def utc_now_iso() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
-
-
-def _json_safe(obj: Any) -> Any:
+def _safe(v: Any) -> Any:
+    """
+    Make values Firestore-safe and JSON-ish.
+    """
     try:
-        json.dumps(obj)
-        return obj
+        # Firestore can store many native types, but keep it safe for logs.
+        if isinstance(v, (str, int, float, bool)) or v is None:
+            return v
+        if isinstance(v, dict):
+            return {str(k): _safe(val) for k, val in v.items()}
+        if isinstance(v, list):
+            return [_safe(x) for x in v]
+        return str(v)
     except Exception:
-        return str(obj)
+        return str(v)
 
 
 @dataclass(frozen=True)
 class AuditEvent:
-    # Schema-stable fields (lock these now to avoid rework later)
+    # Stable, query-friendly schema
     event_type: str
     utc: str
 
-    actor_uid: str | None
-    actor_role: str | None  # student/instructor/admin/service
-    key_id: str | None
+    actor_uid: Optional[str]
+    actor_email: Optional[str]
+    role: Optional[str]  # student / instructor / admin / service
 
-    request_id: str | None
+    request_id: Optional[str]
     path: str
     method: str
-    status: int | None
+    status: Optional[int]
 
-    ip: str | None
-    user_agent: str | None
+    ip: Optional[str]
+    user_agent: Optional[str]
 
-    details: Mapping[str, Any]
+    key_id: Optional[str]
+    details: Dict[str, Any]
 
 
-def build_audit_event(
+def write_audit_log(
     *,
     event_type: str,
+    actor_uid: Optional[str],
+    actor_email: Optional[str] = None,
+    role: Optional[str] = None,
+    key_id: Optional[str] = None,
     path: str,
     method: str,
-    status: int | None,
-    request_id: str | None,
-    actor_uid: str | None,
-    actor_role: str | None,
-    key_id: str | None,
-    ip: str | None,
-    user_agent: str | None,
-    details: Mapping[str, Any] | None = None,
-) -> AuditEvent:
-    return AuditEvent(
-        event_type=event_type,
-        utc=utc_now_iso(),
-        actor_uid=actor_uid,
-        actor_role=actor_role,
-        key_id=key_id,
-        request_id=request_id,
-        path=path,
-        method=method,
-        status=status,
-        ip=ip,
-        user_agent=user_agent,
-        details={k: _json_safe(v) for k, v in (details or {}).items()},
-    )
-
-
-def write_audit_event(event: AuditEvent) -> str | None:
+    status: Optional[int],
+    request_id: Optional[str],
+    ip: Optional[str],
+    user_agent: Optional[str],
+    details: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
     """
-    Best-effort audit log write. Must never throw (observability should not break prod).
-    Returns doc_id if written, else None.
+    Best-effort audit log write to Firestore collection: audit_logs
+
+    IMPORTANT:
+    - Must never raise (observability must not break prod).
+    - Returns document id if write succeeds, else None.
     """
     try:
-        client: firestore.Client = get_firestore_client()
-        doc_ref = client.collection("audit_logs").document()
-        payload = asdict(event)
+        db = firestore.Client()
+        ev = AuditEvent(
+            event_type=str(event_type),
+            utc=utc_now(),
+            actor_uid=actor_uid,
+            actor_email=actor_email,
+            role=role,
+            request_id=request_id,
+            path=str(path),
+            method=str(method),
+            status=status,
+            ip=ip,
+            user_agent=user_agent,
+            key_id=key_id,
+            details=_safe(details or {}),
+        )
 
-        # Make it query-friendly
-        payload["event_type"] = str(payload["event_type"])
-        payload["path"] = str(payload["path"])
-        payload["method"] = str(payload["method"])
-
-        doc_ref.set(payload)
+        doc_ref = db.collection("audit_logs").document()
+        doc_ref.set(asdict(ev))
         return doc_ref.id
     except Exception:
+        # Never block the request path.
         return None
