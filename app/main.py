@@ -228,7 +228,7 @@ def get_sim_lab(lab_id: str, user=Depends(require_authenticated_user)):
     return {"ok": True, "sim_lab": data}
 
 # -------------------------------------------------------
-# Admin Metrics (reads from api_keys as requested)
+# Admin Metrics
 # -------------------------------------------------------
 
 @app.get("/admin/metrics")
@@ -508,11 +508,6 @@ def _new_event_id() -> str:
     return secrets.token_urlsafe(10).replace("-", "").replace("_", "")[:16]
 
 def _compute_mastery_delta(event_type: str, score: Optional[float]) -> float:
-    """
-    Simple deterministic update rule (publishable baseline):
-    - transfer performance contributes more than attempts
-    - score expected in [0,1]
-    """
     s = _clamp01(score)
     if s is None:
         return 0.0
@@ -524,6 +519,10 @@ def _compute_mastery_delta(event_type: str, score: Optional[float]) -> float:
         return (s - 0.5) * 0.05
     return 0.0
 
+def _should_persist_event(event_type: str) -> bool:
+    # User requirement: only transfer + diagnostic are stored per-event
+    return event_type in ("transfer", "diagnostic")
+
 @app.post("/progress/{module_id}/event")
 def post_progress_event(
     module_id: str,
@@ -531,11 +530,6 @@ def post_progress_event(
     user=Depends(require_authenticated_user),
     payload: Dict[str, Any] = Body(...),
 ):
-    """
-    Cost-controlled learning telemetry:
-    - 1 event doc write (progress_events)
-    - 1 module progress upsert (progress/{uid}/modules/{module_id})
-    """
     uid = (user or {}).get("uid")
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
@@ -552,12 +546,11 @@ def post_progress_event(
     if duration_seconds < 0:
         duration_seconds = 0
     if duration_seconds > 60 * 60:
-        duration_seconds = 60 * 60  # cap 1 hour per event
+        duration_seconds = 60 * 60
 
-    # bounded optional fields
     score = _clamp01(payload.get("score"))
     confidence = _clamp01(payload.get("confidence"))
-    conflict_level = _clamp01(payload.get("conflict_level"))  # proxy for cognitive conflict intensity
+    conflict_level = _clamp01(payload.get("conflict_level"))
     sim_depth = payload.get("sim_depth")
     try:
         sim_depth = int(sim_depth) if sim_depth is not None else None
@@ -578,8 +571,6 @@ def post_progress_event(
     if not isinstance(details, dict):
         details = {"value": str(details)}
 
-    # hard cap details size to reduce Firestore cost / risk
-    # keep only top-level primitive-ish fields (no giant dumps)
     trimmed_details: Dict[str, Any] = {}
     for k, v in list(details.items())[:30]:
         key = str(k)[:64]
@@ -591,25 +582,7 @@ def post_progress_event(
     event_id = _new_event_id()
     now = utc_now()
 
-    event_doc_id = f"{uid}_{module_id}_{event_id}"
-    event_doc = {
-        "uid": uid,
-        "module_id": module_id,
-        "event_id": event_id,
-        "event_type": event_type,
-        "utc": now,
-        "duration_seconds": duration_seconds,
-        "score": score,
-        "confidence": confidence,
-        "conflict_level": conflict_level,
-        "sim_depth": sim_depth,
-        "misconception_tags": misconception_tags,
-        "outcome": outcome,
-        "details": trimmed_details,
-        "request_id": getattr(request.state, "request_id", None),
-    }
-
-    # Read existing module progress (single doc read)
+    # Read existing module progress
     mp_ref = _module_progress_doc(uid, module_id)
     mp_snap = mp_ref.get()
     mp = mp_snap.to_dict() if mp_snap.exists else {}
@@ -622,8 +595,7 @@ def post_progress_event(
     if new_mastery > 1.0:
         new_mastery = 1.0
 
-    # Update misconception probabilities (simple Bayesian-ish bump)
-    # baseline: keep existing tag->prob, bump tags seen in this event
+    # Misconception probabilities (simple bump model)
     mp_mis = (mp.get("misconception_profile") or {}).get("tags") or {}
     if not isinstance(mp_mis, dict):
         mp_mis = {}
@@ -638,10 +610,10 @@ def post_progress_event(
             bumped = 0.95
         mp_mis[tag] = round(bumped, 4)
 
-    # Counters
     counters = mp.get("counters") or {}
     if not isinstance(counters, dict):
         counters = {}
+
     def _inc(name: str):
         counters[name] = int(counters.get(name, 0) or 0) + 1
 
@@ -687,19 +659,36 @@ def post_progress_event(
         "updated_utc": now,
     }
 
-    # 2 writes total
-    db.collection("progress_events").document(event_doc_id).set(event_doc)
+    # Writes:
+    # - Always update module progress (1 write)
     mp_ref.set(mp_update, merge=True)
 
-    # Parent progress doc (merge; single write avoided to keep cost low)
-    # Only set if it doesn't exist (optional). We'll do a light merge write occasionally.
-    prog_ref = _progress_doc(uid)
-    prog_ref.set(
-        {
+    # - Store per-event only for diagnostic + transfer
+    stored_event = False
+    if _should_persist_event(event_type):
+        event_doc_id = f"{uid}_{module_id}_{event_id}"
+        event_doc = {
             "uid": uid,
-            "updated_utc": now,
-            "last_event_utc": now,
-        },
+            "module_id": module_id,
+            "event_id": event_id,
+            "event_type": event_type,
+            "utc": now,
+            "duration_seconds": duration_seconds,
+            "score": score,
+            "confidence": confidence,
+            "conflict_level": conflict_level,
+            "sim_depth": sim_depth,
+            "misconception_tags": misconception_tags,
+            "outcome": outcome,
+            "details": trimmed_details,
+            "request_id": getattr(request.state, "request_id", None),
+        }
+        db.collection("progress_events").document(event_doc_id).set(event_doc)
+        stored_event = True
+
+    # Light merge on parent progress doc
+    _progress_doc(uid).set(
+        {"uid": uid, "updated_utc": now, "last_event_utc": now},
         merge=True,
     )
 
@@ -715,7 +704,7 @@ def post_progress_event(
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={"module_id": module_id, "event_type": event_type, "event_id": event_id},
+        details={"module_id": module_id, "event_type": event_type, "event_id": event_id, "stored_event": stored_event},
     )
 
     return {
@@ -723,11 +712,10 @@ def post_progress_event(
         "utc": now,
         "event_id": event_id,
         "module_id": module_id,
+        "stored_event": stored_event,
         "mastery": mp_update["mastery"],
         "readiness": mp_update["readiness"],
-        "misconception_profile": {
-            "top_tags": sorted(mp_mis.items(), key=lambda kv: kv[1], reverse=True)[:10]
-        },
+        "misconception_profile": {"top_tags": sorted(mp_mis.items(), key=lambda kv: kv[1], reverse=True)[:10]},
     }
 
 @app.get("/progress/me")
@@ -740,7 +728,8 @@ def get_progress_me(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    # Read module progress docs
+    warnings: List[str] = []
+
     mods = list(_progress_doc(uid).collection("modules").stream())
     modules: List[Dict[str, Any]] = []
     for d in mods:
@@ -748,22 +737,25 @@ def get_progress_me(
         data["module_id"] = d.id
         modules.append(data)
 
-    # Recent events (bounded)
     recent: List[Dict[str, Any]] = []
     if limit_recent_events > 0:
-        # Query by uid prefix via document id is awkward; we use a where on uid field.
-        q = (
-            db.collection("progress_events")
-            .where("uid", "==", uid)
-            .order_by("utc", direction=firestore.Query.DESCENDING)
-            .limit(limit_recent_events)
-        )
-        for s in q.stream():
-            e = s.to_dict() or {}
-            # trim details
-            if isinstance(e.get("details"), dict):
-                e["details"] = {k: e["details"][k] for k in list(e["details"].keys())[:10]}
-            recent.append(e)
+        # This query may require a Firestore composite index (uid + utc).
+        # We treat index absence as a non-fatal condition to avoid 500s.
+        try:
+            q = (
+                db.collection("progress_events")
+                .where("uid", "==", uid)
+                .order_by("utc", direction=firestore.Query.DESCENDING)
+                .limit(limit_recent_events)
+            )
+            for s in q.stream():
+                e = s.to_dict() or {}
+                if isinstance(e.get("details"), dict):
+                    e["details"] = {k: e["details"][k] for k in list(e["details"].keys())[:10]}
+                recent.append(e)
+        except Exception as e:
+            warnings.append(f"recent_events_unavailable: {str(e)[:180]}")
+            recent = []
 
     write_audit_log(
         event_type="progress.me.read",
@@ -777,10 +769,9 @@ def get_progress_me(
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={"modules": len(modules), "recent_events": len(recent)},
+        details={"modules": len(modules), "recent_events": len(recent), "warnings": warnings},
     )
 
-    # Build mastery map summary
     mastery_map = []
     for m in modules:
         mastery = m.get("mastery") or {}
@@ -800,6 +791,7 @@ def get_progress_me(
         "utc": utc_now(),
         "uid": uid,
         "role": (user or {}).get("role"),
+        "warnings": warnings,
         "mastery_map": mastery_map,
         "modules": modules,
         "recent_events": recent,
