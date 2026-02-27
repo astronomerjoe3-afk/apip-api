@@ -5,7 +5,7 @@ import time
 import secrets
 import hashlib
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List, Literal, Set
+from typing import Optional, Dict, Any, List, Literal
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -88,11 +88,9 @@ def _safe_list_str(v: Any, max_items: int = 25, max_len: int = 64) -> List[str]:
         out.append(s[:max_len])
     return out
 
-def _normalize_tag(tag: str) -> str:
-    # Keep tags stable, safe, URL-ish
-    t = str(tag).strip().lower()
-    t = t.replace(" ", "_")
-    return t[:64]
+def _is_missing_index_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    return ("requires an index" in msg) or ("create it here" in msg) or ("failed_precondition" in msg)
 
 # -------------------------------------------------------
 # Request ID Middleware
@@ -210,19 +208,59 @@ def get_module(module_id: str, user=Depends(require_authenticated_user)):
     return {"ok": True, "module": data}
 
 @app.get("/modules/{module_id}/lessons")
-def get_module_lessons(module_id: str, user=Depends(require_authenticated_user)):
-    docs = (
-        db.collection("lessons")
-        .where("module_id", "==", module_id)
-        .order_by("sequence")
-        .stream()
+def get_module_lessons(module_id: str, request: Request, user=Depends(require_authenticated_user)):
+    warnings: List[str] = []
+    lessons: List[Dict[str, Any]] = []
+
+    # Preferred: query with ordering (may require composite index)
+    try:
+        docs = (
+            db.collection("lessons")
+            .where("module_id", "==", module_id)
+            .order_by("sequence")
+            .stream()
+        )
+        for d in docs:
+            data = d.to_dict() or {}
+            data["id"] = d.id
+            lessons.append(data)
+
+    except Exception as e:
+        if _is_missing_index_error(e):
+            # Fallback: fetch without order_by, then sort in-app.
+            warnings.append(f"lessons_ordering_fallback_missing_index: {str(e)[:200]}")
+            try:
+                docs = (
+                    db.collection("lessons")
+                    .where("module_id", "==", module_id)
+                    .stream()
+                )
+                for d in docs:
+                    data = d.to_dict() or {}
+                    data["id"] = d.id
+                    lessons.append(data)
+
+                lessons.sort(key=lambda x: int(x.get("sequence", 10**9) or 10**9))
+            except Exception as e2:
+                raise HTTPException(status_code=500, detail=f"Failed to load lessons: {str(e2)[:200]}")
+        else:
+            raise HTTPException(status_code=500, detail=f"Failed to load lessons: {str(e)[:200]}")
+
+    write_audit_log(
+        event_type="catalog.module_lessons.read",
+        actor_uid=(user or {}).get("uid"),
+        actor_email=(user or {}).get("email"),
+        role=(user or {}).get("role"),
+        path=f"/modules/{module_id}/lessons",
+        method="GET",
+        status=200,
+        request_id=getattr(request.state, "request_id", None),
+        ip=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        details={"module_id": module_id, "returned": len(lessons), "warnings": warnings},
     )
-    result = []
-    for d in docs:
-        data = d.to_dict() or {}
-        data["id"] = d.id
-        result.append(data)
-    return {"ok": True, "lessons": result}
+
+    return {"ok": True, "lessons": lessons, "warnings": warnings}
 
 @app.get("/sim-labs/{lab_id}")
 def get_sim_lab(lab_id: str, user=Depends(require_authenticated_user)):
@@ -526,86 +564,7 @@ def _compute_mastery_delta(event_type: str, score: Optional[float]) -> float:
     return 0.0
 
 def _should_persist_event(event_type: str) -> bool:
-    # User requirement: only transfer + diagnostic are stored per-event
     return event_type in ("transfer", "diagnostic")
-
-# Default allowlist for F1 (Physical Quantities & Measurement)
-F1_DEFAULT_MISCONCEPTION_ALLOWLIST: Set[str] = {
-    "unit_conversion",
-    "dimensional_analysis",
-    "significant_figures",
-    "precision_vs_accuracy",
-    "zero_error",
-    "parallax_error",
-    "reading_scale",
-    "least_count",
-    "scalar_vs_vector",
-}
-
-def _get_module_misconception_allowlist(module_id: str) -> Optional[Set[str]]:
-    """
-    If module doc contains misconception_tag_allowlist, use it.
-    If absent and module is F1, apply safe default allowlist.
-    If absent for other modules, return None (no restriction).
-    """
-    try:
-        snap = db.collection("modules").document(module_id).get()
-        if snap.exists:
-            data = snap.to_dict() or {}
-            raw = data.get("misconception_tag_allowlist")
-            if raw:
-                tags = {_normalize_tag(t) for t in _safe_list_str(raw, max_items=200, max_len=64)}
-                return tags if tags else set()
-    except Exception:
-        # Non-fatal: don't break progress posting if modules doc read fails
-        pass
-
-    if module_id == "F1":
-        return set(F1_DEFAULT_MISCONCEPTION_ALLOWLIST)
-
-    return None
-
-def _filter_tags(tags: List[str], allowlist: Optional[Set[str]]) -> List[str]:
-    if allowlist is None:
-        return tags
-    # If allowlist is empty set, then nothing allowed
-    out: List[str] = []
-    for t in tags:
-        nt = _normalize_tag(t)
-        if nt in allowlist:
-            out.append(nt)
-    # de-dupe while preserving order
-    seen = set()
-    deduped = []
-    for t in out:
-        if t in seen:
-            continue
-        seen.add(t)
-        deduped.append(t)
-    return deduped
-
-def _sanitize_profile_tags(profile_tags: Dict[str, Any], allowlist: Optional[Set[str]]) -> Dict[str, float]:
-    """
-    Ensure profile tags contain only allowed tags (when allowlist present).
-    Coerce values to floats.
-    """
-    out: Dict[str, float] = {}
-    if not isinstance(profile_tags, dict):
-        return out
-    for k, v in profile_tags.items():
-        nk = _normalize_tag(k)
-        if allowlist is not None and nk not in allowlist:
-            continue
-        try:
-            fv = float(v)
-        except Exception:
-            continue
-        if fv < 0.0:
-            fv = 0.0
-        if fv > 1.0:
-            fv = 1.0
-        out[nk] = round(fv, 4)
-    return out
 
 @app.post("/progress/{module_id}/event")
 def post_progress_event(
@@ -645,12 +604,7 @@ def post_progress_event(
     if sim_depth is not None and sim_depth > 1000:
         sim_depth = 1000
 
-    raw_tags = _safe_list_str(payload.get("misconception_tags"), max_items=25, max_len=64)
-    raw_tags = [_normalize_tag(t) for t in raw_tags]
-
-    # Enforce allowlist (F1 measurement only; other modules can define their own)
-    allowlist = _get_module_misconception_allowlist(module_id)
-    misconception_tags = _filter_tags(raw_tags, allowlist)
+    misconception_tags = _safe_list_str(payload.get("misconception_tags"), max_items=25, max_len=64)
 
     outcome = payload.get("outcome")
     if outcome is not None:
@@ -671,7 +625,6 @@ def post_progress_event(
     event_id = _new_event_id()
     now = utc_now()
 
-    # Read existing module progress
     mp_ref = _module_progress_doc(uid, module_id)
     mp_snap = mp_ref.get()
     mp = mp_snap.to_dict() if mp_snap.exists else {}
@@ -684,14 +637,16 @@ def post_progress_event(
     if new_mastery > 1.0:
         new_mastery = 1.0
 
-    # Sanitize existing misconception_profile tags first (removes old invalid tags for F1)
-    existing_profile_tags = (mp.get("misconception_profile") or {}).get("tags") or {}
-    mp_mis: Dict[str, float] = _sanitize_profile_tags(existing_profile_tags, allowlist)
-
-    # Misconception probabilities (simple bump model, only for allowed tags)
+    mp_mis = (mp.get("misconception_profile") or {}).get("tags") or {}
+    if not isinstance(mp_mis, dict):
+        mp_mis = {}
     for tag in misconception_tags:
-        prev = mp_mis.get(tag, 0.10)
-        bumped = float(prev) + 0.05
+        prev = mp_mis.get(tag)
+        try:
+            prev_f = float(prev) if prev is not None else 0.10
+        except Exception:
+            prev_f = 0.10
+        bumped = prev_f + 0.05
         if bumped > 0.95:
             bumped = 0.95
         mp_mis[tag] = round(bumped, 4)
@@ -745,10 +700,8 @@ def post_progress_event(
         "updated_utc": now,
     }
 
-    # Always update module progress (1 write)
     mp_ref.set(mp_update, merge=True)
 
-    # Store per-event only for diagnostic + transfer
     stored_event = False
     if _should_persist_event(event_type):
         event_doc_id = f"{uid}_{module_id}_{event_id}"
@@ -771,7 +724,6 @@ def post_progress_event(
         db.collection("progress_events").document(event_doc_id).set(event_doc)
         stored_event = True
 
-    # Light merge on parent progress doc
     _progress_doc(uid).set(
         {"uid": uid, "updated_utc": now, "last_event_utc": now},
         merge=True,
@@ -789,15 +741,7 @@ def post_progress_event(
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={
-            "module_id": module_id,
-            "event_type": event_type,
-            "event_id": event_id,
-            "stored_event": stored_event,
-            "allowlist_enforced": allowlist is not None,
-            "tags_in": raw_tags,
-            "tags_used": misconception_tags,
-        },
+        details={"module_id": module_id, "event_type": event_type, "event_id": event_id, "stored_event": stored_event},
     )
 
     return {
