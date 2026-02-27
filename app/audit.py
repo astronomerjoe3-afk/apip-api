@@ -1,74 +1,94 @@
-# app/audit.py
-import os
-import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+import datetime as dt
+import json
+from dataclasses import asdict, dataclass
+from typing import Any, Mapping
 
 from google.cloud import firestore
 
-
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+from app.db.firestore import get_firestore_client
 
 
-def write_audit_log(
+def utc_now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def _json_safe(obj: Any) -> Any:
+    try:
+        json.dumps(obj)
+        return obj
+    except Exception:
+        return str(obj)
+
+
+@dataclass(frozen=True)
+class AuditEvent:
+    # Schema-stable fields (lock these now to avoid rework later)
+    event_type: str
+    utc: str
+
+    actor_uid: str | None
+    actor_role: str | None  # student/instructor/admin/service
+    key_id: str | None
+
+    request_id: str | None
+    path: str
+    method: str
+    status: int | None
+
+    ip: str | None
+    user_agent: str | None
+
+    details: Mapping[str, Any]
+
+
+def build_audit_event(
     *,
     event_type: str,
-    actor_uid: Optional[str] = None,
-    actor_email: Optional[str] = None,
-    role: Optional[str] = None,
-    key_id: Optional[str] = None,
-    path: Optional[str] = None,
-    method: Optional[str] = None,
-    status: Optional[int] = None,
-    request_id: Optional[str] = None,
-    ip: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    details: Optional[Dict[str, Any]] = None,
-) -> None:
-    """
-    Best-effort audit logger.
-    Writes one Firestore doc per event into: audit_logs/{log_id}
+    path: str,
+    method: str,
+    status: int | None,
+    request_id: str | None,
+    actor_uid: str | None,
+    actor_role: str | None,
+    key_id: str | None,
+    ip: str | None,
+    user_agent: str | None,
+    details: Mapping[str, Any] | None = None,
+) -> AuditEvent:
+    return AuditEvent(
+        event_type=event_type,
+        utc=utc_now_iso(),
+        actor_uid=actor_uid,
+        actor_role=actor_role,
+        key_id=key_id,
+        request_id=request_id,
+        path=path,
+        method=method,
+        status=status,
+        ip=ip,
+        user_agent=user_agent,
+        details={k: _json_safe(v) for k, v in (details or {}).items()},
+    )
 
-    IMPORTANT:
-    - Never raise to caller (audit must not take down API).
-    - Keep payload small (Firestore costs).
-    """
 
+def write_audit_event(event: AuditEvent) -> str | None:
+    """
+    Best-effort audit log write. Must never throw (observability should not break prod).
+    Returns doc_id if written, else None.
+    """
     try:
-        db = firestore.Client()
+        client: firestore.Client = get_firestore_client()
+        doc_ref = client.collection("audit_logs").document()
+        payload = asdict(event)
 
-        log_id = str(uuid.uuid4())
-        doc = {
-            "event_type": event_type,
-            "actor_uid": actor_uid,
-            "actor_email": actor_email,
-            "role": role,
-            "key_id": key_id,
-            "path": path,
-            "method": method,
-            "status": status,
-            "request_id": request_id,
-            "ip": ip,
-            "user_agent": user_agent,
-            "details": details or {},
-            "utc": _utc_now(),
-            "service": os.getenv("K_SERVICE"),
-            "revision": os.getenv("K_REVISION"),
-            "project_id": os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT"),
-        }
+        # Make it query-friendly
+        payload["event_type"] = str(payload["event_type"])
+        payload["path"] = str(payload["path"])
+        payload["method"] = str(payload["method"])
 
-        # Firestore server timestamp would be nice, but keep explicit utc as well.
-        db.collection("audit_logs").document(log_id).set(doc)
-
-    except Exception as e:
-        # Best-effort: do not raise. Print to logs for diagnosis.
-        print(
-            {
-                "type": "audit_log_error",
-                "error": str(e),
-                "event_type": event_type,
-                "request_id": request_id,
-                "utc": _utc_now(),
-            }
-        )
+        doc_ref.set(payload)
+        return doc_ref.id
+    except Exception:
+        return None
