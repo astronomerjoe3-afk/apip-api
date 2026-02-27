@@ -5,7 +5,7 @@ import time
 import secrets
 import hashlib
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List, Literal
+from typing import Optional, Dict, Any, List, Literal, Set
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -87,6 +87,12 @@ def _safe_list_str(v: Any, max_items: int = 25, max_len: int = 64) -> List[str]:
             continue
         out.append(s[:max_len])
     return out
+
+def _normalize_tag(tag: str) -> str:
+    # Keep tags stable, safe, URL-ish
+    t = str(tag).strip().lower()
+    t = t.replace(" ", "_")
+    return t[:64]
 
 # -------------------------------------------------------
 # Request ID Middleware
@@ -523,6 +529,84 @@ def _should_persist_event(event_type: str) -> bool:
     # User requirement: only transfer + diagnostic are stored per-event
     return event_type in ("transfer", "diagnostic")
 
+# Default allowlist for F1 (Physical Quantities & Measurement)
+F1_DEFAULT_MISCONCEPTION_ALLOWLIST: Set[str] = {
+    "unit_conversion",
+    "dimensional_analysis",
+    "significant_figures",
+    "precision_vs_accuracy",
+    "zero_error",
+    "parallax_error",
+    "reading_scale",
+    "least_count",
+    "scalar_vs_vector",
+}
+
+def _get_module_misconception_allowlist(module_id: str) -> Optional[Set[str]]:
+    """
+    If module doc contains misconception_tag_allowlist, use it.
+    If absent and module is F1, apply safe default allowlist.
+    If absent for other modules, return None (no restriction).
+    """
+    try:
+        snap = db.collection("modules").document(module_id).get()
+        if snap.exists:
+            data = snap.to_dict() or {}
+            raw = data.get("misconception_tag_allowlist")
+            if raw:
+                tags = {_normalize_tag(t) for t in _safe_list_str(raw, max_items=200, max_len=64)}
+                return tags if tags else set()
+    except Exception:
+        # Non-fatal: don't break progress posting if modules doc read fails
+        pass
+
+    if module_id == "F1":
+        return set(F1_DEFAULT_MISCONCEPTION_ALLOWLIST)
+
+    return None
+
+def _filter_tags(tags: List[str], allowlist: Optional[Set[str]]) -> List[str]:
+    if allowlist is None:
+        return tags
+    # If allowlist is empty set, then nothing allowed
+    out: List[str] = []
+    for t in tags:
+        nt = _normalize_tag(t)
+        if nt in allowlist:
+            out.append(nt)
+    # de-dupe while preserving order
+    seen = set()
+    deduped = []
+    for t in out:
+        if t in seen:
+            continue
+        seen.add(t)
+        deduped.append(t)
+    return deduped
+
+def _sanitize_profile_tags(profile_tags: Dict[str, Any], allowlist: Optional[Set[str]]) -> Dict[str, float]:
+    """
+    Ensure profile tags contain only allowed tags (when allowlist present).
+    Coerce values to floats.
+    """
+    out: Dict[str, float] = {}
+    if not isinstance(profile_tags, dict):
+        return out
+    for k, v in profile_tags.items():
+        nk = _normalize_tag(k)
+        if allowlist is not None and nk not in allowlist:
+            continue
+        try:
+            fv = float(v)
+        except Exception:
+            continue
+        if fv < 0.0:
+            fv = 0.0
+        if fv > 1.0:
+            fv = 1.0
+        out[nk] = round(fv, 4)
+    return out
+
 @app.post("/progress/{module_id}/event")
 def post_progress_event(
     module_id: str,
@@ -561,7 +645,12 @@ def post_progress_event(
     if sim_depth is not None and sim_depth > 1000:
         sim_depth = 1000
 
-    misconception_tags = _safe_list_str(payload.get("misconception_tags"), max_items=25, max_len=64)
+    raw_tags = _safe_list_str(payload.get("misconception_tags"), max_items=25, max_len=64)
+    raw_tags = [_normalize_tag(t) for t in raw_tags]
+
+    # Enforce allowlist (F1 measurement only; other modules can define their own)
+    allowlist = _get_module_misconception_allowlist(module_id)
+    misconception_tags = _filter_tags(raw_tags, allowlist)
 
     outcome = payload.get("outcome")
     if outcome is not None:
@@ -595,17 +684,14 @@ def post_progress_event(
     if new_mastery > 1.0:
         new_mastery = 1.0
 
-    # Misconception probabilities (simple bump model)
-    mp_mis = (mp.get("misconception_profile") or {}).get("tags") or {}
-    if not isinstance(mp_mis, dict):
-        mp_mis = {}
+    # Sanitize existing misconception_profile tags first (removes old invalid tags for F1)
+    existing_profile_tags = (mp.get("misconception_profile") or {}).get("tags") or {}
+    mp_mis: Dict[str, float] = _sanitize_profile_tags(existing_profile_tags, allowlist)
+
+    # Misconception probabilities (simple bump model, only for allowed tags)
     for tag in misconception_tags:
-        prev = mp_mis.get(tag)
-        try:
-            prev_f = float(prev) if prev is not None else 0.10
-        except Exception:
-            prev_f = 0.10
-        bumped = prev_f + 0.05
+        prev = mp_mis.get(tag, 0.10)
+        bumped = float(prev) + 0.05
         if bumped > 0.95:
             bumped = 0.95
         mp_mis[tag] = round(bumped, 4)
@@ -659,11 +745,10 @@ def post_progress_event(
         "updated_utc": now,
     }
 
-    # Writes:
-    # - Always update module progress (1 write)
+    # Always update module progress (1 write)
     mp_ref.set(mp_update, merge=True)
 
-    # - Store per-event only for diagnostic + transfer
+    # Store per-event only for diagnostic + transfer
     stored_event = False
     if _should_persist_event(event_type):
         event_doc_id = f"{uid}_{module_id}_{event_id}"
@@ -704,7 +789,15 @@ def post_progress_event(
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={"module_id": module_id, "event_type": event_type, "event_id": event_id, "stored_event": stored_event},
+        details={
+            "module_id": module_id,
+            "event_type": event_type,
+            "event_id": event_id,
+            "stored_event": stored_event,
+            "allowlist_enforced": allowlist is not None,
+            "tags_in": raw_tags,
+            "tags_used": misconception_tags,
+        },
     )
 
     return {
@@ -739,8 +832,6 @@ def get_progress_me(
 
     recent: List[Dict[str, Any]] = []
     if limit_recent_events > 0:
-        # This query may require a Firestore composite index (uid + utc).
-        # We treat index absence as a non-fatal condition to avoid 500s.
         try:
             q = (
                 db.collection("progress_events")
