@@ -1,6 +1,6 @@
 ﻿import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Set
 
 import firebase_admin
@@ -16,7 +16,8 @@ def stable_hash(obj: Any) -> str:
     return hashlib.sha256(raw).hexdigest()[:16]
 
 def now_iso() -> str:
-    return datetime.utcnow().isoformat() + "Z"
+    # timezone-aware UTC (avoids DeprecationWarning)
+    return datetime.now(timezone.utc).isoformat()
 
 def ensure_unique_ids(lesson_id: str, *lists: List[Dict[str, Any]]) -> None:
     seen: Set[str] = set()
@@ -41,11 +42,11 @@ def ensure_student_safe_item(item: Dict[str, Any]) -> None:
     if missing:
         raise ValueError(f"Item missing fields {missing}: {item}")
     if not isinstance(item["choices"], list) or len(item["choices"]) < 2:
-        raise ValueError(f"Item choices invalid: {item['id']}")
+        raise ValueError(f"Item choices invalid: {item.get('id')}")
     if not isinstance(item["feedback"], list) or len(item["feedback"]) != len(item["choices"]):
-        raise ValueError(f"Item feedback must match choices length: {item['id']}")
+        raise ValueError(f"Item feedback must match choices length: {item.get('id')}")
     if not isinstance(item["answer_index"], int) or not (0 <= item["answer_index"] < len(item["choices"])):
-        raise ValueError(f"Item answer_index out of range: {item['id']}")
+        raise ValueError(f"Item answer_index out of range: {item.get('id')}")
 
 # ---------------------------
 # Content: Module + Lessons
@@ -158,7 +159,7 @@ def lesson_f1_l1() -> Dict[str, Any]:
             "transfer": {"items": transfer, "dedupe_keyspace": "F1-L1"}
         },
         "grading": {"completion_threshold": 0.8, "no_repeat_questions": True},
-        "telemetry": {"version": 2},  # bump when you update content structure
+        "telemetry": {"version": 2},
         "createdAt": firestore.SERVER_TIMESTAMP,
         "updatedAt": firestore.SERVER_TIMESTAMP
     }
@@ -169,7 +170,7 @@ def lesson_f1_l1() -> Dict[str, Any]:
 
 def lesson_f1_l2() -> Dict[str, Any]:
     """
-    L2: Scalars vs vectors (concept + simple interpretation)
+    L2: Scalars vs vectors
     """
     diag = [
         {
@@ -261,7 +262,7 @@ def lesson_f1_l2() -> Dict[str, Any]:
 
 def lesson_f1_l3() -> Dict[str, Any]:
     """
-    L3: Density (concept, units, simple calculation)
+    L3: Density
     """
     diag = [
         {
@@ -353,7 +354,7 @@ def lesson_f1_l3() -> Dict[str, Any]:
 
 def lesson_f1_l4() -> Dict[str, Any]:
     """
-    L4: Intro to error/uncertainty + significant figures (lightweight, age-appropriate)
+    L4: Precision/uncertainty intro
     """
     diag = [
         {
@@ -411,7 +412,7 @@ def lesson_f1_l4() -> Dict[str, Any]:
             "analogical_grounding": {
                 "analogy_text": (
                     "Measuring is like aiming at a target. "
-                    "If your results are clustered tightly, you are precise. "
+                    "If results cluster tightly, you are precise. "
                     "Repeats show how wide the cluster is."
                 ),
                 "micro_prompts": [
@@ -423,7 +424,7 @@ def lesson_f1_l4() -> Dict[str, Any]:
                 "lab_once": True,
                 "inquiry_prompts": [
                     {"prompt": "Take multiple readings of the same length. Is the spread small or large?", "hint": "Compare highest and lowest."},
-                    {"prompt": "Try a 'rough' tool and a 'fine' tool. Which produces tighter results?", "hint": "Precision depends on scale."}
+                    {"prompt": "Try a rough tool and a fine tool. Which produces tighter results?", "hint": "Precision depends on scale."}
                 ]
             },
             "concept_reconstruction": {
@@ -446,19 +447,24 @@ def lesson_f1_l4() -> Dict[str, Any]:
 
 def build_lessons() -> List[Dict[str, Any]]:
     lessons = [lesson_f1_l1(), lesson_f1_l2(), lesson_f1_l3(), lesson_f1_l4()]
-    # global sanity: no ID repeats across the entire module (optional but aligned with "no repeats")
+
+    # Global module-level uniqueness (optional but aligned with "no repeats")
     global_seen: Set[str] = set()
     for les in lessons:
+        # diag + transfer
         for phase_name in ("diagnostic", "transfer"):
             for it in les["phases"][phase_name]["items"]:
                 if it["id"] in global_seen:
                     raise ValueError(f"[GLOBAL] Duplicate item id across module: {it['id']}")
                 global_seen.add(it["id"])
+
+        # capsule checks
         for cap in les["phases"]["concept_reconstruction"]["capsules"]:
             for it in cap.get("checks", []):
                 if it["id"] in global_seen:
                     raise ValueError(f"[GLOBAL] Duplicate item id across module: {it['id']}")
                 global_seen.add(it["id"])
+
     return lessons
 
 # ---------------------------
@@ -474,12 +480,18 @@ def main() -> None:
     # Write module doc
     db.collection("modules").document(MODULE_ID).set(module_doc(), merge=True)
 
-    # Write lessons as subcollection: modules/{moduleId}/lessons/{lessonId}
+    # Dual-write lessons to BOTH schema locations:
+    # 1) modules/{moduleId}/lessons/{lessonId}
+    # 2) lessons/{lessonId}
     lessons = build_lessons()
     batch = db.batch()
     for lesson in lessons:
-        ref = db.collection("modules").document(MODULE_ID).collection("lessons").document(lesson["id"])
-        batch.set(ref, lesson, merge=True)
+        ref_sub = db.collection("modules").document(MODULE_ID).collection("lessons").document(lesson["id"])
+        batch.set(ref_sub, lesson, merge=True)
+
+        ref_top = db.collection("lessons").document(lesson["id"])
+        batch.set(ref_top, lesson, merge=True)
+
     batch.commit()
 
     print(f"[OK] Seeded modules/{MODULE_ID} with {len(lessons)} lessons at {now_iso()}")
