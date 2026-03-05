@@ -1,4 +1,6 @@
 ﻿# app/main.py
+from __future__ import annotations
+
 import os
 import uuid
 import time
@@ -9,11 +11,14 @@ from typing import Optional, Dict, Any, List, Literal
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
-from google.cloud import firestore
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from google.cloud import firestore  # only for Query.DESCENDING / types
+
+from app.db.firestore import get_firestore_client
 from app.dependencies import require_admin, require_authenticated_user, require_instructor_or_admin
 from app.audit import write_audit_log
+
 
 # -------------------------------------------------------
 # App Init
@@ -21,14 +26,9 @@ from app.audit import write_audit_log
 
 app = FastAPI(title="APIP API", version="0.3.0")
 
-FIRESTORE_PROJECT = (
-    os.getenv("GOOGLE_CLOUD_PROJECT")
-    or os.getenv("GCP_PROJECT")
-    or os.getenv("GCLOUD_PROJECT")
-    or "local"
-)
+# Canonical Firestore client (ADC local / Cloud Run)
+db = get_firestore_client()
 
-db = firestore.Client(project=FIRESTORE_PROJECT)
 
 # -------------------------------------------------------
 # CORS (tighten later)
@@ -36,11 +36,12 @@ db = firestore.Client(project=FIRESTORE_PROJECT)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: use env allowlist later
+    allow_origins=["*"],  # TODO: env allowlist later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # -------------------------------------------------------
 # Helpers
@@ -49,14 +50,17 @@ app.add_middleware(
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
+
 def sha256_hex(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
 
 def get_client_ip(request: Request) -> Optional[str]:
     xff = request.headers.get("X-Forwarded-For")
     if xff:
         return xff.split(",")[0].strip()
     return request.client.host if request.client else None
+
 
 def _clamp01(x: Optional[float]) -> Optional[float]:
     if x is None:
@@ -70,6 +74,7 @@ def _clamp01(x: Optional[float]) -> Optional[float]:
     if v > 1.0:
         return 1.0
     return v
+
 
 def _safe_list_str(v: Any, max_items: int = 25, max_len: int = 64) -> List[str]:
     out: List[str] = []
@@ -88,9 +93,20 @@ def _safe_list_str(v: Any, max_items: int = 25, max_len: int = 64) -> List[str]:
         out.append(s[:max_len])
     return out
 
+
 def _is_missing_index_error(e: Exception) -> bool:
     msg = str(e).lower()
     return ("requires an index" in msg) or ("create it here" in msg) or ("failed_precondition" in msg)
+
+
+def _parse_iso_utc(s: Any) -> float:
+    try:
+        if not s:
+            return 0.0
+        return datetime.fromisoformat(str(s)).timestamp()
+    except Exception:
+        return 0.0
+
 
 # -------------------------------------------------------
 # Request ID Middleware
@@ -120,7 +136,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         )
         return response
 
+
 app.add_middleware(RequestIDMiddleware)
+
 
 # -------------------------------------------------------
 # Health + Build
@@ -130,16 +148,17 @@ app.add_middleware(RequestIDMiddleware)
 def health():
     return {"status": "ok", "utc": utc_now()}
 
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "utc": utc_now()}
+
 
 @app.get("/__build")
 @app.get("/_build")
 def build():
     app_commit = os.getenv("GIT_COMMIT_SHA") or "dev"
-    project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT") or "local"
-
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT") or os.getenv("GCLOUD_PROJECT") or "local"
     return {
         "app_name": "apip-api",
         "app_version": "0.3.0",
@@ -150,8 +169,9 @@ def build():
         "utc": utc_now(),
     }
 
+
 # -------------------------------------------------------
-# Profile (useful for web dashboard sanity checks)
+# Profile (dashboard sanity checks)
 # -------------------------------------------------------
 
 @app.get("/profile")
@@ -167,6 +187,7 @@ def profile(user=Depends(require_authenticated_user)):
         "utc": utc_now(),
     }
 
+
 # -------------------------------------------------------
 # Content Catalog Endpoints (read-only)
 # -------------------------------------------------------
@@ -174,12 +195,13 @@ def profile(user=Depends(require_authenticated_user)):
 @app.get("/curricula")
 def get_curricula(user=Depends(require_authenticated_user)):
     docs = db.collection("curricula").stream()
-    result = []
+    result: List[Dict[str, Any]] = []
     for d in docs:
         data = d.to_dict() or {}
         data["id"] = d.id
         result.append(data)
     return {"ok": True, "curricula": result}
+
 
 @app.get("/modules")
 def get_modules(
@@ -191,12 +213,13 @@ def get_modules(
         query_ref = query_ref.where("curriculum_id", "==", curriculum_id)
 
     docs = query_ref.stream()
-    result = []
+    result: List[Dict[str, Any]] = []
     for d in docs:
         data = d.to_dict() or {}
         data["id"] = d.id
         result.append(data)
     return {"ok": True, "modules": result}
+
 
 @app.get("/modules/{module_id}")
 def get_module(module_id: str, user=Depends(require_authenticated_user)):
@@ -207,12 +230,12 @@ def get_module(module_id: str, user=Depends(require_authenticated_user)):
     data["id"] = doc.id
     return {"ok": True, "module": data}
 
+
 @app.get("/modules/{module_id}/lessons")
 def get_module_lessons(module_id: str, request: Request, user=Depends(require_authenticated_user)):
     warnings: List[str] = []
     lessons: List[Dict[str, Any]] = []
 
-    # Preferred: query with ordering (may require composite index)
     try:
         docs = (
             db.collection("lessons")
@@ -224,22 +247,15 @@ def get_module_lessons(module_id: str, request: Request, user=Depends(require_au
             data = d.to_dict() or {}
             data["id"] = d.id
             lessons.append(data)
-
     except Exception as e:
         if _is_missing_index_error(e):
-            # Fallback: fetch without order_by, then sort in-app.
             warnings.append(f"lessons_ordering_fallback_missing_index: {str(e)[:200]}")
             try:
-                docs = (
-                    db.collection("lessons")
-                    .where("module_id", "==", module_id)
-                    .stream()
-                )
+                docs = db.collection("lessons").where("module_id", "==", module_id).stream()
                 for d in docs:
                     data = d.to_dict() or {}
                     data["id"] = d.id
                     lessons.append(data)
-
                 lessons.sort(key=lambda x: int(x.get("sequence", 10**9) or 10**9))
             except Exception as e2:
                 raise HTTPException(status_code=500, detail=f"Failed to load lessons: {str(e2)[:200]}")
@@ -262,6 +278,7 @@ def get_module_lessons(module_id: str, request: Request, user=Depends(require_au
 
     return {"ok": True, "lessons": lessons, "warnings": warnings}
 
+
 @app.get("/sim-labs/{lab_id}")
 def get_sim_lab(lab_id: str, user=Depends(require_authenticated_user)):
     doc = db.collection("sim_labs").document(lab_id).get()
@@ -271,20 +288,10 @@ def get_sim_lab(lab_id: str, user=Depends(require_authenticated_user)):
     data["id"] = doc.id
     return {"ok": True, "sim_lab": data}
 
-# -------------------------------------------------------
-# Instructor: Student Performance + Misconceptions (no tokens, no debug)
-# -------------------------------------------------------
 
-def _parse_iso_utc(s: Any) -> float:
-    # Returns sortable epoch-ish float; safe fallback for missing/bad strings.
-    try:
-        if not s:
-            return 0.0
-        # Firestore stores utc strings in ISO format in our system.
-        # datetime.fromisoformat supports offsets.
-        return datetime.fromisoformat(str(s)).timestamp()
-    except Exception:
-        return 0.0
+# -------------------------------------------------------
+# Instructor: Student Performance + Misconceptions
+# -------------------------------------------------------
 
 @app.get("/instructor/module/{module_id}/students")
 def instructor_module_students(
@@ -294,23 +301,11 @@ def instructor_module_students(
     limit: int = Query(30, ge=1, le=200),
     max_events_per_student: int = Query(60, ge=10, le=200),
 ):
-    """
-    Instructor/Admin view:
-    - For each student:
-      - mastery score + readiness state (from progress/{uid}/modules/{module_id})
-      - top misconception tags (prob bumps)
-      - last diagnostic score, last transfer score
-      - per-lesson diagnostic/transfer summary (derived from progress_events.details.lesson_id)
-    Notes:
-    - progress_events are only persisted for diagnostic + transfer (per your backend rule)
-    - This endpoint intentionally does NOT expose tokens, raw claims, or debug tooling.
-    """
     warnings: List[str] = []
 
     # 1) Find student users
     students: List[Dict[str, Any]] = []
     try:
-        # Preferred query
         qs = db.collection("users").where("role", "==", "student").limit(limit).stream()
         for d in qs:
             u = d.to_dict() or {}
@@ -324,7 +319,6 @@ def instructor_module_students(
             )
     except Exception as e:
         warnings.append(f"users_role_query_failed_fallback: {str(e)[:200]}")
-        # Fallback: scan limited docs (best-effort)
         try:
             qs = db.collection("users").limit(limit * 3).stream()
             for d in qs:
@@ -336,7 +330,6 @@ def instructor_module_students(
         except Exception as e2:
             raise HTTPException(status_code=500, detail=f"Failed to list students: {str(e2)[:200]}")
 
-    # 2) For each student, read module progress + recent diag/transfer summaries
     rows: List[Dict[str, Any]] = []
 
     for s in students:
@@ -344,17 +337,17 @@ def instructor_module_students(
         if not uid:
             continue
 
-        # --- module progress doc ---
-        mp = {}
+        # module progress
+        mp: Dict[str, Any] = {}
         try:
-            mp_snap = db.collection("progress").document(uid).collection("modules").document(module_id).get()
-            mp = mp_snap.to_dict() if mp_snap.exists else {}
+            snap = db.collection("progress").document(uid).collection("modules").document(module_id).get()
+            mp = snap.to_dict() if snap.exists else {}
         except Exception as e:
             warnings.append(f"progress_read_failed:{uid}:{str(e)[:120]}")
             mp = {}
 
-        mastery = (mp.get("mastery") or {})
-        readiness = (mp.get("readiness") or {})
+        mastery = mp.get("mastery") or {}
+        readiness = mp.get("readiness") or {}
         mis = ((mp.get("misconception_profile") or {}).get("tags") or {})
         if not isinstance(mis, dict):
             mis = {}
@@ -365,10 +358,8 @@ def instructor_module_students(
             reverse=True,
         )[:8]
 
-        # --- progress events (diagnostic/transfer only persisted by backend) ---
+        # events (diagnostic/transfer only)
         events: List[Dict[str, Any]] = []
-
-        # Preferred: ordered query (may need index)
         try:
             q = (
                 db.collection("progress_events")
@@ -399,7 +390,6 @@ def instructor_module_students(
                 warnings.append(f"events_query_failed:{uid}:{str(e)[:160]}")
                 events = []
 
-        # Summaries
         last_diag = None
         last_transfer = None
         per_lesson: Dict[str, Dict[str, Any]] = {}
@@ -409,10 +399,8 @@ def instructor_module_students(
             if et not in ("diagnostic", "transfer"):
                 continue
 
-            lesson_id = None
             details = ev.get("details")
-            if isinstance(details, dict):
-                lesson_id = details.get("lesson_id")
+            lesson_id = details.get("lesson_id") if isinstance(details, dict) else None
 
             score = ev.get("score")
             try:
@@ -430,7 +418,6 @@ def instructor_module_students(
             if lesson_id:
                 pl = per_lesson.get(lesson_id) or {}
                 key = "diagnostic" if et == "diagnostic" else "transfer"
-                # Keep most recent per type
                 existing = pl.get(key)
                 if existing is None or _parse_iso_utc(utc) > _parse_iso_utc(existing.get("utc")):
                     pl[key] = {"score": score, "utc": utc}
@@ -447,11 +434,10 @@ def instructor_module_students(
             "top_misconceptions": [{"tag": k, "p": v} for k, v in top_mis],
             "last_diagnostic": last_diag,
             "last_transfer": last_transfer,
-            "per_lesson": per_lesson,  # lesson_id -> {diagnostic:{score,utc}, transfer:{score,utc}}
+            "per_lesson": per_lesson,
         }
         rows.append(row)
 
-    # Stable sort: higher mastery first, then email
     rows.sort(key=lambda r: (-float(r.get("mastery_score") or 0.0), str(r.get("email") or "")))
 
     write_audit_log(
@@ -469,6 +455,7 @@ def instructor_module_students(
     )
 
     return {"ok": True, "utc": utc_now(), "module_id": module_id, "students": rows, "warnings": warnings}
+
 
 # -------------------------------------------------------
 # Admin Metrics
@@ -517,7 +504,9 @@ def admin_metrics(request: Request, user=Depends(require_admin), top_n: int = Qu
         user_agent=request.headers.get("User-Agent"),
         details={"top_n": top_n},
     )
+
     return payload
+
 
 # -------------------------------------------------------
 # Admin Keys
@@ -536,6 +525,7 @@ def _public_key_view(key_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         "auto_disabled": bool(data.get("auto_disabled", False)),
         "last_used_utc": data.get("last_used_utc"),
     }
+
 
 @app.get("/admin/keys")
 def admin_list_keys(
@@ -562,7 +552,9 @@ def admin_list_keys(
         user_agent=request.headers.get("User-Agent"),
         details={"limit": limit, "returned": len(keys)},
     )
+
     return {"ok": True, "keys": keys, "limit": limit, "utc": utc_now()}
+
 
 @app.get("/admin/keys/{key_id}")
 def admin_get_key(request: Request, key_id: str, user=Depends(require_admin)):
@@ -571,6 +563,7 @@ def admin_get_key(request: Request, key_id: str, user=Depends(require_admin)):
         raise HTTPException(status_code=404, detail="Key not found")
 
     data = doc.to_dict() or {}
+
     write_audit_log(
         event_type="admin.keys.get",
         actor_uid=(user or {}).get("uid"),
@@ -584,7 +577,9 @@ def admin_get_key(request: Request, key_id: str, user=Depends(require_admin)):
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
     )
+
     return {"ok": True, "key": _public_key_view(key_id, data)}
+
 
 @app.post("/admin/keys")
 def admin_create_key(
@@ -650,6 +645,7 @@ def admin_create_key(
         "utc": utc_now(),
     }
 
+
 @app.post("/admin/keys/{key_id}/enable")
 def admin_enable_key(request: Request, key_id: str, user=Depends(require_admin)):
     ref = db.collection("api_keys").document(key_id)
@@ -672,7 +668,9 @@ def admin_enable_key(request: Request, key_id: str, user=Depends(require_admin))
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
     )
+
     return {"ok": True, "key_id": key_id, "enabled": True}
+
 
 @app.post("/admin/keys/{key_id}/disable")
 def admin_disable_key(request: Request, key_id: str, user=Depends(require_admin)):
@@ -696,7 +694,9 @@ def admin_disable_key(request: Request, key_id: str, user=Depends(require_admin)
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
     )
+
     return {"ok": True, "key_id": key_id, "disabled": True}
+
 
 @app.post("/admin/keys/{key_id}/reset-counters")
 def admin_reset_counters(request: Request, key_id: str, user=Depends(require_admin)):
@@ -735,20 +735,25 @@ def admin_reset_counters(request: Request, key_id: str, user=Depends(require_adm
 
     return {"ok": True, "key_id": key_id, "reset": True, "details": {"deleted": deleted, "errors": errors}}
 
+
 # -------------------------------------------------------
-# Step 3: Progress + Mastery Endpoints
+# Progress + Mastery Endpoints
 # -------------------------------------------------------
 
 EventType = Literal["diagnostic", "simulation", "reflection", "transfer", "attempt"]
 
+
 def _progress_doc(uid: str):
     return db.collection("progress").document(uid)
+
 
 def _module_progress_doc(uid: str, module_id: str):
     return _progress_doc(uid).collection("modules").document(module_id)
 
+
 def _new_event_id() -> str:
     return secrets.token_urlsafe(10).replace("-", "").replace("_", "")[:16]
+
 
 def _compute_mastery_delta(event_type: str, score: Optional[float]) -> float:
     s = _clamp01(score)
@@ -762,8 +767,10 @@ def _compute_mastery_delta(event_type: str, score: Optional[float]) -> float:
         return (s - 0.5) * 0.05
     return 0.0
 
+
 def _should_persist_event(event_type: str) -> bool:
     return event_type in ("transfer", "diagnostic")
+
 
 @app.post("/progress/{module_id}/event")
 def post_progress_event(
@@ -793,6 +800,7 @@ def post_progress_event(
     score = _clamp01(payload.get("score"))
     confidence = _clamp01(payload.get("confidence"))
     conflict_level = _clamp01(payload.get("conflict_level"))
+
     sim_depth = payload.get("sim_depth")
     try:
         sim_depth = int(sim_depth) if sim_depth is not None else None
@@ -830,11 +838,7 @@ def post_progress_event(
 
     prev_mastery = float((mp.get("mastery") or {}).get("score") or 0.0)
     mastery_delta = _compute_mastery_delta(event_type, score)
-    new_mastery = prev_mastery + mastery_delta
-    if new_mastery < 0.0:
-        new_mastery = 0.0
-    if new_mastery > 1.0:
-        new_mastery = 1.0
+    new_mastery = max(0.0, min(1.0, prev_mastery + mastery_delta))
 
     mp_mis = (mp.get("misconception_profile") or {}).get("tags") or {}
     if not isinstance(mp_mis, dict):
@@ -845,9 +849,7 @@ def post_progress_event(
             prev_f = float(prev) if prev is not None else 0.10
         except Exception:
             prev_f = 0.10
-        bumped = prev_f + 0.05
-        if bumped > 0.95:
-            bumped = 0.95
+        bumped = min(0.95, prev_f + 0.05)
         mp_mis[tag] = round(bumped, 4)
 
     counters = mp.get("counters") or {}
@@ -923,10 +925,7 @@ def post_progress_event(
         db.collection("progress_events").document(event_doc_id).set(event_doc)
         stored_event = True
 
-    _progress_doc(uid).set(
-        {"uid": uid, "updated_utc": now, "last_event_utc": now},
-        merge=True,
-    )
+    _progress_doc(uid).set({"uid": uid, "updated_utc": now, "last_event_utc": now}, merge=True)
 
     write_audit_log(
         event_type="progress.event.write",
@@ -953,6 +952,7 @@ def post_progress_event(
         "readiness": mp_update["readiness"],
         "misconception_profile": {"top_tags": sorted(mp_mis.items(), key=lambda kv: kv[1], reverse=True)[:10]},
     }
+
 
 @app.get("/progress/me")
 def get_progress_me(
