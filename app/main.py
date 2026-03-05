@@ -278,6 +278,71 @@ def get_module_lessons(module_id: str, request: Request, user=Depends(require_au
 
     return {"ok": True, "lessons": lessons, "warnings": warnings}
 
+@app.get("/modules/{module_id}/lessons/{lesson_id}")
+def get_module_lesson(
+    module_id: str,
+    lesson_id: str,
+    request: Request,
+    user=Depends(require_authenticated_user),
+):
+    # Accept either F1_L1 or F1-L1
+    normalized = lesson_id.replace("-", "_")
+
+    # Preferred: if your Firestore doc id IS the lesson_id (e.g., "F1_L1")
+    doc = db.collection("lessons").document(normalized).get()
+    if doc.exists:
+        data = doc.to_dict() or {}
+        data["id"] = doc.id
+
+        write_audit_log(
+            event_type="catalog.module_lesson.read",
+            actor_uid=(user or {}).get("uid"),
+            actor_email=(user or {}).get("email"),
+            role=(user or {}).get("role"),
+            path=f"/modules/{module_id}/lessons/{lesson_id}",
+            method="GET",
+            status=200,
+            request_id=getattr(request.state, "request_id", None),
+            ip=get_client_ip(request),
+            user_agent=request.headers.get("User-Agent"),
+            details={"module_id": module_id, "lesson_id": normalized},
+        )
+        return {"ok": True, "lesson": data}
+
+    # Fallback: query by fields (works even if doc ids are random)
+    qs = (
+        db.collection("lessons")
+        .where("module_id", "==", module_id)
+        .where("lesson_id", "==", normalized)
+        .limit(1)
+        .stream()
+    )
+    hit = None
+    for d in qs:
+        hit = d
+        break
+
+    if not hit:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    data = hit.to_dict() or {}
+    data["id"] = hit.id
+
+    write_audit_log(
+        event_type="catalog.module_lesson.read",
+        actor_uid=(user or {}).get("uid"),
+        actor_email=(user or {}).get("email"),
+        role=(user or {}).get("role"),
+        path=f"/modules/{module_id}/lessons/{lesson_id}",
+        method="GET",
+        status=200,
+        request_id=getattr(request.state, "request_id", None),
+        ip=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        details={"module_id": module_id, "lesson_id": normalized, "doc_id": hit.id},
+    )
+    return {"ok": True, "lesson": data}
+
 
 @app.get("/sim-labs/{lab_id}")
 def get_sim_lab(lab_id: str, user=Depends(require_authenticated_user)):
