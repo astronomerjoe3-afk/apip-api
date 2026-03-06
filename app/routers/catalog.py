@@ -7,6 +7,14 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.audit import write_audit_log
 from app.common import get_client_ip
 from app.dependencies import require_authenticated_user
+from app.schemas.catalog import (
+    CurriculaResponse,
+    LessonResponse,
+    LessonsResponse,
+    ModuleResponse,
+    ModulesResponse,
+    SimLabResponse,
+)
 from app.services.catalog_service import (
     fetch_curricula,
     fetch_module,
@@ -19,13 +27,13 @@ from app.services.catalog_service import (
 router = APIRouter(tags=["catalog"])
 
 
-@router.get("/curricula")
+@router.get("/curricula", response_model=CurriculaResponse)
 def get_curricula(user=Depends(require_authenticated_user)):
     result = fetch_curricula()
     return {"ok": True, "curricula": result}
 
 
-@router.get("/modules")
+@router.get("/modules", response_model=ModulesResponse)
 def get_modules(
     curriculum_id: Optional[str] = Query(None),
     user=Depends(require_authenticated_user),
@@ -34,13 +42,13 @@ def get_modules(
     return {"ok": True, "modules": result}
 
 
-@router.get("/modules/{module_id}")
+@router.get("/modules/{module_id}", response_model=ModuleResponse)
 def get_module(module_id: str, user=Depends(require_authenticated_user)):
     module = fetch_module(module_id)
     return {"ok": True, "module": module}
 
 
-@router.get("/modules/{module_id}/lessons")
+@router.get("/modules/{module_id}/lessons", response_model=LessonsResponse)
 def get_module_lessons(module_id: str, request: Request, user=Depends(require_authenticated_user)):
     lessons, warnings = fetch_module_lessons(module_id)
 
@@ -61,7 +69,7 @@ def get_module_lessons(module_id: str, request: Request, user=Depends(require_au
     return {"ok": True, "lessons": lessons, "warnings": warnings}
 
 
-@router.get("/modules/{module_id}/lessons/{lesson_id}")
+@router.get("/modules/{module_id}/lessons/{lesson_id}", response_model=LessonResponse)
 def get_module_lesson(
     module_id: str,
     lesson_id: str,
@@ -88,7 +96,7 @@ def get_module_lesson(
     return {"ok": True, "lesson": lesson}
 
 
-@router.get("/sim-labs/{lab_id}")
+@router.get("/sim-labs/{lab_id}", response_model=SimLabResponse)
 def get_sim_lab(lab_id: str, user=Depends(require_authenticated_user)):
     lab = fetch_sim_lab(lab_id)
     return {"ok": True, "sim_lab": lab}

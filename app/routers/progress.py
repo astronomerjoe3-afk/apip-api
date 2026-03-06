@@ -1,23 +1,22 @@
 ﻿from __future__ import annotations
 
-from typing import Any, Dict
-
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 
 from app.audit import write_audit_log
 from app.common import get_client_ip, utc_now
 from app.dependencies import require_authenticated_user
+from app.schemas.progress import ProgressEventIn, ProgressEventWriteResponse, ProgressMeResponse
 from app.services.progress_service import fetch_progress_me, process_progress_event
 
 router = APIRouter(tags=["progress"])
 
 
-@router.post("/progress/{module_id}/event")
+@router.post("/progress/{module_id}/event", response_model=ProgressEventWriteResponse)
 def post_progress_event(
     module_id: str,
     request: Request,
     user=Depends(require_authenticated_user),
-    payload: Dict[str, Any] = Body(...),
+    payload: ProgressEventIn = Body(...),
 ):
     uid = (user or {}).get("uid")
     if not uid:
@@ -26,7 +25,7 @@ def post_progress_event(
     result = process_progress_event(
         uid=uid,
         module_id=module_id,
-        payload=payload,
+        payload=payload.model_dump(),
         request_id=getattr(request.state, "request_id", None),
     )
 
@@ -52,7 +51,7 @@ def post_progress_event(
     return result
 
 
-@router.get("/progress/me")
+@router.get("/progress/me", response_model=ProgressMeResponse)
 def get_progress_me(
     request: Request,
     user=Depends(require_authenticated_user),

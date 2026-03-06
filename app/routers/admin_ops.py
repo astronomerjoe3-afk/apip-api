@@ -9,6 +9,15 @@ from app.audit import write_audit_log
 from app.common import get_client_ip, sha256_hex, utc_now
 from app.db.firestore import get_firestore_client
 from app.dependencies import require_admin
+from app.schemas.admin import (
+    AdminCreateKeyRequest,
+    AdminCreateKeyResponse,
+    AdminKeyResponse,
+    AdminKeysListResponse,
+    AdminMetricsResponse,
+    AdminResetCountersResponse,
+    AdminToggleKeyResponse,
+)
 
 router = APIRouter(tags=["admin"])
 
@@ -28,7 +37,7 @@ def _public_key_view(key_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-@router.get("/admin/metrics")
+@router.get("/admin/metrics", response_model=AdminMetricsResponse)
 def admin_metrics(request: Request, user=Depends(require_admin), top_n: int = Query(10, ge=1, le=50)):
     db = get_firestore_client()
     keys_docs = db.collection("api_keys").stream()
@@ -76,7 +85,7 @@ def admin_metrics(request: Request, user=Depends(require_admin), top_n: int = Qu
     return payload
 
 
-@router.get("/admin/keys")
+@router.get("/admin/keys", response_model=AdminKeysListResponse)
 def admin_list_keys(
     request: Request,
     user=Depends(require_admin),
@@ -107,7 +116,7 @@ def admin_list_keys(
     return {"ok": True, "keys": keys, "limit": limit, "utc": utc_now()}
 
 
-@router.get("/admin/keys/{key_id}")
+@router.get("/admin/keys/{key_id}", response_model=AdminKeyResponse)
 def admin_get_key(request: Request, key_id: str, user=Depends(require_admin)):
     db = get_firestore_client()
     doc = db.collection("api_keys").document(key_id).get()
@@ -134,26 +143,26 @@ def admin_get_key(request: Request, key_id: str, user=Depends(require_admin)):
     return {"ok": True, "key": _public_key_view(key_id, data)}
 
 
-@router.post("/admin/keys")
+@router.post("/admin/keys", response_model=AdminCreateKeyResponse)
 def admin_create_key(
     request: Request,
     user=Depends(require_admin),
-    payload: Dict[str, Any] = Body(...),
+    payload: AdminCreateKeyRequest = Body(...),
 ):
     db = get_firestore_client()
 
-    label = str(payload.get("label") or "web-admin-created").strip()
-    scopes_raw = payload.get("scopes") or ["profile:read"]
+    label = str(payload.label or "web-admin-created").strip()
+    scopes_raw = payload.scopes or ["profile:read"]
 
     if isinstance(scopes_raw, str):
         scopes = [s.strip() for s in scopes_raw.split(",") if s.strip()]
     else:
         scopes = [str(s).strip() for s in scopes_raw if str(s).strip()]
 
-    window_limit = int(payload.get("window_limit") or 10)
-    window_seconds = int(payload.get("window_seconds") or 60)
-    bucket_seconds = int(payload.get("bucket_seconds") or 10)
-    daily_limit = int(payload.get("daily_limit") or 500)
+    window_limit = int(payload.window_limit or 10)
+    window_seconds = int(payload.window_seconds or 60)
+    bucket_seconds = int(payload.bucket_seconds or 10)
+    daily_limit = int(payload.daily_limit or 500)
 
     key_id = secrets.token_urlsafe(12).replace("-", "").replace("_", "")[:16]
     api_key_secret = secrets.token_urlsafe(32)
@@ -202,7 +211,7 @@ def admin_create_key(
     }
 
 
-@router.post("/admin/keys/{key_id}/enable")
+@router.post("/admin/keys/{key_id}/enable", response_model=AdminToggleKeyResponse)
 def admin_enable_key(request: Request, key_id: str, user=Depends(require_admin)):
     db = get_firestore_client()
     ref = db.collection("api_keys").document(key_id)
@@ -230,7 +239,7 @@ def admin_enable_key(request: Request, key_id: str, user=Depends(require_admin))
     return {"ok": True, "key_id": key_id, "enabled": True}
 
 
-@router.post("/admin/keys/{key_id}/disable")
+@router.post("/admin/keys/{key_id}/disable", response_model=AdminToggleKeyResponse)
 def admin_disable_key(request: Request, key_id: str, user=Depends(require_admin)):
     db = get_firestore_client()
     ref = db.collection("api_keys").document(key_id)
@@ -258,7 +267,7 @@ def admin_disable_key(request: Request, key_id: str, user=Depends(require_admin)
     return {"ok": True, "key_id": key_id, "disabled": True}
 
 
-@router.post("/admin/keys/{key_id}/reset-counters")
+@router.post("/admin/keys/{key_id}/reset-counters", response_model=AdminResetCountersResponse)
 def admin_reset_counters(request: Request, key_id: str, user=Depends(require_admin)):
     db = get_firestore_client()
 
