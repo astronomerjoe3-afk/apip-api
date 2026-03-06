@@ -30,11 +30,16 @@ def _has_diagnostic(lesson: Dict[str, Any]) -> bool:
     return len(items) > 0
 
 
-def _has_scaffolded_teaching(lesson: Dict[str, Any]) -> bool:
+def _has_teaching(lesson: Dict[str, Any]) -> bool:
     phases = lesson.get("phases") or {}
+
     analogical = phases.get("analogical_grounding") or {}
     reconstruction = phases.get("concept_reconstruction") or {}
-    return bool(analogical.get("analogy_text")) or bool(reconstruction.get("prompts"))
+
+    has_analogy = bool(analogical.get("analogy_text"))
+    has_reconstruction = bool(reconstruction.get("prompts") or [])
+
+    return has_analogy or has_reconstruction
 
 
 def _has_sim_lab(lesson: Dict[str, Any]) -> bool:
@@ -48,6 +53,59 @@ def _has_transfer(lesson: Dict[str, Any]) -> bool:
     transfer = phases.get("transfer") or {}
     items = transfer.get("items") or []
     return len(items) > 0
+
+
+def _derive_current_stage(
+    lesson_status: str,
+    mastery_achieved: bool,
+    has_diag: bool,
+    has_teaching: bool,
+    has_lab: bool,
+    lab_available: bool,
+    lab_used: bool,
+    has_transfer: bool,
+) -> str:
+    if mastery_achieved:
+        return "done"
+
+    if lesson_status == "not_started":
+        if has_diag:
+            return "diagnostic"
+        if has_teaching:
+            return "scaffolded_teaching"
+        if has_lab and lab_available:
+            return "simulation"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    # once diagnostic/attempt exists, move learner into teaching first
+    if has_teaching:
+        return "scaffolded_teaching"
+
+    if has_lab and lab_available and not lab_used:
+        return "simulation"
+
+    if has_transfer:
+        return "mastery_check"
+
+    return "done"
+
+
+def _stage_row(
+    key: str,
+    label: str,
+    available: bool,
+    completed: bool,
+    active_key: str,
+) -> Dict[str, Any]:
+    return {
+        "key": key,
+        "label": label,
+        "available": available,
+        "completed": completed,
+        "active": available and (active_key == key),
+    }
 
 
 def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> Dict[str, Any]:
@@ -83,62 +141,69 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
     lesson_status = str(lesson_progress.get("status") or "not_started")
 
     has_diag = _has_diagnostic(lesson)
-    has_teaching = _has_scaffolded_teaching(lesson)
+    has_teaching = _has_teaching(lesson)
     has_lab = _has_sim_lab(lesson)
     has_transfer = _has_transfer(lesson)
 
-    stages: List[Dict[str, Any]] = []
-
-    stages.append(
-        {
-            "key": "diagnostic",
-            "label": "Initial diagnostic",
-            "available": has_diag,
-            "completed": lesson_status != "not_started",
-            "active": lesson_status == "not_started" and has_diag,
-        }
+    current_stage = _derive_current_stage(
+        lesson_status=lesson_status,
+        mastery_achieved=mastery_achieved,
+        has_diag=has_diag,
+        has_teaching=has_teaching,
+        has_lab=has_lab,
+        lab_available=lab_available,
+        lab_used=lab_used,
+        has_transfer=has_transfer,
     )
 
-    stages.append(
-        {
-            "key": "scaffolded_teaching",
-            "label": "Guided concept building",
-            "available": has_teaching,
-            "completed": lesson_status in ("attempted_not_completed", "completed"),
-            "active": lesson_status in ("attempted_not_completed", "not_started") and has_teaching,
-        }
-    )
+    diagnostic_completed = lesson_status != "not_started"
+    teaching_completed = lesson_status in ("attempted_not_completed", "completed")
+    simulation_completed = lab_used
+    mastery_check_completed = mastery_achieved
 
-    stages.append(
-        {
-            "key": "simulation",
-            "label": "Sim Lab",
-            "available": has_lab and (lab_available or lab_used),
-            "completed": lab_used,
-            "active": has_lab and lab_available and not mastery_achieved,
-        }
-    )
+    stages: List[Dict[str, Any]] = [
+        _stage_row(
+            key="diagnostic",
+            label="Initial diagnostic",
+            available=has_diag,
+            completed=diagnostic_completed,
+            active_key=current_stage,
+        ),
+        _stage_row(
+            key="scaffolded_teaching",
+            label="Guided concept building",
+            available=has_teaching,
+            completed=teaching_completed,
+            active_key=current_stage,
+        ),
+        _stage_row(
+            key="simulation",
+            label="Sim Lab",
+            available=has_lab,
+            completed=simulation_completed,
+            active_key=current_stage if lab_available else "",
+        ),
+        _stage_row(
+            key="mastery_check",
+            label="Mastery check",
+            available=has_transfer,
+            completed=mastery_check_completed,
+            active_key=current_stage,
+        ),
+    ]
 
-    stages.append(
-        {
-            "key": "mastery_check",
-            "label": "Mastery check",
-            "available": has_transfer,
-            "completed": mastery_achieved,
-            "active": has_transfer and not mastery_achieved,
-        }
-    )
-
-    if lesson_status == "not_started":
+    if mastery_achieved:
+        next_action = "advance_to_next_sub_unit"
+    elif current_stage == "diagnostic":
         next_action = "start_diagnostic"
-    elif not mastery_achieved and has_teaching:
+    elif current_stage == "scaffolded_teaching":
         next_action = "continue_scaffolded_teaching"
-    elif not mastery_achieved and has_lab and lab_available:
+    elif current_stage == "simulation":
         next_action = "run_sim_lab"
-    elif not mastery_achieved:
+    elif current_stage == "mastery_check":
         next_action = "attempt_mastery_check"
     else:
-        next_action = "advance_to_next_sub_unit"
+        next_action = "wait"
 
     return {
         "module": module_progress,
