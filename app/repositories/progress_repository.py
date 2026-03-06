@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from google.cloud import firestore
 
@@ -54,6 +54,27 @@ def list_recent_progress_events(uid: str, limit_recent_events: int) -> List[Dict
         where_eq(db.collection("progress_events"), "uid", uid)
         .order_by("utc", direction=firestore.Query.DESCENDING)
         .limit(limit_recent_events)
+    )
+
+    result: List[Dict[str, Any]] = []
+    for s in q.stream():
+        result.append(s.to_dict() or {})
+
+    return result
+
+
+def list_recent_transfer_events_for_module(uid: str, module_id: str, limit_events: int = 200) -> List[Dict[str, Any]]:
+    db = get_firestore_client()
+
+    q = (
+        where_eq(
+            where_eq(db.collection("progress_events"), "uid", uid),
+            "module_id",
+            module_id,
+        )
+        .where(filter=firestore.FieldFilter("event_type", "==", "transfer"))
+        .order_by("utc", direction=firestore.Query.DESCENDING)
+        .limit(limit_events)
     )
 
     result: List[Dict[str, Any]] = []

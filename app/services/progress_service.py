@@ -9,6 +9,7 @@ from app.common import clamp01, safe_list_str, utc_now
 from app.repositories.progress_repository import (
     get_module_progress,
     list_recent_progress_events,
+    list_recent_transfer_events_for_module,
     list_progress_modules,
     persist_progress_event,
     set_module_progress,
@@ -17,7 +18,7 @@ from app.repositories.progress_repository import (
 
 EventType = Literal["diagnostic", "simulation", "reflection", "transfer", "attempt"]
 
-MASTERY_EVENT_TYPES = {"transfer"}
+MASTERY_THRESHOLD = 0.80
 
 
 def new_event_id() -> str:
@@ -83,26 +84,57 @@ def normalize_progress_event_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _safe_best_mastery(previous_score: Any, new_score: Optional[float], event_type: str) -> float:
-    try:
-        prev = float(previous_score) if previous_score is not None else 0.0
-    except Exception:
-        prev = 0.0
-
-    prev = max(0.0, min(1.0, prev))
-
-    if event_type not in MASTERY_EVENT_TYPES or new_score is None:
-        return prev
-
-    return max(prev, float(new_score))
-
-
-def _readiness_from_mastery(mastery_score: float) -> str:
-    if mastery_score >= 0.80:
+def _derive_readiness_state_from_mastery(mastery_score: float) -> str:
+    if mastery_score >= MASTERY_THRESHOLD:
         return "ready"
     if mastery_score >= 0.50:
         return "developing"
     return "not_ready"
+
+
+def _best_transfer_score_for_module(uid: str, module_id: str, current_transfer_score: Optional[float]) -> float:
+    """
+    Canonical mastery rule:
+    - module/lesson mastery is derived only from final mastery checks (transfer)
+    - diagnostic does not contribute to mastery
+    - non-transfer attempts do not contribute to canonical mastery
+    """
+    scores: List[float] = []
+
+    if current_transfer_score is not None:
+        scores.append(float(current_transfer_score))
+
+    prior_transfer_events = list_recent_transfer_events_for_module(uid=uid, module_id=module_id, limit_events=200)
+    for ev in prior_transfer_events:
+        s = clamp01(ev.get("score"))
+        if s is not None:
+            scores.append(float(s))
+
+    if not scores:
+        return 0.0
+
+    return round(max(scores), 4)
+
+
+def _update_misconception_profile(
+    existing_tags: Dict[str, Any],
+    misconception_tags: List[str],
+) -> Dict[str, float]:
+    tags = existing_tags if isinstance(existing_tags, dict) else {}
+    out: Dict[str, float] = {}
+
+    for k, v in tags.items():
+        try:
+            out[str(k)] = float(v)
+        except Exception:
+            continue
+
+    for tag in misconception_tags:
+        prev = out.get(tag, 0.10)
+        bumped = min(0.95, float(prev) + 0.05)
+        out[tag] = round(bumped, 4)
+
+    return out
 
 
 def process_progress_event(
@@ -128,22 +160,6 @@ def process_progress_event(
 
     mp = get_module_progress(uid, module_id)
 
-    prev_mastery_score = (mp.get("mastery") or {}).get("score")
-    new_mastery_score = _safe_best_mastery(prev_mastery_score, score, event_type)
-    readiness_state = _readiness_from_mastery(new_mastery_score)
-
-    mp_mis = (mp.get("misconception_profile") or {}).get("tags") or {}
-    if not isinstance(mp_mis, dict):
-        mp_mis = {}
-
-    for tag in misconception_tags:
-        prev = mp_mis.get(tag)
-        try:
-            prev_f = float(prev) if prev is not None else 0.10
-        except Exception:
-            prev_f = 0.10
-        mp_mis[tag] = round(min(0.95, prev_f + 0.05), 4)
-
     counters = mp.get("counters") or {}
     if not isinstance(counters, dict):
         counters = {}
@@ -164,6 +180,27 @@ def process_progress_event(
         inc("attempts")
 
     engagement_seconds = int(mp.get("engagement_seconds", 0) or 0) + duration_seconds
+
+    existing_mis_tags = (mp.get("misconception_profile") or {}).get("tags") or {}
+    mp_mis = _update_misconception_profile(existing_mis_tags, misconception_tags)
+
+    # Canonical mastery:
+    # - only final mastery checks (transfer) affect mastery.score
+    # - diagnostics never affect mastery.score
+    # - attempts never affect canonical mastery.score
+    prev_mastery_score = clamp01((mp.get("mastery") or {}).get("score"))
+    prev_mastery_score = float(prev_mastery_score) if prev_mastery_score is not None else 0.0
+
+    if event_type == "transfer":
+        new_mastery_score = _best_transfer_score_for_module(
+            uid=uid,
+            module_id=module_id,
+            current_transfer_score=score,
+        )
+    else:
+        new_mastery_score = prev_mastery_score
+
+    readiness_state = _derive_readiness_state_from_mastery(new_mastery_score)
 
     mp_update = {
         "module_id": module_id,
