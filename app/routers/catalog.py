@@ -9,12 +9,11 @@ from app.common import get_client_ip
 from app.dependencies import require_authenticated_user
 from app.schemas.catalog import (
     CurriculaResponse,
-    LessonResponse,
-    LessonsResponse,
     ModuleResponse,
     ModulesResponse,
     SimLabResponse,
 )
+from app.schemas.student import StudentLessonResponse, StudentLessonsResponse
 from app.services.catalog_service import (
     fetch_curricula,
     fetch_module,
@@ -48,7 +47,7 @@ def get_module(module_id: str, user=Depends(require_authenticated_user)):
     return {"ok": True, "module": module}
 
 
-@router.get("/modules/{module_id}/lessons", response_model=LessonsResponse)
+@router.get("/modules/{module_id}/lessons", response_model=StudentLessonsResponse)
 def get_module_lessons(module_id: str, request: Request, user=Depends(require_authenticated_user)):
     lessons, warnings = fetch_module_lessons(module_id)
 
@@ -69,7 +68,7 @@ def get_module_lessons(module_id: str, request: Request, user=Depends(require_au
     return {"ok": True, "lessons": lessons, "warnings": warnings}
 
 
-@router.get("/modules/{module_id}/lessons/{lesson_id}", response_model=LessonResponse)
+@router.get("/modules/{module_id}/lessons/{lesson_id}", response_model=StudentLessonResponse)
 def get_module_lesson(
     module_id: str,
     lesson_id: str,

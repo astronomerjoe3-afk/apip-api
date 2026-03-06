@@ -49,15 +49,9 @@ _MOJIBAKE_REPLACEMENTS = {
 
 
 def _attempt_mojibake_repair(value: str) -> str:
-    """
-    Try to repair classic UTF-8 text that was decoded as cp1252/latin-1.
-    Safe fallback: return original text if repair fails or worsens text.
-    """
     original = value
+    candidates = [original]
 
-    candidates: List[str] = [original]
-
-    # Common repair path: cp1252-decoded UTF-8 -> re-encode cp1252 -> decode utf-8
     try:
         repaired = original.encode("cp1252", errors="ignore").decode("utf-8", errors="ignore")
         if repaired:
@@ -65,7 +59,6 @@ def _attempt_mojibake_repair(value: str) -> str:
     except Exception:
         pass
 
-    # Alternate fallback path
     try:
         repaired = original.encode("latin-1", errors="ignore").decode("utf-8", errors="ignore")
         if repaired:
@@ -74,24 +67,16 @@ def _attempt_mojibake_repair(value: str) -> str:
         pass
 
     def score(s: str) -> int:
-        bad_markers = [
-            "â",
-            "Â",
-            "Ã",
-            "�",
-        ]
+        bad_markers = ["â", "Â", "Ã", "�"]
         return sum(s.count(marker) for marker in bad_markers)
 
-    best = min(candidates, key=score)
-    return best
+    return min(candidates, key=score)
 
 
 def _clean_text(value: str) -> str:
     out = _attempt_mojibake_repair(value)
-
     for bad, good in _MOJIBAKE_REPLACEMENTS.items():
         out = out.replace(bad, good)
-
     return out
 
 
@@ -122,32 +107,56 @@ def normalize_lessons_payload(lessons: List[Dict[str, Any]]) -> List[Dict[str, A
     return [normalize_lesson_payload(lesson) for lesson in lessons]
 
 
+def _student_question_items(items: List[Dict[str, Any]] | None) -> List[Dict[str, Any]]:
+    safe_items: List[Dict[str, Any]] = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        safe_items.append(
+            {
+                "type": item.get("type"),
+                "prompt": item.get("prompt"),
+                "choices": item.get("choices"),
+            }
+        )
+    return safe_items
+
+
 def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Return only student-safe lesson fields.
-    """
     normalized = normalize_lesson_payload(lesson)
 
     phases = normalized.get("phases") or {}
     if not isinstance(phases, dict):
         phases = {}
 
-    student_phases = {
-        "analogical_grounding": phases.get("analogical_grounding") or {},
-        "simulation_inquiry": phases.get("simulation_inquiry") or {},
-        "concept_reconstruction": phases.get("concept_reconstruction") or {},
-        "diagnostic": phases.get("diagnostic") or {},
-        "transfer": phases.get("transfer") or {},
-    }
+    analogical_grounding = phases.get("analogical_grounding") or {}
+    simulation_inquiry = phases.get("simulation_inquiry") or {}
+    concept_reconstruction = phases.get("concept_reconstruction") or {}
+    diagnostic = phases.get("diagnostic") or {}
+    transfer = phases.get("transfer") or {}
 
     return {
-        "id": normalized.get("id"),
         "lesson_id": normalized.get("lesson_id"),
-        "module_id": normalized.get("module_id"),
         "title": normalized.get("title"),
         "sequence": normalized.get("sequence"),
-        "updated_utc": normalized.get("updated_utc"),
-        "phases": student_phases,
+        "phases": {
+            "analogical_grounding": {
+                "analogy_text": analogical_grounding.get("analogy_text"),
+            },
+            "simulation_inquiry": {
+                "lab_id": simulation_inquiry.get("lab_id"),
+                "inquiry_prompts": simulation_inquiry.get("inquiry_prompts") or [],
+            },
+            "concept_reconstruction": {
+                "prompts": concept_reconstruction.get("prompts") or [],
+            },
+            "diagnostic": {
+                "items": _student_question_items(diagnostic.get("items")),
+            },
+            "transfer": {
+                "items": _student_question_items(transfer.get("items")),
+            },
+        },
     }
 
 
