@@ -8,6 +8,7 @@ _MOJIBAKE_REPLACEMENTS = {
     "â€™": "'",
     "â€˜": "'",
     "â€œ": '"',
+    "â€\x9d": '"',
     "â€": '"',
     "â€“": "-",
     "â€”": "—",
@@ -19,7 +20,6 @@ _MOJIBAKE_REPLACEMENTS = {
     "â‰ˆ": "≈",
     "â‰¤": "≤",
     "â‰¥": "≥",
-    "â€":"\"",
     "canât": "can't",
     "Canât": "Can't",
     "donât": "don't",
@@ -48,10 +48,50 @@ _MOJIBAKE_REPLACEMENTS = {
 }
 
 
+def _attempt_mojibake_repair(value: str) -> str:
+    """
+    Try to repair classic UTF-8 text that was decoded as cp1252/latin-1.
+    Safe fallback: return original text if repair fails or worsens text.
+    """
+    original = value
+
+    candidates: List[str] = [original]
+
+    # Common repair path: cp1252-decoded UTF-8 -> re-encode cp1252 -> decode utf-8
+    try:
+        repaired = original.encode("cp1252", errors="ignore").decode("utf-8", errors="ignore")
+        if repaired:
+            candidates.append(repaired)
+    except Exception:
+        pass
+
+    # Alternate fallback path
+    try:
+        repaired = original.encode("latin-1", errors="ignore").decode("utf-8", errors="ignore")
+        if repaired:
+            candidates.append(repaired)
+    except Exception:
+        pass
+
+    def score(s: str) -> int:
+        bad_markers = [
+            "â",
+            "Â",
+            "Ã",
+            "�",
+        ]
+        return sum(s.count(marker) for marker in bad_markers)
+
+    best = min(candidates, key=score)
+    return best
+
+
 def _clean_text(value: str) -> str:
-    out = value
+    out = _attempt_mojibake_repair(value)
+
     for bad, good in _MOJIBAKE_REPLACEMENTS.items():
         out = out.replace(bad, good)
+
     return out
 
 
@@ -85,11 +125,6 @@ def normalize_lessons_payload(lessons: List[Dict[str, Any]]) -> List[Dict[str, A
 def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
     """
     Return only student-safe lesson fields.
-
-    Rules:
-    - no commitment_prompt
-    - no hidden/internal labels beyond the existing phase buckets
-    - preserve prompts/items needed by the runner
     """
     normalized = normalize_lesson_payload(lesson)
 
