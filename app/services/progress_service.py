@@ -1,15 +1,15 @@
 ﻿from __future__ import annotations
 
 import secrets
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import HTTPException
 
-from app.common import clamp01, parse_iso_utc, safe_list_str, utc_now
+from app.common import clamp01, safe_list_str, utc_now
 from app.repositories.progress_repository import (
     get_module_progress,
-    list_progress_modules,
     list_recent_progress_events,
+    list_progress_modules,
     persist_progress_event,
     set_module_progress,
     set_progress_root,
@@ -17,22 +17,11 @@ from app.repositories.progress_repository import (
 
 EventType = Literal["diagnostic", "simulation", "reflection", "transfer", "attempt"]
 
+MASTERY_EVENT_TYPES = {"transfer"}
+
 
 def new_event_id() -> str:
     return secrets.token_urlsafe(10).replace("-", "").replace("_", "")[:16]
-
-
-def compute_mastery_delta(event_type: str, score: Optional[float]) -> float:
-    s = clamp01(score)
-    if s is None:
-        return 0.0
-    if event_type == "transfer":
-        return (s - 0.5) * 0.20
-    if event_type == "attempt":
-        return (s - 0.5) * 0.10
-    if event_type == "diagnostic":
-        return (s - 0.5) * 0.05
-    return 0.0
 
 
 def should_persist_event(event_type: str) -> bool:
@@ -94,6 +83,28 @@ def normalize_progress_event_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _safe_best_mastery(previous_score: Any, new_score: Optional[float], event_type: str) -> float:
+    try:
+        prev = float(previous_score) if previous_score is not None else 0.0
+    except Exception:
+        prev = 0.0
+
+    prev = max(0.0, min(1.0, prev))
+
+    if event_type not in MASTERY_EVENT_TYPES or new_score is None:
+        return prev
+
+    return max(prev, float(new_score))
+
+
+def _readiness_from_mastery(mastery_score: float) -> str:
+    if mastery_score >= 0.80:
+        return "ready"
+    if mastery_score >= 0.50:
+        return "developing"
+    return "not_ready"
+
+
 def process_progress_event(
     uid: str,
     module_id: str,
@@ -117,9 +128,9 @@ def process_progress_event(
 
     mp = get_module_progress(uid, module_id)
 
-    prev_mastery = float((mp.get("mastery") or {}).get("score") or 0.0)
-    mastery_delta = compute_mastery_delta(event_type, score)
-    new_mastery = max(0.0, min(1.0, prev_mastery + mastery_delta))
+    prev_mastery_score = (mp.get("mastery") or {}).get("score")
+    new_mastery_score = _safe_best_mastery(prev_mastery_score, score, event_type)
+    readiness_state = _readiness_from_mastery(new_mastery_score)
 
     mp_mis = (mp.get("misconception_profile") or {}).get("tags") or {}
     if not isinstance(mp_mis, dict):
@@ -137,7 +148,7 @@ def process_progress_event(
     if not isinstance(counters, dict):
         counters = {}
 
-    def inc(name: str):
+    def inc(name: str) -> None:
         counters[name] = int(counters.get(name, 0) or 0) + 1
 
     inc("events_total")
@@ -154,25 +165,20 @@ def process_progress_event(
 
     engagement_seconds = int(mp.get("engagement_seconds", 0) or 0) + duration_seconds
 
-    readiness_state = "not_ready"
-    if new_mastery >= 0.80:
-        readiness_state = "ready"
-    elif new_mastery >= 0.50:
-        readiness_state = "developing"
-
     mp_update = {
         "module_id": module_id,
         "last_event_utc": now,
         "engagement_seconds": engagement_seconds,
         "counters": counters,
         "mastery": {
-            "score": round(new_mastery, 4),
+            "score": round(new_mastery_score, 4),
             "level": readiness_state,
             "updated_utc": now,
+            "source": "transfer_only",
         },
         "readiness": {
             "state": readiness_state,
-            "reason": "mastery_score_threshold",
+            "reason": "mastery_check_threshold",
             "updated_utc": now,
         },
         "misconception_profile": {

@@ -5,7 +5,6 @@ from typing import Any, Dict, List
 from app.repositories.catalog_repository import get_lesson_by_doc_id, get_lesson_by_fields
 from app.services.student_progression_service import get_student_lesson_progress
 
-
 MASTERY_THRESHOLD = 0.80
 
 
@@ -32,13 +31,11 @@ def _has_diagnostic(lesson: Dict[str, Any]) -> bool:
 
 def _has_teaching(lesson: Dict[str, Any]) -> bool:
     phases = lesson.get("phases") or {}
-
     analogical = phases.get("analogical_grounding") or {}
     reconstruction = phases.get("concept_reconstruction") or {}
 
     has_analogy = bool(analogical.get("analogy_text"))
     has_reconstruction = bool(reconstruction.get("prompts") or [])
-
     return has_analogy or has_reconstruction
 
 
@@ -79,16 +76,30 @@ def _derive_current_stage(
             return "mastery_check"
         return "done"
 
-    # once diagnostic/attempt exists, move learner into teaching first
+    if lesson_status == "diagnostic_completed":
+        if has_teaching:
+            return "scaffolded_teaching"
+        if has_lab and lab_available and not lab_used:
+            return "simulation"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if lesson_status == "attempted_not_completed":
+        if has_teaching:
+            return "scaffolded_teaching"
+        if has_lab and lab_available and not lab_used:
+            return "simulation"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
     if has_teaching:
         return "scaffolded_teaching"
-
     if has_lab and lab_available and not lab_used:
         return "simulation"
-
     if has_transfer:
         return "mastery_check"
-
     return "done"
 
 
@@ -156,7 +167,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         has_transfer=has_transfer,
     )
 
-    diagnostic_completed = lesson_status != "not_started"
+    diagnostic_completed = lesson_status in ("diagnostic_completed", "attempted_not_completed", "completed")
     teaching_completed = lesson_status in ("attempted_not_completed", "completed")
     simulation_completed = lab_used
     mastery_check_completed = mastery_achieved
@@ -214,7 +225,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
             "best_score": best_score,
             "mastery_threshold": MASTERY_THRESHOLD,
             "mastery_achieved": mastery_achieved,
-            "can_advance": mastery_achieved,
+            "can_advance": mastery_achieved or bool(lesson_progress.get("can_advance")),
             "lesson_status": lesson_status,
             "next_recommended_action": next_action,
             "stages": stages,
