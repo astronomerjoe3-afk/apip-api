@@ -63,22 +63,78 @@ def list_recent_progress_events(uid: str, limit_recent_events: int) -> List[Dict
     return result
 
 
-def list_recent_transfer_events_for_module(uid: str, module_id: str, limit_events: int = 200) -> List[Dict[str, Any]]:
+def list_recent_transfer_events_for_module(
+    uid: str,
+    module_id: str,
+    limit_events: int = 200,
+) -> List[Dict[str, Any]]:
+    """
+    Canonical mastery source:
+    transfer events for one learner/module only.
+
+    Fallback strategy:
+    1) preferred ordered query
+    2) unordered query if index is missing
+    3) in-app filter + sort
+    """
     db = get_firestore_client()
-
-    q = (
-        where_eq(
-            where_eq(db.collection("progress_events"), "uid", uid),
-            "module_id",
-            module_id,
-        )
-        .where(filter=firestore.FieldFilter("event_type", "==", "transfer"))
-        .order_by("utc", direction=firestore.Query.DESCENDING)
-        .limit(limit_events)
-    )
-
     result: List[Dict[str, Any]] = []
-    for s in q.stream():
-        result.append(s.to_dict() or {})
 
-    return result
+    try:
+        q = (
+            where_eq(
+                where_eq(
+                    where_eq(db.collection("progress_events"), "uid", uid),
+                    "module_id",
+                    module_id,
+                ),
+                "event_type",
+                "transfer",
+            )
+            .order_by("utc", direction=firestore.Query.DESCENDING)
+            .limit(limit_events)
+        )
+
+        for s in q.stream():
+            result.append(s.to_dict() or {})
+
+        return result
+    except Exception:
+        pass
+
+    try:
+        q = (
+            where_eq(
+                where_eq(
+                    where_eq(db.collection("progress_events"), "uid", uid),
+                    "module_id",
+                    module_id,
+                ),
+                "event_type",
+                "transfer",
+            )
+            .limit(limit_events)
+        )
+
+        for s in q.stream():
+            result.append(s.to_dict() or {})
+
+        result.sort(key=lambda x: str(x.get("utc") or ""), reverse=True)
+        return result
+    except Exception:
+        pass
+
+    # final defensive fallback
+    q = where_eq(db.collection("progress_events"), "uid", uid).limit(limit_events * 5)
+
+    scanned: List[Dict[str, Any]] = []
+    for s in q.stream():
+        data = s.to_dict() or {}
+        if str(data.get("module_id") or "") != module_id:
+            continue
+        if str(data.get("event_type") or "").strip().lower() != "transfer":
+            continue
+        scanned.append(data)
+
+    scanned.sort(key=lambda x: str(x.get("utc") or ""), reverse=True)
+    return scanned[:limit_events]
