@@ -8,6 +8,7 @@ import app.routers.catalog as catalog
 import app.routers.debug_text as debug_text
 import app.routers.instructor as instructor
 import app.routers.progress as progress
+import app.routers.student_progression as student_progression
 import app.routers.system as system
 from app.middleware.request_id import RequestIDMiddleware
 
@@ -29,3 +30,4 @@ app.include_router(instructor.router)
 app.include_router(admin_ops.router)
 app.include_router(progress.router)
 app.include_router(debug_text.router)
+app.include_router(student_progression.router)
