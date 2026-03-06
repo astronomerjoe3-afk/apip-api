@@ -15,6 +15,7 @@ from app.repositories.catalog_repository import (
     list_lessons_for_module_unordered,
     list_modules,
 )
+from app.services.content_normalizer import to_student_lesson_view, to_student_lessons_view
 
 
 def fetch_curricula() -> List[Dict[str, Any]]:
@@ -37,6 +38,7 @@ def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str
 
     try:
         lessons = list_lessons_for_module(module_id)
+        lessons = to_student_lessons_view(lessons)
         return lessons, warnings
     except Exception as e:
         if is_missing_index_error(e):
@@ -44,6 +46,7 @@ def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str
             try:
                 lessons = list_lessons_for_module_unordered(module_id)
                 lessons.sort(key=lambda x: int(x.get("sequence", 10**9) or 10**9))
+                lessons = to_student_lessons_view(lessons)
                 return lessons, warnings
             except Exception as e2:
                 raise HTTPException(status_code=500, detail=f"Failed to load lessons: {str(e2)[:200]}")
@@ -53,15 +56,13 @@ def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str
 def fetch_module_lesson(module_id: str, lesson_id: str) -> Dict[str, Any]:
     normalized = lesson_id.replace("-", "_")
 
-    # 1) doc-id lookup
     lesson = get_lesson_by_doc_id(normalized)
     if lesson and lesson.get("module_id") == module_id:
-        return lesson
+        return to_student_lesson_view(lesson)
 
-    # 2) field lookup
     lesson = get_lesson_by_fields(module_id, normalized)
     if lesson:
-        return lesson
+        return to_student_lesson_view(lesson)
 
     raise HTTPException(status_code=404, detail="Lesson not found")
 
