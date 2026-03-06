@@ -59,6 +59,24 @@ def get_module_by_id(module_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def list_lessons_for_module_unordered(module_id: str) -> List[Dict[str, Any]]:
+    """
+    Unordered lesson listing used as a safe fallback when ordered queries
+    require a composite index.
+    """
+    db = get_firestore_client()
+
+    docs = list(where_eq(db.collection("lessons"), "module_id", module_id).stream())
+    lessons = [_with_id(d) for d in docs]
+    if lessons:
+        return lessons
+
+    sub_docs = list(
+        db.collection("modules").document(module_id).collection("lessons").stream()
+    )
+    return [_with_id(d) for d in sub_docs]
+
+
 def get_module_lessons(module_id: str) -> List[Dict[str, Any]]:
     """
     Canonical lesson listing for a module.
@@ -81,9 +99,7 @@ def get_module_lessons(module_id: str) -> List[Dict[str, Any]]:
         lessons = [_with_id(d) for d in docs]
     except Exception as exc:
         if _is_missing_index_error(exc):
-            query = where_eq(db.collection("lessons"), "module_id", module_id)
-            docs = list(query.stream())
-            lessons = [_with_id(d) for d in docs]
+            lessons = list_lessons_for_module_unordered(module_id)
             lessons.sort(key=lambda x: _safe_int(x.get("sequence")))
         else:
             raise
