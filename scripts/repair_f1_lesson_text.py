@@ -1,8 +1,16 @@
 ﻿from __future__ import annotations
 
 import os
+import sys
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
+
+# Ensure repo root is on sys.path so "app.*" imports work when running:
+#   python .\scripts\repair_f1_lesson_text.py
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from google.cloud import firestore
 
@@ -108,18 +116,21 @@ def normalize_lesson_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def iter_f1_lessons(db: firestore.Client) -> Iterable[Tuple[str, Dict[str, Any]]]:
-    for snap in db.collection("lessons").where(filter=firestore.FieldFilter("module_id", "==", "F1")).stream():
+    query = db.collection("lessons").where(
+        filter=firestore.FieldFilter("module_id", "==", "F1")
+    )
+    for snap in query.stream():
         yield snap.id, (snap.to_dict() or {})
 
 
 def write_dual_paths(db: firestore.Client, lesson_doc_id: str, payload: Dict[str, Any]) -> None:
-    # top-level canonical lesson doc
+    # Top-level canonical lesson doc
     db.collection("lessons").document(lesson_doc_id).set(payload, merge=True)
 
-    # optional legacy/module subcollection mirror if present
-    mod_ref = db.collection("modules").document("F1").collection("lessons").document(lesson_doc_id)
-    if mod_ref.get().exists:
-        mod_ref.set(payload, merge=True)
+    # Optional legacy mirror path
+    legacy_ref = db.collection("modules").document("F1").collection("lessons").document(lesson_doc_id)
+    if legacy_ref.get().exists:
+        legacy_ref.set(payload, merge=True)
 
 
 def main() -> None:
@@ -129,6 +140,7 @@ def main() -> None:
         or os.getenv("GCLOUD_PROJECT")
         or "(auto)"
     )
+
     db = get_firestore_client()
 
     repaired = 0
@@ -136,6 +148,7 @@ def main() -> None:
 
     for lesson_doc_id, lesson in iter_f1_lessons(db):
         normalized = normalize_lesson_doc(lesson)
+
         if normalized != lesson:
             write_dual_paths(db, lesson_doc_id, normalized)
             repaired += 1
