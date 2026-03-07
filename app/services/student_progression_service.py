@@ -1,6 +1,5 @@
 ﻿from __future__ import annotations
 
-import math
 from typing import Any, Dict, List
 
 from app.common import parse_iso_utc
@@ -11,11 +10,18 @@ from app.repositories.student_progression_repository import (
 )
 
 COMPLETION_THRESHOLD = 0.80
-DIAGNOSTIC_MIN_QUESTIONS = 2
-DIAGNOSTIC_MAX_QUESTIONS = 5
-MASTERY_MIN_QUESTIONS = 5
-MASTERY_MAX_QUESTIONS = 10
 MASTERY_EVENT_TYPES = {"transfer"}
+
+TEACHING_VIEW_SOURCES = {
+    "student_runner_scaffolded_teaching",
+    "student_runner_scaffolded_teaching_viewed",
+}
+TEACHING_RECONSTRUCTION_SOURCES = {
+    "student_runner_concept_reconstruction",
+}
+CONCEPT_GATE_SOURCES = {
+    "student_runner_concept_gate",
+}
 
 
 def _safe_score(v: Any) -> float:
@@ -41,100 +47,17 @@ def _event_type(ev: Dict[str, Any]) -> str:
     return str(ev.get("event_type") or "").strip().lower()
 
 
-def _event_details(ev: Dict[str, Any]) -> Dict[str, Any]:
-    details = ev.get("details")
-    return details if isinstance(details, dict) else {}
-
-
 def _event_source(ev: Dict[str, Any]) -> str:
-    return str(_event_details(ev).get("source") or "").strip().lower()
-
-
-def _event_stage(ev: Dict[str, Any]) -> str:
-    return str(_event_details(ev).get("stage") or "").strip().lower()
+    details = ev.get("details")
+    if not isinstance(details, dict):
+        return ""
+    return str(details.get("source") or "").strip().lower()
 
 
 def _lesson_has_lab(lesson: Dict[str, Any]) -> bool:
     phases = lesson.get("phases") or {}
     sim = phases.get("simulation_inquiry") or {}
     return bool(sim.get("lab_id"))
-
-
-def _lesson_has_diagnostic_items(lesson: Dict[str, Any]) -> bool:
-    phases = lesson.get("phases") or {}
-    diagnostic = phases.get("diagnostic") or {}
-    items = diagnostic.get("items") or []
-    return bool(items)
-
-
-def _lesson_has_teaching(lesson: Dict[str, Any]) -> bool:
-    phases = lesson.get("phases") or {}
-    analogical = phases.get("analogical_grounding") or {}
-    reconstruction = phases.get("concept_reconstruction") or {}
-    has_analogy = bool(analogical.get("analogy_text"))
-    has_reconstruction = bool(reconstruction.get("prompts") or [])
-    return has_analogy or has_reconstruction
-
-
-def _lesson_has_transfer_items(lesson: Dict[str, Any]) -> bool:
-    phases = lesson.get("phases") or {}
-    transfer = phases.get("transfer") or {}
-    items = transfer.get("items") or []
-    return bool(items)
-
-
-def _diagnostic_target_question_count(score: float) -> int:
-    if score < 0.40:
-        return 2
-    if score < 0.60:
-        return 3
-    if score < 0.80:
-        return 4
-    return 5
-
-
-def _mastery_target_question_count(readiness_score: float) -> int:
-    if readiness_score < 0.40:
-        return 5
-    if readiness_score < 0.55:
-        return 6
-    if readiness_score < 0.70:
-        return 7
-    if readiness_score < 0.80:
-        return 8
-    if readiness_score < 0.90:
-        return 9
-    return 10
-
-
-def _review_required(score: float) -> bool:
-    return score < 0.40
-
-
-def _review_recommended(score: float) -> bool:
-    return 0.40 <= score < COMPLETION_THRESHOLD
-
-
-def _extract_review_refs(tags: List[str]) -> List[str]:
-    ref_map = {
-        "unit_conversion": "concept_unit_conversion",
-        "si_prefixes": "concept_prefix_scaling",
-        "scalar_vs_vector": "concept_scalar_vector_difference",
-        "reading_scales": "concept_reading_scales",
-        "significant_figures": "concept_significant_figures",
-        "rounding_rules": "concept_rounding_rules",
-        "precision_vs_accuracy": "concept_precision_accuracy",
-        "random_vs_systematic_error": "concept_random_systematic_error",
-        "uncertainty_estimation": "concept_uncertainty_estimation",
-        "density_concept": "concept_density_meaning",
-        "density_units": "concept_density_units",
-    }
-    refs: List[str] = []
-    for tag in tags:
-        ref = ref_map.get(tag)
-        if ref and ref not in refs:
-            refs.append(ref)
-    return refs[:6]
 
 
 def _build_lesson_progress(
@@ -145,121 +68,94 @@ def _build_lesson_progress(
     title = lesson.get("title")
     sequence = lesson.get("sequence")
 
-    lesson_events = sorted(
-        lesson_events,
-        key=lambda ev: parse_iso_utc(ev.get("utc")),
-    )
-
     mastery_scores: List[float] = []
-    mastery_attempts: List[Dict[str, Any]] = []
-    diagnostic_scores: List[float] = []
-    diagnostic_event_count = 0
+    attempt_count = 0
+    diagnostic_count = 0
     lab_used = False
-    guided_concept_completed = False
-    concept_gate_completed = False
     last_mastery_check_utc = None
-    weak_concepts: List[str] = []
+
+    teaching_view_count = 0
+    teaching_reconstruction_count = 0
+    concept_gate_count = 0
+    concept_gate_best_score = 0.0
 
     for ev in lesson_events:
         et = _event_type(ev)
         source = _event_source(ev)
-        stage = _event_stage(ev)
-        score = _safe_score(ev.get("score"))
-        tags = ev.get("misconception_tags") or []
-        if not isinstance(tags, list):
-            tags = []
 
         if et == "diagnostic":
-            diagnostic_event_count += 1
-            diagnostic_scores.append(score)
+            diagnostic_count += 1
+
+        if et in ("attempt", "transfer"):
+            attempt_count += 1
 
         if et in MASTERY_EVENT_TYPES:
+            score = _safe_score(ev.get("score"))
             mastery_scores.append(score)
-            mastery_attempts.append(
-                {
-                    "score": score,
-                    "utc": ev.get("utc"),
-                    "tags": [str(tag) for tag in tags[:10]],
-                }
-            )
             ev_utc = ev.get("utc")
             if last_mastery_check_utc is None or parse_iso_utc(ev_utc) > parse_iso_utc(last_mastery_check_utc):
                 last_mastery_check_utc = ev_utc
-                weak_concepts = [str(tag) for tag in tags[:10]]
 
         if et == "simulation":
             lab_used = True
 
         if et == "reflection":
-            if source in {
-                "student_runner_scaffolded_teaching",
-                "student_runner_concept_reconstruction",
-                "student_runner_guided_concept_building",
-            } or stage == "scaffolded_teaching":
-                guided_concept_completed = True
-
-            if source in {
-                "student_runner_concept_gate",
-                "student_runner_concept_gate_check",
-            } or stage == "concept_gate":
-                concept_gate_completed = True
-
-    latest_diagnostic_score = diagnostic_scores[-1] if diagnostic_scores else 0.0
-    diagnostic_target_question_count = _diagnostic_target_question_count(latest_diagnostic_score)
-    diagnostic_completed = diagnostic_event_count >= 1
+            if source in TEACHING_VIEW_SOURCES:
+                teaching_view_count += 1
+            elif source in TEACHING_RECONSTRUCTION_SOURCES:
+                teaching_reconstruction_count += 1
+            elif source in CONCEPT_GATE_SOURCES:
+                concept_gate_count += 1
+                concept_gate_best_score = max(concept_gate_best_score, _safe_score(ev.get("score")))
 
     best_score = max(mastery_scores) if mastery_scores else 0.0
     completed = best_score >= COMPLETION_THRESHOLD
 
-    latest_mastery_score = mastery_scores[-1] if mastery_scores else 0.0
-    mastery_check_count = len(mastery_scores)
-    readiness_score = max(latest_diagnostic_score, latest_mastery_score, 0.0)
-    mastery_question_count = _mastery_target_question_count(readiness_score)
-    mastery_required_correct = int(math.ceil(mastery_question_count * COMPLETION_THRESHOLD))
+    teaching_engaged = (teaching_view_count + teaching_reconstruction_count) >= 1
+    teaching_completed = teaching_reconstruction_count >= 1 or teaching_view_count >= 1
+    concept_gate_completed = concept_gate_count >= 1
 
-    has_lab = _lesson_has_lab(lesson)
-    has_teaching = _lesson_has_teaching(lesson)
+    # Product rule:
+    # - lesson completion only at 80%+ mastery check
+    # - learner may move on after at least one mastery-check attempt
+    can_advance = completed or len(mastery_scores) >= 1
 
     if completed:
         status = "completed"
-    elif mastery_check_count >= 1:
+    elif len(mastery_scores) >= 1:
         status = "attempted_not_completed"
     elif concept_gate_completed:
         status = "concept_gate_completed"
-    elif guided_concept_completed:
-        status = "guided_concept_completed"
-    elif diagnostic_completed:
+    elif teaching_completed:
+        status = "teaching_completed"
+    elif diagnostic_count >= 1:
         status = "diagnostic_completed"
     else:
         status = "not_started"
+
+    has_lab = _lesson_has_lab(lesson)
 
     return {
         "lesson_id": lesson_id,
         "title": title,
         "sequence": sequence,
         "best_score": round(best_score, 4),
-        "attempt_count": mastery_check_count,
+        "attempt_count": attempt_count,
         "completed": completed,
-        "can_advance": completed,
+        "can_advance": can_advance,
         "lab_available": has_lab and (not lab_used),
         "lab_used": lab_used,
         "status": status,
-        "diagnostic_count": diagnostic_event_count,
-        "diagnostic_completed": diagnostic_completed,
-        "diagnostic_target_question_count": diagnostic_target_question_count,
-        "guided_concept_completed": guided_concept_completed or not has_teaching,
+        "diagnostic_count": diagnostic_count,
+        "teaching_view_count": teaching_view_count,
+        "teaching_reconstruction_count": teaching_reconstruction_count,
+        "teaching_engaged": teaching_engaged,
+        "teaching_completed": teaching_completed,
+        "concept_gate_count": concept_gate_count,
         "concept_gate_completed": concept_gate_completed,
-        "mastery_check_count": mastery_check_count,
+        "concept_gate_best_score": round(concept_gate_best_score, 4),
+        "mastery_check_count": len(mastery_scores),
         "last_mastery_check_utc": last_mastery_check_utc,
-        "latest_mastery_score": round(latest_mastery_score, 4),
-        "mastery_question_count": mastery_question_count,
-        "mastery_required_correct": mastery_required_correct,
-        "eligible_for_immediate_retest": mastery_check_count >= 1 and not completed,
-        "review_required": _review_required(latest_mastery_score) if mastery_check_count else False,
-        "review_recommended": _review_recommended(latest_mastery_score) if mastery_check_count else False,
-        "weak_concepts": weak_concepts[:6],
-        "recommended_review_refs": _extract_review_refs(weak_concepts),
-        "latest_diagnostic_score": round(latest_diagnostic_score, 4),
     }
 
 
@@ -329,20 +225,14 @@ def get_student_lesson_progress(uid: str, module_id: str, lesson_id: str) -> Dic
             "lab_used": False,
             "status": "not_found",
             "diagnostic_count": 0,
-            "diagnostic_completed": False,
-            "diagnostic_target_question_count": DIAGNOSTIC_MIN_QUESTIONS,
-            "guided_concept_completed": False,
+            "teaching_view_count": 0,
+            "teaching_reconstruction_count": 0,
+            "teaching_engaged": False,
+            "teaching_completed": False,
+            "concept_gate_count": 0,
             "concept_gate_completed": False,
+            "concept_gate_best_score": 0.0,
             "mastery_check_count": 0,
             "last_mastery_check_utc": None,
-            "latest_mastery_score": 0.0,
-            "mastery_question_count": MASTERY_MIN_QUESTIONS,
-            "mastery_required_correct": int(math.ceil(MASTERY_MIN_QUESTIONS * COMPLETION_THRESHOLD)),
-            "eligible_for_immediate_retest": False,
-            "review_required": False,
-            "review_recommended": False,
-            "weak_concepts": [],
-            "recommended_review_refs": [],
-            "latest_diagnostic_score": 0.0,
         },
     }
