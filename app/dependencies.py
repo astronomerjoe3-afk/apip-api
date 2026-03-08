@@ -3,10 +3,12 @@ from typing import Any, Dict
 from fastapi import HTTPException, Request
 
 from app.core.config import settings
+from app.db.firestore import get_firestore_client
 from app.firebase_admin_init import verify_id_token
 
 
 LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+VALID_ROLES = {"student", "instructor", "admin"}
 
 
 def _get_bearer_token(request: Request) -> str:
@@ -40,6 +42,23 @@ def _local_dev_student(request: Request) -> Dict[str, Any] | None:
     }
 
 
+def _role_from_user_doc(uid: str) -> str | None:
+    try:
+        db = get_firestore_client()
+        snapshot = db.collection("users").document(uid).get()
+    except Exception:
+        return None
+
+    if not snapshot.exists:
+        return None
+
+    data = snapshot.to_dict() or {}
+    role = str(data.get("role") or "").strip().lower()
+    if role in VALID_ROLES:
+        return role
+
+    return None
+
 def require_authenticated_user(request: Request) -> Dict[str, Any]:
     """
     Validates Firebase ID token and returns normalized identity dict.
@@ -61,9 +80,9 @@ def require_authenticated_user(request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="Token missing uid")
 
     role = decoded.get("role")
-    if not role:
-        # Safer default: deny if role claim missing (avoid accidental privilege)
-        raise HTTPException(status_code=403, detail="Missing role claim")
+    if role not in VALID_ROLES:
+        role = _role_from_user_doc(uid) or "student"
+        decoded["role"] = role
 
     return {
         "uid": uid,
