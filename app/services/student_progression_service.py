@@ -71,6 +71,8 @@ def _build_lesson_progress(
     mastery_scores: List[float] = []
     attempt_count = 0
     diagnostic_count = 0
+    diagnostic_latest_score = None
+    diagnostic_asked_count = 0
     lab_used = False
     last_mastery_check_utc = None
 
@@ -85,6 +87,9 @@ def _build_lesson_progress(
 
         if et == "diagnostic":
             diagnostic_count += 1
+            diagnostic_latest_score = _safe_score(ev.get("score"))
+            details = ev.get("details") if isinstance(ev.get("details"), dict) else {}
+            diagnostic_asked_count = int(details.get("asked_count") or 0)
 
         if et in ("attempt", "transfer"):
             attempt_count += 1
@@ -150,6 +155,8 @@ def _build_lesson_progress(
         "lab_used": lab_used,
         "status": status,
         "diagnostic_count": diagnostic_count,
+        "diagnostic_latest_score": round(diagnostic_latest_score, 4) if diagnostic_latest_score is not None else None,
+        "diagnostic_asked_count": diagnostic_asked_count,
         "teaching_view_count": teaching_view_count,
         "teaching_reconstruction_count": teaching_reconstruction_count,
         "teaching_engaged": teaching_engaged,
@@ -230,6 +237,8 @@ def get_student_lesson_progress(uid: str, module_id: str, lesson_id: str) -> Dic
             "lab_used": False,
             "status": "not_found",
             "diagnostic_count": 0,
+            "diagnostic_latest_score": None,
+            "diagnostic_asked_count": 0,
             "teaching_view_count": 0,
             "teaching_reconstruction_count": 0,
             "teaching_engaged": False,

@@ -94,6 +94,17 @@ def _question_count(lesson: Dict[str, Any], phase_key: str) -> int:
     return len(items)
 
 
+def _capsule_check_count(lesson: Dict[str, Any]) -> int:
+    reconstruction = _phases(lesson).get("concept_reconstruction") or {}
+    capsules = reconstruction.get("capsules") or []
+    total = 0
+    for capsule in capsules:
+        if not isinstance(capsule, dict):
+            continue
+        total += len(capsule.get("checks") or [])
+    return total
+
+
 def _target_diagnostic_question_count(latest_score: float | None) -> int:
     score = 0.0 if latest_score is None else max(0.0, min(1.0, float(latest_score)))
     if score < 0.4:
@@ -105,13 +116,30 @@ def _target_diagnostic_question_count(latest_score: float | None) -> int:
     return 5
 
 
-def _target_mastery_question_count(question_bank_size: int) -> int:
+def _target_mastery_question_count(question_bank_size: int, performance_score: float | None) -> int:
     bounded_bank = max(0, int(question_bank_size))
     if bounded_bank <= 0:
         return 0
-    if bounded_bank < MASTERY_MIN_QUESTIONS:
-        return bounded_bank
-    return min(MASTERY_MAX_QUESTIONS, bounded_bank)
+
+    lower_bound = min(MASTERY_MIN_QUESTIONS, bounded_bank)
+    upper_bound = min(MASTERY_MAX_QUESTIONS, bounded_bank)
+
+    if performance_score is None:
+        target = lower_bound
+    elif performance_score < 0.4:
+        target = 5
+    elif performance_score < 0.55:
+        target = 6
+    elif performance_score < 0.7:
+        target = 7
+    elif performance_score < 0.8:
+        target = 8
+    elif performance_score < 0.9:
+        target = 9
+    else:
+        target = 10
+
+    return max(lower_bound, min(upper_bound, target))
 
 
 def _required_correct(selected_question_count: int, threshold: float) -> int:
@@ -236,9 +264,7 @@ def _stage_row(
 
 def _diagnostic_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]) -> Dict[str, Any]:
     total_items = _question_count(lesson, "diagnostic")
-    latest_score = None
-    if int(lesson_progress.get("diagnostic_count") or 0) >= 1:
-        latest_score = 0.0
+    latest_score = lesson_progress.get("diagnostic_latest_score")
 
     target_count = min(
         max(DIAGNOSTIC_MIN_QUESTIONS, _target_diagnostic_question_count(latest_score)),
@@ -250,14 +276,15 @@ def _diagnostic_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]
         "max_questions": DIAGNOSTIC_MAX_QUESTIONS,
         "target_question_count": target_count,
         "completed": int(lesson_progress.get("diagnostic_count") or 0) >= 1,
-        "asked_count": total_items,
+        "asked_count": int(lesson_progress.get("diagnostic_asked_count") or 0),
         "latest_score": latest_score,
     }
 
 
 def _mastery_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]) -> Dict[str, Any]:
-    bank_size = _question_count(lesson, "transfer")
-    selected_count = _target_mastery_question_count(bank_size)
+    bank_size = max(_question_count(lesson, "transfer") + _capsule_check_count(lesson), MASTERY_MIN_QUESTIONS if _has_transfer(lesson) else 0)
+    performance_score = lesson_progress.get("best_score") if int(lesson_progress.get("mastery_check_count") or 0) >= 1 else lesson_progress.get("diagnostic_latest_score")
+    selected_count = _target_mastery_question_count(bank_size, performance_score)
     best_score = float(lesson_progress.get("best_score") or 0.0)
     attempt_count = int(lesson_progress.get("mastery_check_count") or 0)
 
