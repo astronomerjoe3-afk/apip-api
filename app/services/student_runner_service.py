@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from math import ceil
 from typing import Any, Dict, List
@@ -27,46 +27,69 @@ def _load_lesson(module_id: str, lesson_id: str) -> Dict[str, Any] | None:
     return None
 
 
-def _has_diagnostic(lesson: Dict[str, Any]) -> bool:
+def _phases(lesson: Dict[str, Any]) -> Dict[str, Any]:
     phases = lesson.get("phases") or {}
-    diagnostic = phases.get("diagnostic") or {}
+    return phases if isinstance(phases, dict) else {}
+
+
+def _has_diagnostic(lesson: Dict[str, Any]) -> bool:
+    diagnostic = _phases(lesson).get("diagnostic") or {}
     items = diagnostic.get("items") or []
     return len(items) > 0
 
 
 def _has_teaching(lesson: Dict[str, Any]) -> bool:
-    phases = lesson.get("phases") or {}
+    phases = _phases(lesson)
     analogical = phases.get("analogical_grounding") or {}
     reconstruction = phases.get("concept_reconstruction") or {}
 
     has_analogy = bool(analogical.get("analogy_text"))
-    has_reconstruction = bool(reconstruction.get("prompts") or [])
-    return has_analogy or has_reconstruction
+    has_micro_prompts = bool(analogical.get("micro_prompts") or [])
+    has_prompts = bool(reconstruction.get("prompts") or [])
+    has_capsules = bool(reconstruction.get("capsules") or [])
+    return has_analogy or has_micro_prompts or has_prompts or has_capsules
 
 
 def _has_concept_gate(lesson: Dict[str, Any]) -> bool:
-    phases = lesson.get("phases") or {}
-    analogical = phases.get("analogical_grounding") or {}
-    reconstruction = phases.get("concept_reconstruction") or {}
-    return bool(analogical.get("analogy_text")) or bool(reconstruction.get("prompts") or [])
+    reconstruction = _phases(lesson).get("concept_reconstruction") or {}
+    capsules = reconstruction.get("capsules") or []
+
+    for capsule in capsules:
+        if not isinstance(capsule, dict):
+            continue
+        if capsule.get("checks"):
+            return True
+
+    return False
+
+
+def _has_reflection(lesson: Dict[str, Any]) -> bool:
+    reconstruction = _phases(lesson).get("concept_reconstruction") or {}
+    if reconstruction.get("prompts"):
+        return True
+
+    for capsule in reconstruction.get("capsules") or []:
+        if not isinstance(capsule, dict):
+            continue
+        if capsule.get("prompt"):
+            return True
+
+    return False
 
 
 def _has_sim_lab(lesson: Dict[str, Any]) -> bool:
-    phases = lesson.get("phases") or {}
-    sim = phases.get("simulation_inquiry") or {}
+    sim = _phases(lesson).get("simulation_inquiry") or {}
     return bool(sim.get("lab_id"))
 
 
 def _has_transfer(lesson: Dict[str, Any]) -> bool:
-    phases = lesson.get("phases") or {}
-    transfer = phases.get("transfer") or {}
+    transfer = _phases(lesson).get("transfer") or {}
     items = transfer.get("items") or []
     return len(items) > 0
 
 
 def _question_count(lesson: Dict[str, Any], phase_key: str) -> int:
-    phases = lesson.get("phases") or {}
-    phase = phases.get(phase_key) or {}
+    phase = _phases(lesson).get(phase_key) or {}
     items = phase.get("items") or []
     return len(items)
 
@@ -86,7 +109,9 @@ def _target_mastery_question_count(question_bank_size: int) -> int:
     bounded_bank = max(0, int(question_bank_size))
     if bounded_bank <= 0:
         return 0
-    return max(MASTERY_MIN_QUESTIONS, min(MASTERY_MAX_QUESTIONS, bounded_bank))
+    if bounded_bank < MASTERY_MIN_QUESTIONS:
+        return bounded_bank
+    return min(MASTERY_MAX_QUESTIONS, bounded_bank)
 
 
 def _required_correct(selected_question_count: int, threshold: float) -> int:
@@ -104,6 +129,8 @@ def _derive_current_stage(
     has_lab: bool,
     lab_available: bool,
     lab_used: bool,
+    has_reflection: bool,
+    reflection_completed: bool,
     has_transfer: bool,
 ) -> str:
     if mastery_achieved:
@@ -118,6 +145,8 @@ def _derive_current_stage(
             return "concept_gate"
         if has_lab and lab_available:
             return "simulation"
+        if has_reflection and not reflection_completed:
+            return "reflection"
         if has_transfer:
             return "mastery_check"
         return "done"
@@ -129,6 +158,8 @@ def _derive_current_stage(
             return "concept_gate"
         if has_lab and lab_available and not lab_used:
             return "simulation"
+        if has_reflection and not reflection_completed:
+            return "reflection"
         if has_transfer:
             return "mastery_check"
         return "done"
@@ -138,6 +169,8 @@ def _derive_current_stage(
             return "concept_gate"
         if has_lab and lab_available and not lab_used:
             return "simulation"
+        if has_reflection and not reflection_completed:
+            return "reflection"
         if has_transfer:
             return "mastery_check"
         return "done"
@@ -145,6 +178,20 @@ def _derive_current_stage(
     if lesson_status == "concept_gate_completed":
         if has_lab and lab_available and not lab_used:
             return "simulation"
+        if has_reflection and not reflection_completed:
+            return "reflection"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if lesson_status == "simulation_completed":
+        if has_reflection and not reflection_completed:
+            return "reflection"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if lesson_status == "reflection_completed":
         if has_transfer:
             return "mastery_check"
         return "done"
@@ -152,10 +199,8 @@ def _derive_current_stage(
     if lesson_status == "attempted_not_completed":
         if has_transfer:
             return "mastery_check"
-        if has_teaching:
-            return "scaffolded_teaching"
-        if has_concept_gate:
-            return "concept_gate"
+        if has_reflection and not reflection_completed:
+            return "reflection"
         if has_lab and lab_available and not lab_used:
             return "simulation"
         return "done"
@@ -166,6 +211,8 @@ def _derive_current_stage(
         return "concept_gate"
     if has_lab and lab_available and not lab_used:
         return "simulation"
+    if has_reflection and not reflection_completed:
+        return "reflection"
     if has_transfer:
         return "mastery_check"
     return "done"
@@ -261,12 +308,15 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
                 "mastery_achieved": False,
                 "can_advance": False,
                 "lesson_status": "not_found",
+                "active_stage": "diagnostic",
                 "next_recommended_action": "lesson_not_found",
                 "diagnostic": {
                     "min_questions": DIAGNOSTIC_MIN_QUESTIONS,
                     "max_questions": DIAGNOSTIC_MAX_QUESTIONS,
                     "target_question_count": DIAGNOSTIC_MIN_QUESTIONS,
                     "completed": False,
+                    "asked_count": 0,
+                    "latest_score": None,
                 },
                 "mastery_check": {
                     "min_questions": MASTERY_MIN_QUESTIONS,
@@ -290,12 +340,14 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
     mastery_achieved = best_score >= MASTERY_THRESHOLD
     lab_available = bool(lesson_progress.get("lab_available"))
     lab_used = bool(lesson_progress.get("lab_used"))
+    reflection_completed = bool(lesson_progress.get("reflection_completed"))
     lesson_status = str(lesson_progress.get("status") or "not_started")
 
     has_diag = _has_diagnostic(lesson)
     has_teaching = _has_teaching(lesson)
     has_concept_gate = _has_concept_gate(lesson)
     has_lab = _has_sim_lab(lesson)
+    has_reflection = _has_reflection(lesson)
     has_transfer = _has_transfer(lesson)
 
     current_stage = _derive_current_stage(
@@ -307,6 +359,8 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         has_lab=has_lab,
         lab_available=lab_available,
         lab_used=lab_used,
+        has_reflection=has_reflection,
+        reflection_completed=reflection_completed,
         has_transfer=has_transfer,
     )
 
@@ -314,21 +368,37 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         "diagnostic_completed",
         "teaching_completed",
         "concept_gate_completed",
+        "simulation_completed",
+        "reflection_completed",
         "attempted_not_completed",
         "completed",
     )
     teaching_completed = lesson_status in (
         "teaching_completed",
         "concept_gate_completed",
+        "simulation_completed",
+        "reflection_completed",
         "attempted_not_completed",
         "completed",
     )
     concept_gate_completed = lesson_status in (
         "concept_gate_completed",
+        "simulation_completed",
+        "reflection_completed",
         "attempted_not_completed",
         "completed",
     )
-    simulation_completed = lab_used
+    simulation_completed = lesson_status in (
+        "simulation_completed",
+        "reflection_completed",
+        "attempted_not_completed",
+        "completed",
+    )
+    reflection_stage_completed = lesson_status in (
+        "reflection_completed",
+        "attempted_not_completed",
+        "completed",
+    )
     mastery_check_completed = mastery_achieved
 
     stages: List[Dict[str, Any]] = [
@@ -341,24 +411,31 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         ),
         _stage_row(
             key="scaffolded_teaching",
-            label="Guided concept building",
+            label="Guided lesson",
             available=has_teaching,
             completed=teaching_completed,
             active_key=current_stage,
         ),
         _stage_row(
             key="concept_gate",
-            label="Concept gate",
+            label="Concept check",
             available=has_concept_gate,
             completed=concept_gate_completed,
             active_key=current_stage,
         ),
         _stage_row(
             key="simulation",
-            label="Sim Lab",
+            label="Try it out",
             available=has_lab,
             completed=simulation_completed,
-            active_key=current_stage if lab_available else "",
+            active_key=current_stage if lab_available or simulation_completed else "",
+        ),
+        _stage_row(
+            key="reflection",
+            label="Explain it back",
+            available=has_reflection,
+            completed=reflection_stage_completed,
+            active_key=current_stage,
         ),
         _stage_row(
             key="mastery_check",
@@ -379,6 +456,8 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         next_action = "pass_concept_gate"
     elif current_stage == "simulation":
         next_action = "run_sim_lab"
+    elif current_stage == "reflection":
+        next_action = "submit_reflection"
     elif current_stage == "mastery_check":
         next_action = "attempt_mastery_check"
     else:
@@ -395,6 +474,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
             "mastery_achieved": mastery_achieved,
             "can_advance": mastery_achieved or bool(lesson_progress.get("can_advance")),
             "lesson_status": lesson_status,
+            "active_stage": current_stage,
             "next_recommended_action": next_action,
             "diagnostic": _diagnostic_contract(lesson, lesson_progress),
             "mastery_check": _mastery_contract(lesson, lesson_progress),

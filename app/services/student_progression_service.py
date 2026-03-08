@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Dict, List
 
@@ -112,18 +112,21 @@ def _build_lesson_progress(
     completed = best_score >= COMPLETION_THRESHOLD
 
     teaching_engaged = (teaching_view_count + teaching_reconstruction_count) >= 1
-    teaching_completed = teaching_reconstruction_count >= 1 or teaching_view_count >= 1
-    concept_gate_completed = concept_gate_count >= 1
+    teaching_completed = teaching_view_count >= 1
+    concept_gate_completed = concept_gate_best_score >= COMPLETION_THRESHOLD
+    simulation_completed = lab_used
+    reflection_completed = teaching_reconstruction_count >= 1
 
-    # Product rule:
-    # - lesson completion only at 80%+ mastery check
-    # - learner may move on after at least one mastery-check attempt
     can_advance = completed or len(mastery_scores) >= 1
 
     if completed:
         status = "completed"
     elif len(mastery_scores) >= 1:
         status = "attempted_not_completed"
+    elif reflection_completed:
+        status = "reflection_completed"
+    elif simulation_completed:
+        status = "simulation_completed"
     elif concept_gate_completed:
         status = "concept_gate_completed"
     elif teaching_completed:
@@ -154,6 +157,8 @@ def _build_lesson_progress(
         "concept_gate_count": concept_gate_count,
         "concept_gate_completed": concept_gate_completed,
         "concept_gate_best_score": round(concept_gate_best_score, 4),
+        "simulation_completed": simulation_completed,
+        "reflection_completed": reflection_completed,
         "mastery_check_count": len(mastery_scores),
         "last_mastery_check_utc": last_mastery_check_utc,
     }
@@ -232,6 +237,8 @@ def get_student_lesson_progress(uid: str, module_id: str, lesson_id: str) -> Dic
             "concept_gate_count": 0,
             "concept_gate_completed": False,
             "concept_gate_best_score": 0.0,
+            "simulation_completed": False,
+            "reflection_completed": False,
             "mastery_check_count": 0,
             "last_mastery_check_utc": None,
         },

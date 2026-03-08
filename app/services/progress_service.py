@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import secrets
 from typing import Any, Dict, List, Literal, Optional
@@ -26,7 +26,7 @@ def new_event_id() -> str:
 
 
 def should_persist_event(event_type: str) -> bool:
-    return event_type in ("transfer", "diagnostic")
+    return event_type in ("transfer", "diagnostic", "simulation", "reflection", "attempt")
 
 
 def normalize_progress_event_payload(payload: Dict[str, Any]) -> Dict[str, Any]:

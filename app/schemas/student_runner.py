@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import List, Optional
 
@@ -13,6 +13,30 @@ class StudentRunnerStageOut(BaseModel):
     active: bool = False
 
 
+class StudentRunnerDiagnosticOut(BaseModel):
+    min_questions: int = 2
+    max_questions: int = 5
+    target_question_count: int = 2
+    completed: bool = False
+    asked_count: int = 0
+    latest_score: Optional[float] = None
+
+
+class StudentRunnerMasteryCheckOut(BaseModel):
+    min_questions: int = 5
+    max_questions: int = 10
+    selected_question_count: int = 0
+    threshold: float = 0.8
+    attempt_count: int = 0
+    best_score: float = 0.0
+    required_correct: int = 0
+    eligible_for_immediate_retest: bool = False
+    review_required: bool = False
+    review_recommended: bool = False
+    weak_concepts: List[str] = Field(default_factory=list)
+    recommended_review_refs: List[str] = Field(default_factory=list)
+
+
 class StudentRunnerLessonOut(BaseModel):
     lesson_id: str
     title: Optional[str] = None
@@ -22,7 +46,10 @@ class StudentRunnerLessonOut(BaseModel):
     mastery_achieved: bool = False
     can_advance: bool = False
     lesson_status: str = "not_started"
+    active_stage: str = "diagnostic"
     next_recommended_action: str = "start_diagnostic"
+    diagnostic: StudentRunnerDiagnosticOut = Field(default_factory=StudentRunnerDiagnosticOut)
+    mastery_check: StudentRunnerMasteryCheckOut = Field(default_factory=StudentRunnerMasteryCheckOut)
     stages: List[StudentRunnerStageOut] = Field(default_factory=list)
 
 
