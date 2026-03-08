@@ -364,7 +364,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         has_transfer=has_transfer,
     )
 
-    diagnostic_completed = lesson_status in (
+    diagnostic_completed = has_diag and lesson_status in (
         "diagnostic_completed",
         "teaching_completed",
         "concept_gate_completed",
@@ -373,7 +373,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         "attempted_not_completed",
         "completed",
     )
-    teaching_completed = lesson_status in (
+    teaching_completed = has_teaching and lesson_status in (
         "teaching_completed",
         "concept_gate_completed",
         "simulation_completed",
@@ -381,20 +381,20 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         "attempted_not_completed",
         "completed",
     )
-    concept_gate_completed = lesson_status in (
+    concept_gate_completed = has_concept_gate and lesson_status in (
         "concept_gate_completed",
         "simulation_completed",
         "reflection_completed",
         "attempted_not_completed",
         "completed",
     )
-    simulation_completed = lesson_status in (
+    simulation_completed = has_lab and lesson_status in (
         "simulation_completed",
         "reflection_completed",
         "attempted_not_completed",
         "completed",
     )
-    reflection_stage_completed = lesson_status in (
+    reflection_stage_completed = has_reflection and lesson_status in (
         "reflection_completed",
         "attempted_not_completed",
         "completed",
