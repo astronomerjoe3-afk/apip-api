@@ -1,83 +1,51 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 _MOJIBAKE_REPLACEMENTS = {
-    "’": "'",
-    "‘": "'",
-    "“": '"',
-    "�\x9d": '"',
-    "�": '"',
-    "–": "-",
-    "—": "-",
-    "…": "...",
-    "±": "+/-",
-    "÷": "/",
-    "×": "x",
-    "−": "-",
-    "≈": "~",
-    "≤": "<=",
-    "≥": ">=",
-    "can�t": "can't",
-    "Can�t": "Can't",
-    "don�t": "don't",
-    "Don�t": "Don't",
-    "doesn�t": "doesn't",
-    "Doesn�t": "Doesn't",
-    "isn�t": "isn't",
-    "Isn�t": "Isn't",
-    "won�t": "won't",
-    "Won�t": "Won't",
-    "you�re": "you're",
-    "You�re": "You're",
-    "it�s": "it's",
-    "It�s": "It's",
-    "that�s": "that's",
-    "That�s": "That's",
-    "there�s": "there's",
-    "There�s": "There's",
-    "what�s": "what's",
-    "What�s": "What's",
-    "meters'�and": "meters'�and",
-    "room is�like": "room is�like",
-    "2�3": "2�3",
-    "mass ÷ volume": "mass � volume",
-    "mass × volume": "mass � volume",
+    "â€™": "'",
+    "â€˜": "'",
+    "â€œ": '"',
+    "â€\x9d": '"',
+    "â€": '"',
+    "â€“": "-",
+    "â€”": "-",
+    "â€¦": "...",
+    "Â±": "+/-",
+    "Ã·": "/",
+    "Ã—": "x",
+    "âˆ’": "-",
+    "â‰ˆ": "~",
+    "â‰¤": "<=",
+    "â‰¥": ">=",
 }
 
 
 def _attempt_mojibake_repair(value: str) -> str:
-    original = value
-    candidates = [original]
+    candidates = [value]
 
-    try:
-        repaired = original.encode("cp1252", errors="ignore").decode("utf-8", errors="ignore")
+    for source_encoding in ("cp1252", "latin-1"):
+        try:
+            repaired = value.encode(source_encoding, errors="ignore").decode("utf-8", errors="ignore")
+        except Exception:
+            repaired = ""
         if repaired:
             candidates.append(repaired)
-    except Exception:
-        pass
 
-    try:
-        repaired = original.encode("latin-1", errors="ignore").decode("utf-8", errors="ignore")
-        if repaired:
-            candidates.append(repaired)
-    except Exception:
-        pass
-
-    def score(s: str) -> int:
-        bad_markers = ["�", "�", "�", "�"]
-        return sum(s.count(marker) for marker in bad_markers)
+    def score(text: str) -> int:
+        bad_markers = ("â", "Â", "Ã", "ï")
+        return sum(text.count(marker) for marker in bad_markers)
 
     return min(candidates, key=score)
 
 
 def _clean_text(value: str) -> str:
-    out = _attempt_mojibake_repair(value)
+    cleaned = _attempt_mojibake_repair(value)
     for bad, good in _MOJIBAKE_REPLACEMENTS.items():
-        out = out.replace(bad, good)
-    return out
+        cleaned = cleaned.replace(bad, good)
+    return cleaned
 
 
 def _normalize_value(value: Any) -> Any:
@@ -85,54 +53,53 @@ def _normalize_value(value: Any) -> Any:
         return _clean_text(value)
 
     if isinstance(value, list):
-        return [_normalize_value(v) for v in value]
+        return [_normalize_value(item) for item in value]
 
     if isinstance(value, dict):
         normalized: Dict[str, Any] = {}
-        for k, v in value.items():
-            if k == "commitment_prompt":
+        for key, item in value.items():
+            if key == "commitment_prompt":
                 continue
-            normalized[k] = _normalize_value(v)
+            normalized[key] = _normalize_value(item)
         return normalized
 
     return value
 
 
 def normalize_lesson_payload(lesson: Dict[str, Any]) -> Dict[str, Any]:
-    lesson_copy = deepcopy(lesson)
-    return _normalize_value(lesson_copy)
+    return _normalize_value(deepcopy(lesson))
 
 
 def normalize_lessons_payload(lessons: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [normalize_lesson_payload(lesson) for lesson in lessons]
 
 
-def _student_prompt_blocks(items: List[Any] | None) -> List[Dict[str, Any]]:
-    safe_blocks: List[Dict[str, Any]] = []
+def _student_prompt_blocks(items: Optional[List[Any]]) -> List[Dict[str, Any]]:
+    blocks: List[Dict[str, Any]] = []
     for item in items or []:
         if isinstance(item, dict):
-            safe_blocks.append(
+            blocks.append(
                 {
                     "prompt": item.get("prompt"),
                     "hint": item.get("hint"),
                 }
             )
         elif isinstance(item, str):
-            safe_blocks.append(
+            blocks.append(
                 {
                     "prompt": item,
                     "hint": None,
                 }
             )
-    return safe_blocks
+    return blocks
 
 
-def _student_question_items(items: List[Dict[str, Any]] | None) -> List[Dict[str, Any]]:
-    safe_items: List[Dict[str, Any]] = []
+def _student_question_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    questions: List[Dict[str, Any]] = []
     for item in items or []:
         if not isinstance(item, dict):
             continue
-        safe_items.append(
+        questions.append(
             {
                 "id": item.get("id"),
                 "type": item.get("type"),
@@ -144,21 +111,21 @@ def _student_question_items(items: List[Dict[str, Any]] | None) -> List[Dict[str
                 "accepted_answers": item.get("accepted_answers") or [],
             }
         )
-    return safe_items
+    return questions
 
 
-def _student_capsules(capsules: List[Dict[str, Any]] | None) -> List[Dict[str, Any]]:
-    safe_capsules: List[Dict[str, Any]] = []
+def _student_capsules(capsules: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    output: List[Dict[str, Any]] = []
     for capsule in capsules or []:
         if not isinstance(capsule, dict):
             continue
-        safe_capsules.append(
+        output.append(
             {
                 "prompt": capsule.get("prompt"),
                 "checks": _student_question_items(capsule.get("checks")),
             }
         )
-    return safe_capsules
+    return output
 
 
 def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
