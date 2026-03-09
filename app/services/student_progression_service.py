@@ -75,6 +75,7 @@ def _build_lesson_progress(
     diagnostic_asked_count = 0
     lab_used = False
     last_mastery_check_utc = None
+    latest_mastery_score = None
 
     teaching_view_count = 0
     teaching_reconstruction_count = 0
@@ -100,6 +101,7 @@ def _build_lesson_progress(
             ev_utc = ev.get("utc")
             if last_mastery_check_utc is None or parse_iso_utc(ev_utc) > parse_iso_utc(last_mastery_check_utc):
                 last_mastery_check_utc = ev_utc
+                latest_mastery_score = score
 
         if et == "simulation":
             lab_used = True
@@ -148,6 +150,7 @@ def _build_lesson_progress(
         "title": title,
         "sequence": sequence,
         "best_score": round(best_score, 4),
+        "latest_score": round(latest_mastery_score, 4) if latest_mastery_score is not None else None,
         "attempt_count": attempt_count,
         "completed": completed,
         "can_advance": can_advance,
@@ -174,8 +177,13 @@ def _build_lesson_progress(
 def _module_mastery_from_lessons(lesson_progress_rows: List[Dict[str, Any]]) -> float:
     if not lesson_progress_rows:
         return 0.0
-    total = sum(float(row.get("best_score") or 0.0) for row in lesson_progress_rows)
-    return round(total / len(lesson_progress_rows), 4)
+
+    scored_rows = [row for row in lesson_progress_rows if row.get("latest_score") is not None]
+    if not scored_rows:
+        return 0.0
+
+    total = sum(float(row.get("latest_score") or 0.0) for row in scored_rows)
+    return round(total / len(scored_rows), 4)
 
 
 def get_student_module_progress(uid: str, module_id: str) -> Dict[str, Any]:
@@ -230,6 +238,7 @@ def get_student_lesson_progress(uid: str, module_id: str, lesson_id: str) -> Dic
             "title": None,
             "sequence": None,
             "best_score": 0.0,
+            "latest_score": None,
             "attempt_count": 0,
             "completed": False,
             "can_advance": False,

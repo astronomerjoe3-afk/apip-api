@@ -286,6 +286,7 @@ def _mastery_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]) -
     performance_score = lesson_progress.get("best_score") if int(lesson_progress.get("mastery_check_count") or 0) >= 1 else lesson_progress.get("diagnostic_latest_score")
     selected_count = _target_mastery_question_count(bank_size, performance_score)
     best_score = float(lesson_progress.get("best_score") or 0.0)
+    latest_score = lesson_progress.get("latest_score")
     attempt_count = int(lesson_progress.get("mastery_check_count") or 0)
 
     weak_concepts: List[str] = []
@@ -305,6 +306,7 @@ def _mastery_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]) -
         "threshold": MASTERY_THRESHOLD,
         "attempt_count": attempt_count,
         "best_score": round(best_score, 4),
+        "latest_score": round(float(latest_score), 4) if latest_score is not None else None,
         "required_correct": _required_correct(selected_count, MASTERY_THRESHOLD),
         "eligible_for_immediate_retest": attempt_count >= 1 and best_score < MASTERY_THRESHOLD,
         "review_required": attempt_count >= 1 and best_score < MASTERY_THRESHOLD,
@@ -331,6 +333,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
                 "title": None,
                 "sequence": None,
                 "best_score": 0.0,
+                "latest_score": None,
                 "mastery_threshold": MASTERY_THRESHOLD,
                 "mastery_achieved": False,
                 "can_advance": False,
@@ -352,6 +355,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
                     "threshold": MASTERY_THRESHOLD,
                     "attempt_count": 0,
                     "best_score": 0.0,
+                    "latest_score": None,
                     "required_correct": 0,
                     "eligible_for_immediate_retest": False,
                     "review_required": False,
@@ -364,6 +368,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         }
 
     best_score = float(lesson_progress.get("best_score") or 0.0)
+    latest_score = lesson_progress.get("latest_score")
     mastery_achieved = best_score >= MASTERY_THRESHOLD
     lab_available = bool(lesson_progress.get("lab_available"))
     lab_used = bool(lesson_progress.get("lab_used"))
@@ -497,6 +502,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
             "title": lesson_progress.get("title"),
             "sequence": lesson_progress.get("sequence"),
             "best_score": round(best_score, 4),
+            "latest_score": round(float(latest_score), 4) if latest_score is not None else None,
             "mastery_threshold": MASTERY_THRESHOLD,
             "mastery_achieved": mastery_achieved,
             "can_advance": mastery_achieved or bool(lesson_progress.get("can_advance")),

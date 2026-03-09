@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import List, Optional
 
@@ -10,6 +10,7 @@ class StudentLessonProgressOut(BaseModel):
     title: Optional[str] = None
     sequence: Optional[int] = None
     best_score: float = 0.0
+    latest_score: Optional[float] = None
     attempt_count: int = 0
     completed: bool = False
     can_advance: bool = False

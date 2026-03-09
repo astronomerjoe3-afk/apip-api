@@ -29,6 +29,7 @@ class StudentRunnerMasteryCheckOut(BaseModel):
     threshold: float = 0.8
     attempt_count: int = 0
     best_score: float = 0.0
+    latest_score: Optional[float] = None
     required_correct: int = 0
     eligible_for_immediate_retest: bool = False
     review_required: bool = False
@@ -42,6 +43,7 @@ class StudentRunnerLessonOut(BaseModel):
     title: Optional[str] = None
     sequence: Optional[int] = None
     best_score: float = 0.0
+    latest_score: Optional[float] = None
     mastery_threshold: float = 0.8
     mastery_achieved: bool = False
     can_advance: bool = False
