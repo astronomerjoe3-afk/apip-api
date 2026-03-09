@@ -4,3 +4,5 @@ __pycache__/
 .env.local
 .venv/
 venv/
+api.dev.err.log
+api.dev.out.log
