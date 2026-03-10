@@ -380,7 +380,7 @@ add_lesson(
             "F1L4_D2",
             "Round 12.349 to 3 significant figures:",
             ["12.3", "12.4", "12.35", "12.34"],
-            1,
+            0,
             ["rounding_rules", "significant_figures"]
         ),
     ],
