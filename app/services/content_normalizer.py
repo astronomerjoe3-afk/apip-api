@@ -156,7 +156,7 @@ def _student_question_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[
 
         questions.append(
             {
-                "id": _first_present(item, "id", "item_id"),
+                "id": _first_present(item, "id", "item_id", "question_id"),
                 "type": _first_present(item, "type", "item_type"),
                 "prompt": _first_present(item, "prompt", "question", "stem"),
                 "choices": choices,
