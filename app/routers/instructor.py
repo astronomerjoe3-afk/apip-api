@@ -14,6 +14,11 @@ from app.dependencies import require_instructor_or_admin
 router = APIRouter(tags=["instructor"])
 
 
+def _safe_dict(value: Any) -> Dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+
 @router.get("/instructor/module/{module_id}/students")
 def instructor_module_students(
     module_id: str,
@@ -66,11 +71,10 @@ def instructor_module_students(
             warnings.append(f"progress_read_failed:{uid}:{str(e)[:120]}")
             mp = {}
 
-        mastery = mp.get("mastery") or {}
-        readiness = mp.get("readiness") or {}
-        mis = ((mp.get("misconception_profile") or {}).get("tags") or {})
-        if not isinstance(mis, dict):
-            mis = {}
+        mastery = _safe_dict(mp.get("mastery"))
+        readiness = _safe_dict(mp.get("readiness"))
+        counters = _safe_dict(mp.get("counters"))
+        mis = _safe_dict(_safe_dict(mp.get("misconception_profile")).get("tags"))
 
         top_mis = sorted(
             [(k, float(v)) for k, v in mis.items() if k],
@@ -138,6 +142,10 @@ def instructor_module_students(
                     pl[key] = {"score": score, "utc": utc}
                 per_lesson[lesson_id] = pl
 
+        engagement_seconds = int(mp.get("engagement_seconds", 0) or 0)
+        attempts_total = int(counters.get("attempts", 0) or 0)
+        reflections_total = int(counters.get("reflections", 0) or 0)
+
         rows.append(
             {
                 "uid": uid,
@@ -146,6 +154,12 @@ def instructor_module_students(
                 "module_id": module_id,
                 "mastery_score": float(mastery.get("score") or 0.0),
                 "readiness": readiness.get("state") or "not_ready",
+                "readiness_reason": readiness.get("reason") or "unknown",
+                "engagement_seconds": engagement_seconds,
+                "activity_counters": {
+                    "attempts": attempts_total,
+                    "reflections": reflections_total,
+                },
                 "last_event_utc": mp.get("last_event_utc"),
                 "top_misconceptions": [{"tag": k, "p": v} for k, v in top_mis],
                 "last_diagnostic": last_diag,
