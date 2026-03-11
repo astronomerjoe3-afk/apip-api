@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 
@@ -23,7 +23,7 @@ def healthz():
 @router.get("/__build")
 @router.get("/_build")
 def build():
-    app_commit = os.getenv("GIT_COMMIT_SHA") or "dev"
+    app_commit = os.getenv("GIT_COMMIT_SHA") or os.getenv("APP_COMMIT") or "dev"
     project_id = (
         os.getenv("GOOGLE_CLOUD_PROJECT")
         or os.getenv("GCP_PROJECT")

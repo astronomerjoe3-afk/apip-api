@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ import app.routers.student_progression as student_progression
 import app.routers.student_runner as student_runner
 import app.routers.system as system
 from app.middleware.request_id import RequestIDMiddleware
+from app.services.catalog_bootstrap import ensure_catalog_seeded
 
 app = FastAPI(title="APIP API", version="0.5.0")
 
@@ -24,6 +25,17 @@ app.add_middleware(
 )
 
 app.add_middleware(RequestIDMiddleware)
+
+
+@app.on_event("startup")
+def bootstrap_catalog() -> None:
+    try:
+        seeded = ensure_catalog_seeded()
+        if seeded:
+            print("Catalog bootstrap: seeded F2 content into Firestore.")
+    except Exception as exc:
+        print(f"Catalog bootstrap skipped: {exc}")
+
 
 app.include_router(system.router)
 app.include_router(catalog.router)

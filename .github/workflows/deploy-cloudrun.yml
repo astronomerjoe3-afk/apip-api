@@ -41,7 +41,7 @@ jobs:
             --region "${REGION}" \
             --project "${PROJECT_ID}" \
             --allow-unauthenticated \
-            --update-env-vars "APP_COMMIT=${GITHUB_SHA}" \
+            --update-env-vars "APP_COMMIT=${GITHUB_SHA},GIT_COMMIT_SHA=${GITHUB_SHA}" \
             --quiet
 
       - name: Smoke test /__build

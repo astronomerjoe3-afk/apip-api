@@ -47,4 +47,5 @@ jobs:
             --image "$IMAGE" \
             --region ${{ env.REGION }} \
             --platform managed \
-            --allow-unauthenticated
+            --allow-unauthenticated \
+            --update-env-vars "APP_COMMIT=${GITHUB_SHA},GIT_COMMIT_SHA=${GITHUB_SHA}"
