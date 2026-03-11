@@ -1,14 +1,26 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any, Dict, List
 
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
-from app.repositories.catalog_repository import get_module_lessons as get_catalog_module_lessons
 
 
 def get_module_lessons(module_id: str) -> List[Dict[str, Any]]:
-    return get_catalog_module_lessons(module_id)
+    db = get_firestore_client()
+    docs = (
+        where_eq(db.collection("lessons"), "module_id", module_id)
+        .stream()
+    )
+
+    result: List[Dict[str, Any]] = []
+    for d in docs:
+        data = d.to_dict() or {}
+        data["id"] = d.id
+        result.append(data)
+
+    result.sort(key=lambda x: int(x.get("sequence", 10**9) or 10**9))
+    return result
 
 
 def get_module_progress(uid: str, module_id: str) -> Dict[str, Any]:
