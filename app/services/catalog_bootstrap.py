@@ -6,6 +6,25 @@ from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
 from scripts.seed_f2_module import F2_CONTENT_VERSION, F2_LESSONS, F2_MODULE_DOC, F2_MODULE_ID, F2_SIM_LABS
+from scripts.seed_f3_module import F3_CONTENT_VERSION, F3_LESSONS, F3_MODULE_DOC, F3_MODULE_ID, F3_SIM_LABS
+
+
+CATALOG_MODULES = [
+    {
+        "module_id": F2_MODULE_ID,
+        "content_version": F2_CONTENT_VERSION,
+        "module_doc": F2_MODULE_DOC,
+        "lessons": F2_LESSONS,
+        "sim_labs": F2_SIM_LABS,
+    },
+    {
+        "module_id": F3_MODULE_ID,
+        "content_version": F3_CONTENT_VERSION,
+        "module_doc": F3_MODULE_DOC,
+        "lessons": F3_LESSONS,
+        "sim_labs": F3_SIM_LABS,
+    },
+]
 
 
 def _top_level_doc_count(collection: str, field: str, module_id: str) -> int:
@@ -15,11 +34,23 @@ def _top_level_doc_count(collection: str, field: str, module_id: str) -> int:
 
 
 def _seed_documents() -> Iterable[Tuple[str, str, dict]]:
-    yield "modules", F2_MODULE_ID, F2_MODULE_DOC
-    for doc_id, payload in F2_LESSONS:
-        yield "lessons", doc_id, payload
-    for doc_id, payload in F2_SIM_LABS:
-        yield "sim_labs", doc_id, payload
+    for module in CATALOG_MODULES:
+        yield "modules", module["module_id"], module["module_doc"]
+        for doc_id, payload in module["lessons"]:
+            yield "lessons", doc_id, payload
+        for doc_id, payload in module["sim_labs"]:
+            yield "sim_labs", doc_id, payload
+
+
+def _module_is_ready(module: dict) -> bool:
+    db = get_firestore_client()
+    module_id = str(module["module_id"])
+    module_snap = db.collection("modules").document(module_id).get()
+    module_data = module_snap.to_dict() or {}
+    version_matches = str(module_data.get("content_version") or "").strip() == str(module["content_version"])
+    lessons_ready = _top_level_doc_count("lessons", "module_id", module_id) >= len(module["lessons"])
+    sim_labs_ready = _top_level_doc_count("sim_labs", "module_id", module_id) >= len(module["sim_labs"])
+    return module_snap.exists and version_matches and lessons_ready and sim_labs_ready
 
 
 def ensure_catalog_seeded() -> bool:
@@ -27,16 +58,10 @@ def ensure_catalog_seeded() -> bool:
     if project_id in ("", "local", "none"):
         return False
 
-    db = get_firestore_client()
-    module_snap = db.collection("modules").document(F2_MODULE_ID).get()
-    module_data = module_snap.to_dict() or {}
-    version_matches = str(module_data.get("content_version") or "").strip() == F2_CONTENT_VERSION
-    lessons_ready = _top_level_doc_count("lessons", "module_id", F2_MODULE_ID) >= len(F2_LESSONS)
-    sim_labs_ready = _top_level_doc_count("sim_labs", "module_id", F2_MODULE_ID) >= len(F2_SIM_LABS)
-
-    if module_snap.exists and version_matches and lessons_ready and sim_labs_ready:
+    if all(_module_is_ready(module) for module in CATALOG_MODULES):
         return False
 
+    db = get_firestore_client()
     batch = db.batch()
     for collection, doc_id, payload in _seed_documents():
         ref = db.collection(collection).document(doc_id)
