@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F2_MODULE_ID = "F2"
-F2_CONTENT_VERSION = "20260312_f2_depth_v4"
+F2_CONTENT_VERSION = "20260312_f2_depth_v5"
 F2_ALLOWLIST = [
     "distance_displacement_confusion",
     "speed_calculation_error",
@@ -100,6 +100,17 @@ def make_short(qid: str, prompt: str, accepted_answers: List[str], hint: str, ta
 def prompt_block(prompt: str, hint: str) -> Dict[str, Any]:
     return {"prompt": prompt, "hint": hint}
 
+
+def f2_micro_prompts(doc_id: str) -> List[Dict[str, Any]]:
+    prompts = {
+        "F2_L1": [prompt_block("Imagine two routes with the same start and finish but different detours.", "Displacement depends on start and finish, while distance depends on the whole route.")],
+        "F2_L2": [prompt_block("Decide whether the change in velocity is positive or negative before you calculate.", "The sign comes from the direction convention and the change in velocity, not from speed alone.")],
+        "F2_L3": [prompt_block("Compare two graph segments with different steepness and predict which interval is faster.", "On a distance-time graph, the steeper segment has the greater speed.")],
+        "F2_L4": [prompt_block("Trace one horizontal section and one sloping section before deciding what each tells you.", "Horizontal sections reveal constant velocity, while slope and area answer different questions.")],
+        "F2_L5": [prompt_block("Compare a balanced tug-of-war with an unbalanced one before you calculate the resultant.", "Only equal opposite forces cancel completely; otherwise the larger side sets the direction.")],
+        "F2_L6": [prompt_block("Imagine pushing an empty trolley and a loaded trolley with the same force.", "The same force changes the motion of the smaller mass more because its inertia is lower.")],
+    }
+    return prompts.get(doc_id, [prompt_block("Use the analogy to decide what changes and what stays the same before you calculate.", "Use the analogy to pick the quantity or comparison that matters most.")])
 
 F2_MODULE_DOC: Dict[str, Any] = {
     "id": F2_MODULE_ID,
@@ -256,7 +267,7 @@ F2_LESSONS: List[Tuple[str, Dict[str, Any]]] = []
 
 
 def add_lesson(doc_id: str, sequence: int, title: str, analogy: str, sim_lab_id: str | None, diagnostic_items: List[Dict[str, Any]], transfer_items: List[Dict[str, Any]], reconstruction_prompts: List[str], inquiry_prompts: List[Dict[str, Any]], capsule_prompt: str, capsule_checks: List[Dict[str, Any]]) -> None:
-    F2_LESSONS.append((doc_id, {"id": doc_id, "lesson_id": doc_id, "moduleId": F2_MODULE_ID, "module_id": F2_MODULE_ID, "sequence": sequence, "order": sequence, "title": title, "updated_utc": utc_now(), "phases": {"diagnostic": {"two_tier": True, "items": diagnostic_items, "notes": "Start with quick checks to expose the main misconception before the lesson opens."}, "analogical_grounding": {"analogy_text": analogy, "commitment_prompt": "Before moving on, make a short prediction about what the motion or force pattern means.", "micro_prompts": [prompt_block(prompt, prompt) for prompt in reconstruction_prompts[:2]]}, "simulation_inquiry": {"lab_id": sim_lab_id, "inquiry_prompts": inquiry_prompts}, "concept_reconstruction": {"prompts": reconstruction_prompts, "capsules": [{"prompt": capsule_prompt, "checks": capsule_checks}]}, "transfer": {"items": transfer_items, "notes": "Use transfer questions to check whether the idea survives a new context."}}}))
+    F2_LESSONS.append((doc_id, {"id": doc_id, "lesson_id": doc_id, "moduleId": F2_MODULE_ID, "module_id": F2_MODULE_ID, "sequence": sequence, "order": sequence, "title": title, "updated_utc": utc_now(), "phases": {"diagnostic": {"two_tier": True, "items": diagnostic_items, "notes": "Start with quick checks to expose the main misconception before the lesson opens."}, "analogical_grounding": {"analogy_text": analogy, "commitment_prompt": "Before moving on, make a short prediction about what the motion or force pattern means.", "micro_prompts": f2_micro_prompts(doc_id)}, "simulation_inquiry": {"lab_id": sim_lab_id, "inquiry_prompts": inquiry_prompts[:1]}, "concept_reconstruction": {"prompts": reconstruction_prompts, "capsules": [{"prompt": capsule_prompt, "checks": capsule_checks}]}, "transfer": {"items": transfer_items, "notes": "Use transfer questions to check whether the idea survives a new context."}}}))
 
 
 add_lesson(
