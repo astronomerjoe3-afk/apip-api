@@ -23,7 +23,7 @@ def post_progress_event(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    require_module_access(uid, module_id)
+    require_module_access(uid, module_id, role=(user or {}).get("role"))
     result = process_progress_event(
         uid=uid,
         module_id=module_id,

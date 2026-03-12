@@ -23,15 +23,15 @@ def fetch_curricula() -> List[Dict[str, Any]]:
     return list_curricula()
 
 
-def fetch_modules(curriculum_id: Optional[str] = None, uid: Optional[str] = None) -> List[Dict[str, Any]]:
-    return [enrich_module_for_student(module, uid) for module in list_modules(curriculum_id=curriculum_id)]
+def fetch_modules(curriculum_id: Optional[str] = None, uid: Optional[str] = None, role: Optional[str] = None) -> List[Dict[str, Any]]:
+    return [enrich_module_for_student(module, uid, role=role) for module in list_modules(curriculum_id=curriculum_id)]
 
 
-def fetch_module(module_id: str, uid: Optional[str] = None) -> Dict[str, Any]:
+def fetch_module(module_id: str, uid: Optional[str] = None, role: Optional[str] = None) -> Dict[str, Any]:
     module = get_module_by_id(module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
-    return enrich_module_for_student(module, uid)
+    return enrich_module_for_student(module, uid, role=role)
 
 
 def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str]]:

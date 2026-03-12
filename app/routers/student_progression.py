@@ -97,7 +97,7 @@ def read_student_module_progress(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    require_module_access(uid, module_id)
+    require_module_access(uid, module_id, role=(user or {}).get("role"))
     payload = get_student_module_progress(uid=uid, module_id=module_id)
 
     write_audit_log(
@@ -134,7 +134,7 @@ def read_student_lesson_progress(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    require_module_access(uid, module_id)
+    require_module_access(uid, module_id, role=(user or {}).get("role"))
     payload = get_student_lesson_progress(uid=uid, module_id=module_id, lesson_id=lesson_id)
 
     write_audit_log(
@@ -169,7 +169,7 @@ def restart_student_module(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    require_module_access(uid, module_id)
+    require_module_access(uid, module_id, role=(user or {}).get("role"))
     payload = _restart_student_module_progress(uid=uid, module_id=module_id)
 
     write_audit_log(
@@ -203,7 +203,7 @@ def restart_student_lesson(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    require_module_access(uid, module_id)
+    require_module_access(uid, module_id, role=(user or {}).get("role"))
     payload = _restart_student_lesson_progress(uid=uid, module_id=module_id, lesson_id=lesson_id)
 
     write_audit_log(

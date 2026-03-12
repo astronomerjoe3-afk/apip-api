@@ -14,6 +14,7 @@ MONETIZATION_VERSION = "20260312_launch_pricing_v1"
 FREE_ACCESS_TIER = "free"
 PREMIUM_ACCESS_TIER = "premium"
 FREE_MODULE_IDS = {"F1"}
+REVIEW_BYPASS_ROLES = {"admin", "instructor"}
 
 DEFAULT_MODULE_UNLOCK = {
     "id": "module_unlock_default",
@@ -73,6 +74,12 @@ def _format_usd(amount_cents: int) -> str:
 
 def _module_id_from_row(module: Dict[str, Any]) -> str:
     return str(module.get("id") or module.get("module_id") or "").strip()
+
+
+
+def _normalized_role(role: Optional[str]) -> str:
+    return str(role or "").strip().lower()
+
 
 
 def _pricing_doc_with_labels(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -255,10 +262,10 @@ def module_offer_for_module(module_id: str) -> Dict[str, Any]:
     )
 
 
-def build_module_access(module: Dict[str, Any], uid: Optional[str]) -> Dict[str, Any]:
+def build_module_access(module: Dict[str, Any], uid: Optional[str], role: Optional[str] = None) -> Dict[str, Any]:
     module_id = _module_id_from_row(module)
     tier = module_access_tier(module)
-    entitlements = get_student_entitlements(uid)
+    normalized_role = _normalized_role(role)
     module_offer = module_offer_for_module(module_id)
     subscription_plans = list(get_billing_catalog()["subscription_plans"])
 
@@ -270,9 +277,21 @@ def build_module_access(module: Dict[str, Any], uid: Optional[str]) -> Dict[str,
             "message": "This module is free for all students.",
             "module_purchase": None,
             "subscription_plans": subscription_plans,
-            "subscription_expires_utc": entitlements["subscription_expires_utc"],
+            "subscription_expires_utc": None,
         }
 
+    if normalized_role in REVIEW_BYPASS_ROLES:
+        return {
+            "tier": tier,
+            "is_unlocked": True,
+            "unlock_reason": "role_review_access",
+            "message": "Your account role unlocks this premium module for review.",
+            "module_purchase": module_offer,
+            "subscription_plans": subscription_plans,
+            "subscription_expires_utc": None,
+        }
+
+    entitlements = get_student_entitlements(uid)
     purchased = module_id in entitlements["purchased_module_ids"]
     subscribed = bool(entitlements["has_active_subscription"])
 
@@ -299,21 +318,21 @@ def build_module_access(module: Dict[str, Any], uid: Optional[str]) -> Dict[str,
     }
 
 
-def enrich_module_for_student(module: Dict[str, Any], uid: Optional[str]) -> Dict[str, Any]:
+def enrich_module_for_student(module: Dict[str, Any], uid: Optional[str], role: Optional[str] = None) -> Dict[str, Any]:
     row = dict(module)
     row["access_tier"] = module_access_tier(row)
-    row["access"] = build_module_access(row, uid)
+    row["access"] = build_module_access(row, uid, role=role)
     return row
 
 
-def require_module_access(uid: str, module_id: str) -> Dict[str, Any]:
+def require_module_access(uid: str, module_id: str, role: Optional[str] = None) -> Dict[str, Any]:
     module = get_module_by_id(module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
 
-    access = build_module_access(module, uid)
+    access = build_module_access(module, uid, role=role)
     if access.get("is_unlocked") is True:
-        return enrich_module_for_student(module, uid)
+        return enrich_module_for_student(module, uid, role=role)
 
     module_offer = access.get("module_purchase") or module_offer_for_module(module_id)
     raise HTTPException(

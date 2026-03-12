@@ -26,7 +26,7 @@ def read_student_runner_contract(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    require_module_access(uid, module_id)
+    require_module_access(uid, module_id, role=(user or {}).get("role"))
     payload = build_student_runner_contract(uid=uid, module_id=module_id, lesson_id=lesson_id)
 
     write_audit_log(
