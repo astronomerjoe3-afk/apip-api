@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F2_MODULE_ID = "F2"
-F2_CONTENT_VERSION = "20260312_f2_depth_v9"
+F2_CONTENT_VERSION = "20260313_f2_intro_v10"
 F2_ALLOWLIST = [
     "distance_displacement_confusion",
     "speed_calculation_error",
@@ -118,7 +118,7 @@ F2_MODULE_DOC: Dict[str, Any] = {
     "title": "Motion, Forces & Graphs",
     "description": (
         "A deeper follow-on from F1: compare total path with net change, connect speed, velocity, and acceleration, "
-        "read motion graphs segment by segment, and explain how resultant force and F = ma change motion."
+        "read motion graphs segment by segment, and explain how resultant force changes motion through F = ma."
     ),
     "sequence": 2,
     "level": "Foundation 2",
@@ -331,3 +331,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
