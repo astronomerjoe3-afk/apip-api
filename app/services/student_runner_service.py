@@ -105,6 +105,18 @@ def _capsule_check_count(lesson: Dict[str, Any]) -> int:
     return total
 
 
+def _estimated_mastery_bank_size(lesson: Dict[str, Any]) -> int:
+    base_count = _question_count(lesson, "transfer") + _capsule_check_count(lesson)
+    if base_count <= 0:
+        return 0
+
+    phases = _phases(lesson)
+    analogical = phases.get("analogical_grounding") or {}
+    reconstruction = phases.get("concept_reconstruction") or {}
+    support_count = len(analogical.get("micro_prompts") or []) + len(reconstruction.get("prompts") or [])
+    estimated = base_count + support_count + 4
+    return max(base_count, min(MASTERY_MAX_QUESTIONS, estimated))
+
 def _target_diagnostic_question_count(latest_score: float | None) -> int:
     score = 0.0 if latest_score is None else max(0.0, min(1.0, float(latest_score)))
     if score < 0.4:
@@ -282,7 +294,7 @@ def _diagnostic_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]
 
 
 def _mastery_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]) -> Dict[str, Any]:
-    bank_size = max(_question_count(lesson, "transfer") + _capsule_check_count(lesson), MASTERY_MIN_QUESTIONS if _has_transfer(lesson) else 0)
+    bank_size = _estimated_mastery_bank_size(lesson)
     performance_score = lesson_progress.get("best_score") if int(lesson_progress.get("mastery_check_count") or 0) >= 1 else lesson_progress.get("diagnostic_latest_score")
     selected_count = _target_mastery_question_count(bank_size, performance_score)
     best_score = float(lesson_progress.get("best_score") or 0.0)
