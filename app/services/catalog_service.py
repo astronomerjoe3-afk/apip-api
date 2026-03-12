@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -16,21 +16,22 @@ from app.repositories.catalog_repository import (
     list_modules,
 )
 from app.services.content_normalizer import to_student_lesson_view, to_student_lessons_view
+from app.services.monetization_service import enrich_module_for_student
 
 
 def fetch_curricula() -> List[Dict[str, Any]]:
     return list_curricula()
 
 
-def fetch_modules(curriculum_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    return list_modules(curriculum_id=curriculum_id)
+def fetch_modules(curriculum_id: Optional[str] = None, uid: Optional[str] = None) -> List[Dict[str, Any]]:
+    return [enrich_module_for_student(module, uid) for module in list_modules(curriculum_id=curriculum_id)]
 
 
-def fetch_module(module_id: str) -> Dict[str, Any]:
+def fetch_module(module_id: str, uid: Optional[str] = None) -> Dict[str, Any]:
     module = get_module_by_id(module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
-    return module
+    return enrich_module_for_student(module, uid)
 
 
 def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str]]:

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Optional
 
@@ -22,6 +22,7 @@ from app.services.catalog_service import (
     fetch_modules,
     fetch_sim_lab,
 )
+from app.services.monetization_service import require_module_access
 
 router = APIRouter(tags=["catalog"])
 
@@ -37,18 +38,19 @@ def get_modules(
     curriculum_id: Optional[str] = Query(None),
     user=Depends(require_authenticated_user),
 ):
-    result = fetch_modules(curriculum_id=curriculum_id)
+    result = fetch_modules(curriculum_id=curriculum_id, uid=(user or {}).get("uid"))
     return {"ok": True, "modules": result}
 
 
 @router.get("/modules/{module_id}", response_model=ModuleResponse)
 def get_module(module_id: str, user=Depends(require_authenticated_user)):
-    module = fetch_module(module_id)
+    module = fetch_module(module_id, uid=(user or {}).get("uid"))
     return {"ok": True, "module": module}
 
 
 @router.get("/modules/{module_id}/lessons", response_model=StudentLessonsResponse)
 def get_module_lessons(module_id: str, request: Request, user=Depends(require_authenticated_user)):
+    require_module_access((user or {}).get("uid"), module_id)
     lessons, warnings = fetch_module_lessons(module_id)
 
     write_audit_log(
@@ -75,6 +77,7 @@ def get_module_lesson(
     request: Request,
     user=Depends(require_authenticated_user),
 ):
+    require_module_access((user or {}).get("uid"), module_id)
     lesson = fetch_module_lesson(module_id, lesson_id)
     normalized = lesson_id.replace("-", "_")
 

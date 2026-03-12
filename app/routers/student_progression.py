@@ -12,6 +12,7 @@ from app.schemas.student_progression import (
     StudentLessonProgressResponse,
     StudentModuleProgressResponse,
 )
+from app.services.monetization_service import require_module_access
 from app.services.student_progression_service import (
     get_student_lesson_progress,
     get_student_module_progress,
@@ -96,6 +97,7 @@ def read_student_module_progress(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
+    require_module_access(uid, module_id)
     payload = get_student_module_progress(uid=uid, module_id=module_id)
 
     write_audit_log(
@@ -132,6 +134,7 @@ def read_student_lesson_progress(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
+    require_module_access(uid, module_id)
     payload = get_student_lesson_progress(uid=uid, module_id=module_id, lesson_id=lesson_id)
 
     write_audit_log(
@@ -166,6 +169,7 @@ def restart_student_module(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
+    require_module_access(uid, module_id)
     payload = _restart_student_module_progress(uid=uid, module_id=module_id)
 
     write_audit_log(
@@ -199,6 +203,7 @@ def restart_student_lesson(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
+    require_module_access(uid, module_id)
     payload = _restart_student_lesson_progress(uid=uid, module_id=module_id, lesson_id=lesson_id)
 
     write_audit_log(

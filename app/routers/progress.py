@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 
@@ -6,6 +6,7 @@ from app.audit import write_audit_log
 from app.common import get_client_ip, utc_now
 from app.dependencies import require_authenticated_user
 from app.schemas.progress import ProgressEventIn, ProgressEventWriteResponse, ProgressMeResponse
+from app.services.monetization_service import require_module_access
 from app.services.progress_service import fetch_progress_me, process_progress_event
 
 router = APIRouter(tags=["progress"])
@@ -22,6 +23,7 @@ def post_progress_event(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
+    require_module_access(uid, module_id)
     result = process_progress_event(
         uid=uid,
         module_id=module_id,

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -6,6 +6,7 @@ from app.audit import write_audit_log
 from app.common import get_client_ip
 from app.dependencies import require_authenticated_user
 from app.schemas.student_runner import StudentRunnerLessonResponse
+from app.services.monetization_service import require_module_access
 from app.services.student_runner_service import build_student_runner_contract
 
 router = APIRouter(tags=["student-runner"])
@@ -25,6 +26,7 @@ def read_student_runner_contract(
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
+    require_module_access(uid, module_id)
     payload = build_student_runner_contract(uid=uid, module_id=module_id, lesson_id=lesson_id)
 
     write_audit_log(

@@ -13,6 +13,7 @@ import app.routers.student_runner as student_runner
 import app.routers.system as system
 from app.middleware.request_id import RequestIDMiddleware
 from app.services.catalog_bootstrap import ensure_catalog_seeded
+from app.services.monetization_service import ensure_monetization_seeded
 
 app = FastAPI(title="APIP API", version="0.5.0")
 
@@ -28,13 +29,20 @@ app.add_middleware(RequestIDMiddleware)
 
 
 @app.on_event("startup")
-def bootstrap_catalog() -> None:
+def bootstrap_services() -> None:
     try:
         seeded = ensure_catalog_seeded()
         if seeded:
             print("Catalog bootstrap: seeded F2 content into Firestore.")
     except Exception as exc:
         print(f"Catalog bootstrap skipped: {exc}")
+
+    try:
+        monetization_seeded = ensure_monetization_seeded()
+        if monetization_seeded:
+            print("Monetization bootstrap: seeded launch pricing into Firestore.")
+    except Exception as exc:
+        print(f"Monetization bootstrap skipped: {exc}")
 
 
 app.include_router(system.router)
