@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F2_MODULE_ID = "F2"
-F2_CONTENT_VERSION = "20260312_f2_depth_v3"
+F2_CONTENT_VERSION = "20260312_f2_depth_v4"
 F2_ALLOWLIST = [
     "distance_displacement_confusion",
     "speed_calculation_error",
@@ -263,34 +263,28 @@ add_lesson(
     "F2_L1",
     1,
     "Distance, Displacement, and Average Speed",
-    "Distance is like the odometer for the whole route, while displacement is the single arrow from the starting point to the finishing point.",
+    "Distance is like an odometer for the whole route, while displacement is the single directed change from the starting point to the finishing point.",
     "f2_motion_map_lab",
     [
-        make_mcq("F2L1_D1", "Which quantity needs direction to be complete?", ["distance", "speed", "displacement", "time"], 2, "Displacement keeps both size and direction.", ["distance_displacement_confusion"]),
-        make_mcq("F2L1_D2", "A learner walks 6 m east and then 6 m west. Which statement is correct?", ["distance = 0 m, displacement = 0 m", "distance = 12 m, displacement = 0 m", "distance = 12 m, displacement = 12 m east", "distance = 6 m, displacement = 6 m west"], 1, "Distance adds the full path, while displacement tracks the net change.", ["distance_displacement_confusion"]),
-        make_short("F2L1_D3", "A cyclist covers 180 m in 45 s. What is the average speed?", ["4", "4 m/s"], "Use average speed = total distance / total time.", ["speed_calculation_error"]),
+        make_mcq("F2L1_D1", "A learner walks 6 m east and then 6 m west. Which statement is correct?", ["distance = 0 m, displacement = 0 m", "distance = 12 m, displacement = 0 m", "distance = 12 m, displacement = 12 m east", "distance = 6 m, displacement = 6 m west"], 1, "Distance totals the route, while displacement compares finish with start.", ["distance_displacement_confusion"]),
+        make_short("F2L1_D2", "A cyclist covers 180 m in 45 s. What is the average speed?", ["4", "4 m/s"], "Use average speed = total distance / total time.", ["speed_calculation_error"]),
     ],
     [
         make_mcq("F2L1_T1", "A walker goes 30 m east, 10 m west, then 20 m east. Which pair is correct?", ["distance 40 m, displacement 40 m east", "distance 60 m, displacement 40 m east", "distance 60 m, displacement 60 m east", "distance 20 m, displacement 40 m east"], 1, "Add the full path for distance, then compare the finishing point with the starting point to find the net displacement.", ["distance_displacement_confusion"]),
         make_short("F2L1_T2", "A runner covers 120 m in 24 s and then 60 m in 12 s. What is the average speed for the whole trip?", ["5", "5 m/s"], "Use total distance and total time for the whole trip, not one stage only.", ["speed_calculation_error"]),
-        make_mcq("F2L1_T3", "Why does average speed use distance rather than displacement?", ["Because speed compares whole path travelled with total time", "Because displacement is always zero", "Because distance includes direction", "Because time only matters on round trips"], 0, "Average speed answers how much path was covered each second.", ["speed_calculation_error", "distance_displacement_confusion"]),
-        make_mcq("F2L1_T4", "A runner finishes at the same starting point after one lap. Which statement is correct?", ["distance is zero and displacement is zero", "distance is not zero and displacement is zero", "distance is zero and displacement is not zero", "distance always equals displacement"], 1, "A full lap can have zero displacement even though distance was covered.", ["distance_displacement_confusion"]),
     ],
     [
-        "Explain when distance and displacement are equal and when they are different.",
-        "Explain why average speed must use the whole journey, not just one stage.",
-        "Explain why a return section changes distance and displacement in different ways.",
+        "Explain why distance can increase even when displacement stays the same.",
+        "Explain why average speed must use the whole journey, not one stage only.",
     ],
     [
-        prompt_block("Keep the finishing point fixed but change the route taken.", "A longer route can raise distance without changing displacement."),
-        prompt_block("Keep the route fixed and change the total time.", "Average speed changes only when total distance or total time changes."),
-        prompt_block("Build one journey that ends at the starting point and one that does not.", "Zero displacement does not mean zero distance."),
+        prompt_block("Keep the starting point and finishing point the same but change the route taken.", "A longer route can raise distance without changing displacement."),
+        prompt_block("Keep the route fixed and change only the total time.", "Average speed changes only when total distance or total time changes."),
     ],
-    "Distance adds every metre on the route, displacement keeps only the net change with direction, and average speed uses the whole distance with the whole time.",
+    "Distance totals the full route, displacement compares the finishing point with the starting point, and average speed uses the whole distance over the whole time.",
     [
-        make_mcq("F2L1_C1", "A student walks 9 m east and 4 m west. Which pair is correct?", ["distance 13 m, displacement 5 m east", "distance 5 m, displacement 13 m east", "distance 13 m, displacement 13 m east", "distance 5 m, displacement 5 m east"], 0, "Add the full path for distance and the net change for displacement.", ["distance_displacement_confusion"]),
-        make_mcq("F2L1_C2", "Which quantity can be zero after a round trip even though movement happened?", ["distance", "time", "displacement", "speed"], 2, "A round trip can end where it started, so the displacement can be zero.", ["distance_displacement_confusion"]),
-        make_short("F2L1_C3", "A scooter travels 90 m in 18 s. What is the average speed?", ["5", "5 m/s"], "Divide the total distance by the total time.", ["speed_calculation_error"]),
+        make_mcq("F2L1_C1", "A student walks 9 m east and 4 m west. Which pair is correct?", ["distance 13 m, displacement 5 m east", "distance 5 m, displacement 13 m east", "distance 13 m, displacement 13 m east", "distance 5 m, displacement 5 m east"], 0, "Add the full path for distance and keep the net change with direction for displacement.", ["distance_displacement_confusion"]),
+        make_short("F2L1_C2", "A scooter travels 90 m in 18 s. What is the average speed?", ["5", "5 m/s"], "Divide the total distance by the total time.", ["speed_calculation_error"]),
     ],
 )
 add_lesson("F2_L2", 2, "Velocity and Acceleration", "Velocity is speed with direction, and acceleration tells how much the velocity changes each second.", "f2_acceleration_lab", [make_mcq("F2L2_D1", "Velocity is best described as...", ["speed with direction", "speed without units", "distance per mass", "always positive"], 0, "Velocity includes direction.", ["velocity_direction_confusion"]), make_mcq("F2L2_D2", "Velocity changes from 4 m/s to 10 m/s in 3 s. What is the acceleration?", ["1 m/s^2", "2 m/s^2", "3 m/s^2", "6 m/s^2"], 1, "Use acceleration = change in velocity / time.", ["acceleration_sign_confusion"])], [make_mcq("F2L2_T1", "Velocity changes from 12 m/s to 4 m/s in 2 s. If forward is positive, what is the acceleration?", ["-4 m/s^2", "-8 m/s^2", "4 m/s^2", "8 m/s^2"], 0, "A decrease in forward velocity gives negative acceleration in this sign convention.", ["acceleration_sign_confusion"]), make_short("F2L2_T2", "Velocity changes from 0 m/s to 15 m/s in 5 s. What is the acceleration?", ["3", "3 m/s^2"], "Use acceleration = change in velocity / time.", ["acceleration_sign_confusion"])], ["Explain how velocity differs from speed.", "Explain what the sign of acceleration means."], [prompt_block("Change the start and finish velocities.", "A bigger velocity change in the same time gives a bigger acceleration."), prompt_block("Make the finish velocity smaller than the start velocity.", "Negative acceleration depends on the chosen positive direction.")], "Velocity includes direction, and acceleration compares the change in velocity with time.", [make_mcq("F2L2_C1", "Two objects move at the same speed in opposite directions. What changes?", ["The velocity changes", "The velocity stays the same", "The time becomes zero", "The displacement becomes a scalar"], 0, "Velocity changes when direction changes.", ["velocity_direction_confusion"])])
