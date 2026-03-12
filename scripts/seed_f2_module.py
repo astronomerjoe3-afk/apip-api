@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F2_MODULE_ID = "F2"
-F2_CONTENT_VERSION = "20260312_f2_depth_v2"
+F2_CONTENT_VERSION = "20260312_f2_depth_v3"
 F2_ALLOWLIST = [
     "distance_displacement_confusion",
     "speed_calculation_error",
@@ -271,7 +271,7 @@ add_lesson(
         make_short("F2L1_D3", "A cyclist covers 180 m in 45 s. What is the average speed?", ["4", "4 m/s"], "Use average speed = total distance / total time.", ["speed_calculation_error"]),
     ],
     [
-        make_mcq("F2L1_T1", "A walker goes 30 m east, 10 m west, then 20 m east. Which pair is correct?", ["distance 40 m, displacement 40 m east", "distance 60 m, displacement 40 m east", "distance 60 m, displacement 60 m east", "distance 20 m, displacement 40 m east"], 1, "Add the whole route for distance, then keep the net east west change for displacement.", ["distance_displacement_confusion"]),
+        make_mcq("F2L1_T1", "A walker goes 30 m east, 10 m west, then 20 m east. Which pair is correct?", ["distance 40 m, displacement 40 m east", "distance 60 m, displacement 40 m east", "distance 60 m, displacement 60 m east", "distance 20 m, displacement 40 m east"], 1, "Add the full path for distance, then compare the finishing point with the starting point to find the net displacement.", ["distance_displacement_confusion"]),
         make_short("F2L1_T2", "A runner covers 120 m in 24 s and then 60 m in 12 s. What is the average speed for the whole trip?", ["5", "5 m/s"], "Use total distance and total time for the whole trip, not one stage only.", ["speed_calculation_error"]),
         make_mcq("F2L1_T3", "Why does average speed use distance rather than displacement?", ["Because speed compares whole path travelled with total time", "Because displacement is always zero", "Because distance includes direction", "Because time only matters on round trips"], 0, "Average speed answers how much path was covered each second.", ["speed_calculation_error", "distance_displacement_confusion"]),
         make_mcq("F2L1_T4", "A runner finishes at the same starting point after one lap. Which statement is correct?", ["distance is zero and displacement is zero", "distance is not zero and displacement is zero", "distance is zero and displacement is not zero", "distance always equals displacement"], 1, "A full lap can have zero displacement even though distance was covered.", ["distance_displacement_confusion"]),
