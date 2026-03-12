@@ -5,13 +5,13 @@ from typing import Iterable, Tuple
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
-from scripts.seed_f2_module import F2_LESSONS, F2_MODULE_DOC, F2_MODULE_ID, F2_SIM_LABS
+from scripts.seed_f2_module import F2_CONTENT_VERSION, F2_LESSONS, F2_MODULE_DOC, F2_MODULE_ID, F2_SIM_LABS
 
 
-def _has_top_level_docs(collection: str, field: str, module_id: str) -> bool:
+def _top_level_doc_count(collection: str, field: str, module_id: str) -> int:
     db = get_firestore_client()
-    query = where_eq(db.collection(collection), field, module_id).limit(1)
-    return any(True for _ in query.stream())
+    query = where_eq(db.collection(collection), field, module_id)
+    return sum(1 for _ in query.stream())
 
 
 def _seed_documents() -> Iterable[Tuple[str, str, dict]]:
@@ -28,11 +28,13 @@ def ensure_catalog_seeded() -> bool:
         return False
 
     db = get_firestore_client()
-    module_exists = db.collection("modules").document(F2_MODULE_ID).get().exists
-    lessons_exist = _has_top_level_docs("lessons", "module_id", F2_MODULE_ID)
-    sim_labs_exist = _has_top_level_docs("sim_labs", "module_id", F2_MODULE_ID)
+    module_snap = db.collection("modules").document(F2_MODULE_ID).get()
+    module_data = module_snap.to_dict() or {}
+    version_matches = str(module_data.get("content_version") or "").strip() == F2_CONTENT_VERSION
+    lessons_ready = _top_level_doc_count("lessons", "module_id", F2_MODULE_ID) >= len(F2_LESSONS)
+    sim_labs_ready = _top_level_doc_count("sim_labs", "module_id", F2_MODULE_ID) >= len(F2_SIM_LABS)
 
-    if module_exists and lessons_exist and sim_labs_exist:
+    if module_snap.exists and version_matches and lessons_ready and sim_labs_ready:
         return False
 
     batch = db.batch()
