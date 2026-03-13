@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import app.routers.admin_ops as admin_ops
+import app.routers.billing as billing
 import app.routers.catalog as catalog
 import app.routers.debug_text as debug_text
 import app.routers.instructor as instructor
@@ -47,6 +48,7 @@ def bootstrap_services() -> None:
 
 app.include_router(system.router)
 app.include_router(catalog.router)
+app.include_router(billing.router)
 app.include_router(instructor.router)
 app.include_router(admin_ops.router)
 app.include_router(progress.router)

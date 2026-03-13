@@ -44,6 +44,8 @@ class Settings:
     # App
     environment: str = _env("ENVIRONMENT", "dev") or "dev"
     service_name: str = _env("SERVICE_NAME", "apip-api") or "apip-api"
+    app_base_url: str = _env("APP_BASE_URL", "https://app.cognispark.tech") or "https://app.cognispark.tech"
+    allowed_app_origins: str = _env("ALLOWED_APP_ORIGINS", "") or ""
 
     # Security / operations
     # If you already enforce admin via Firebase custom claims, keep this False.
@@ -53,6 +55,14 @@ class Settings:
     enable_local_dev_student: bool = (_env("ENABLE_LOCAL_DEV_STUDENT", "false") or "false").lower() == "true"
     local_dev_student_uid: str = _env("LOCAL_DEV_STUDENT_UID", "local-student") or "local-student"
     local_dev_student_email: str = _env("LOCAL_DEV_STUDENT_EMAIL", "student@local.dev") or "student@local.dev"
+
+    # Billing
+    stripe_secret_key: str | None = _env("STRIPE_SECRET_KEY", None)
+    stripe_webhook_secret: str | None = _env("STRIPE_WEBHOOK_SECRET", None)
+    stripe_price_module_unlock_default: str | None = _env("STRIPE_PRICE_MODULE_UNLOCK_DEFAULT", None)
+    stripe_price_premium_monthly: str | None = _env("STRIPE_PRICE_PREMIUM_MONTHLY", None)
+    stripe_price_premium_six_month: str | None = _env("STRIPE_PRICE_PREMIUM_SIX_MONTH", None)
+    stripe_price_premium_yearly: str | None = _env("STRIPE_PRICE_PREMIUM_YEARLY", None)
 
 
 settings = Settings()

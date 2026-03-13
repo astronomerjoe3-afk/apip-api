@@ -393,5 +393,15 @@ def ensure_monetization_seeded() -> bool:
         {"access_tier": PREMIUM_ACCESS_TIER},
         merge=True,
     )
+    batch.set(
+        db.collection("modules").document("F3"),
+        {"access_tier": PREMIUM_ACCESS_TIER},
+        merge=True,
+    )
+    batch.set(
+        db.collection("modules").document("F4"),
+        {"access_tier": PREMIUM_ACCESS_TIER},
+        merge=True,
+    )
     batch.commit()
     return True
