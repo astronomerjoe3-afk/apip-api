@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F3_MODULE_ID = "F3"
-F3_CONTENT_VERSION = "20260313_f3_conservation_v2"
+F3_CONTENT_VERSION = "20260313_f3_power_rate_v3"
 F3_ALLOWLIST = [
     "work_energy_transfer_confusion",
     "kinetic_energy_relationship_error",
@@ -333,7 +333,7 @@ add_lesson(
     "F3_L3",
     3,
     "Power and Efficiency",
-    "Power is like how fast water fills a bucket, while efficiency is how much of that water ends up in the useful bucket instead of spilling away.",
+    "Power is like how fast water fills a bucket: the same water in less time means a greater fill rate, and the same fill rate running longer gives more water. Efficiency is how much of that water ends up in the useful bucket instead of spilling away.",
     "f3_power_efficiency_lab",
     [
         make_mcq("F3L3_D1", "Power is best described as...", ["energy stored per unit mass", "the rate of energy transfer", "the total useful energy only", "force multiplied by mass"], 1, "Power tells how quickly energy is transferred or work is done.", ["power_rate_confusion"]),
@@ -344,14 +344,14 @@ add_lesson(
         make_mcq("F3L3_T2", "Two motors transfer the same energy, but one does it in half the time. Compared with the slower motor, the faster motor has...", ["half the power", "the same power", "double the power", "double the efficiency automatically"], 2, "For the same energy, less time means greater power.", ["power_rate_confusion"]),
     ],
     [
-        "Explain the difference between how much energy is transferred and how quickly it is transferred.",
-        "Explain why a process can be powerful without being very efficient.",
+        "Explain how power links transferred energy and time, including how P = E / t can be rearranged to E = Pt or t = E / P.",
+        "Explain why a process can be powerful without being very efficient, even though both ideas involve energy.",
     ],
     [
-        prompt_block("Keep the energy transferred fixed and shorten the time.", "Less time for the same transfer means greater power."),
+        prompt_block("Keep the energy transferred fixed and shorten the time, then keep the power fixed and lengthen the time.", "Less time for the same transfer means greater power, while the same power running for longer transfers more energy."),
         prompt_block("Keep the input fixed and change the useful output.", "Efficiency compares the useful part with the total input."),
     ],
-    "Power measures the rate of transfer, while efficiency measures how much of the input becomes the useful output instead of wasted energy.",
+    "Power links energy and time through P = E / t, E = Pt, and t = E / P, while efficiency measures how much of the input becomes the useful output instead of wasted energy.",
     [
         make_mcq("F3L3_C1", "If a lamp transfers the same energy in half the time, what happens to its power?", ["It halves", "It doubles", "It stays the same", "It becomes zero"], 1, "For the same energy, halving the time doubles the power.", ["power_rate_confusion"]),
     ],
