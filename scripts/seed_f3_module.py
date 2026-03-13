@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F3_MODULE_ID = "F3"
-F3_CONTENT_VERSION = "20260313_f3_power_rate_v3"
+F3_CONTENT_VERSION = "20260313_f3_impulse_link_v4"
 F3_ALLOWLIST = [
     "work_energy_transfer_confusion",
     "kinetic_energy_relationship_error",
@@ -389,7 +389,7 @@ add_lesson(
     "F3_L5",
     5,
     "Impulse and Force-Time Reasoning",
-    "Catching an egg with hands that move backward is like stretching the stopping story: the same momentum change is spread over more time, so the force becomes smaller.",
+    "Catching an egg with hands that move backward is like stretching the stopping story: the egg needs the same change in momentum either way, so the same impulse is spread over more time and the force becomes smaller.",
     "f3_impulse_lab",
     [
         make_mcq("F3L5_D1", "Impulse is equal to...", ["force x time", "force / time", "momentum / time", "mass x acceleration only"], 0, "Impulse is the product of force and interaction time, and it equals the change in momentum.", ["impulse_force_time_confusion"]),
@@ -400,14 +400,14 @@ add_lesson(
         make_mcq("F3L5_T2", "What does the area under a force-time graph represent?", ["momentum only", "impulse", "acceleration", "power"], 1, "Force-time area represents impulse, which equals the change in momentum.", ["impulse_force_time_confusion"]),
     ],
     [
-        "Explain why airbags and padded surfaces reduce force during a collision.",
-        "Explain how a force-time graph can tell you about momentum change.",
+        "Explain explicitly why impulse equals the change in momentum, and how that relationship helps you discuss collisions.",
+        "Explain how a force-time graph can tell you about momentum change by showing impulse as area.",
     ],
     [
-        prompt_block("Keep the momentum change target fixed and increase the stopping time.", "The same impulse spread over more time means the average force becomes smaller."),
+        prompt_block("Keep the momentum change target fixed and increase the stopping time.", "Because impulse equals the change in momentum, the same momentum change means the same impulse; spreading it over more time makes the average force smaller."),
         prompt_block("Compare two force-time rectangles with the same area.", "Different force and time pairs can produce the same impulse if the area is the same."),
     ],
-    "Impulse links force and time to the change in momentum, so collision safety often depends on increasing the stopping time rather than removing the momentum change itself.",
+    "Impulse is exactly the change in momentum, and it can also be written as force x time, so collision safety often depends on increasing the stopping time rather than removing the momentum change itself.",
     [
         make_mcq("F3L5_C1", "If the interaction time doubles for the same impulse, what happens to the average force?", ["It doubles", "It halves", "It stays the same", "It becomes negative"], 1, "For a fixed impulse, force and time trade off inversely.", ["impulse_force_time_confusion"]),
     ],
