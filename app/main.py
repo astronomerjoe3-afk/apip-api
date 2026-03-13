@@ -33,7 +33,7 @@ def bootstrap_services() -> None:
     try:
         seeded = ensure_catalog_seeded()
         if seeded:
-            print("Catalog bootstrap: seeded F2 content into Firestore.")
+            print("Catalog bootstrap: seeded curriculum content into Firestore.")
     except Exception as exc:
         print(f"Catalog bootstrap skipped: {exc}")
 

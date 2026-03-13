@@ -1,15 +1,24 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Dict, List, Sequence, Tuple
 
-from lesson_authoring_contract import (
-    LessonAuthoringContractError,
-    clone_template,
-    nextgen_lesson_template,
-    nextgen_module_doc_template,
-    validate_nextgen_module,
-)
+try:
+    from scripts.lesson_authoring_contract import (
+        LessonAuthoringContractError,
+        clone_template,
+        nextgen_lesson_template,
+        nextgen_module_doc_template,
+        validate_nextgen_module,
+    )
+except ModuleNotFoundError:
+    from lesson_authoring_contract import (
+        LessonAuthoringContractError,
+        clone_template,
+        nextgen_lesson_template,
+        nextgen_module_doc_template,
+        validate_nextgen_module,
+    )
 
 
 def utc_now() -> str:
