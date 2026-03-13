@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F3_MODULE_ID = "F3"
-F3_CONTENT_VERSION = "20260313_f3_launch_v1"
+F3_CONTENT_VERSION = "20260313_f3_conservation_v2"
 F3_ALLOWLIST = [
     "work_energy_transfer_confusion",
     "kinetic_energy_relationship_error",
@@ -361,7 +361,7 @@ add_lesson(
     "F3_L4",
     4,
     "Momentum and Conservation",
-    "Momentum is like a signed movement budget: mass tells how much moving stuff there is, velocity tells how strongly and in which direction it is being carried.",
+    "Momentum is like a signed movement budget, and the law of conservation of linear momentum says that in an isolated system the total signed momentum before a collision equals the total signed momentum after it.",
     "f3_momentum_lab",
     [
         make_mcq("F3L4_D1", "Momentum depends directly on...", ["mass and velocity", "mass and time", "force and height", "energy and temperature"], 0, "Momentum is found from mass multiplied by velocity.", ["momentum_vector_confusion"]),
@@ -372,14 +372,14 @@ add_lesson(
         make_mcq("F3L4_T2", "Which situation is best modelled by direct conservation of momentum?", ["two trolleys colliding on a low-friction track", "a falling ball with strong air resistance", "a rocket with engines firing", "a car accelerating because of its engine"], 0, "Use conservation most directly when external forces are negligible during the interaction.", ["momentum_conservation_confusion"]),
     ],
     [
-        "Explain why momentum answers must keep direction or a sign convention.",
-        "Explain what must be approximately true before you use conservation of momentum in a collision.",
+        "State the law of conservation of linear momentum in words and explain why it applies to the whole system rather than one object alone.",
+        "Explain what must be approximately true before you use the law in a collision.",
     ],
     [
         prompt_block("Change the incoming mass while the second trolley starts at rest.", "A larger incoming mass gives a larger incoming momentum if the speed stays the same."),
         prompt_block("Keep the incoming trolley the same and increase the second trolley mass.", "The same total momentum shared by more mass gives a lower common speed after a sticking collision."),
     ],
-    "Momentum combines mass with velocity, so conservation of momentum is a whole-system rule that works when external forces during the interaction are negligible.",
+    "The law of conservation of linear momentum says that the total momentum of an isolated system before a collision equals the total momentum after it, so you must compare the whole-system total when external forces during the interaction are negligible.",
     [
         make_mcq("F3L4_C1", "Two equal trolleys move toward each other with equal speed. What is the total momentum of the system?", ["zero", "equal to one trolley's momentum", "double one trolley's momentum in the same direction", "impossible to tell"], 0, "Equal and opposite momenta cancel in the system total.", ["momentum_conservation_confusion"]),
     ],
