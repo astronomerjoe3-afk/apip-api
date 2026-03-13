@@ -12,6 +12,17 @@ env:
   PROJECT_ID: apip-dev-487809-c949c
   REGION: asia-southeast1
   SERVICE: apip-api
+  APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+  ALLOWED_APP_ORIGINS: ${{ vars.ALLOWED_APP_ORIGINS }}
+  STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+  STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+  STRIPE_PRICE_MODULE_UNLOCK_DEFAULT: ${{ secrets.STRIPE_PRICE_MODULE_UNLOCK_DEFAULT }}
+  STRIPE_PRICE_PREMIUM_MONTHLY: ${{ secrets.STRIPE_PRICE_PREMIUM_MONTHLY }}
+  STRIPE_PRICE_PREMIUM_SIX_MONTH: ${{ secrets.STRIPE_PRICE_PREMIUM_SIX_MONTH }}
+  STRIPE_PRICE_PREMIUM_YEARLY: ${{ secrets.STRIPE_PRICE_PREMIUM_YEARLY }}
+  STRIPE_PRICE_MODULE_F2: ${{ secrets.STRIPE_PRICE_MODULE_F2 }}
+  STRIPE_PRICE_MODULE_F3: ${{ secrets.STRIPE_PRICE_MODULE_F3 }}
+  STRIPE_PRICE_MODULE_F4: ${{ secrets.STRIPE_PRICE_MODULE_F4 }}
 
 jobs:
   deploy:
@@ -31,6 +42,43 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
+      - name: Prepare Cloud Run env file
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/cloudrun-env.yaml <<EOF
+          APP_COMMIT: "${GITHUB_SHA}"
+          GIT_COMMIT_SHA: "${GITHUB_SHA}"
+          APP_BASE_URL: "${APP_BASE_URL:-https://app.cognispark.tech}"
+          ALLOWED_APP_ORIGINS: "${ALLOWED_APP_ORIGINS:-}"
+          STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY:-}"
+          STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET:-}"
+          STRIPE_PRICE_MODULE_UNLOCK_DEFAULT: "${STRIPE_PRICE_MODULE_UNLOCK_DEFAULT:-}"
+          STRIPE_PRICE_PREMIUM_MONTHLY: "${STRIPE_PRICE_PREMIUM_MONTHLY:-}"
+          STRIPE_PRICE_PREMIUM_SIX_MONTH: "${STRIPE_PRICE_PREMIUM_SIX_MONTH:-}"
+          STRIPE_PRICE_PREMIUM_YEARLY: "${STRIPE_PRICE_PREMIUM_YEARLY:-}"
+          STRIPE_PRICE_MODULE_F2: "${STRIPE_PRICE_MODULE_F2:-}"
+          STRIPE_PRICE_MODULE_F3: "${STRIPE_PRICE_MODULE_F3:-}"
+          STRIPE_PRICE_MODULE_F4: "${STRIPE_PRICE_MODULE_F4:-}"
+          EOF
+
+      - name: Summarize billing env wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "${STRIPE_SECRET_KEY:-}" ]] || missing+=("STRIPE_SECRET_KEY")
+          [[ -n "${STRIPE_WEBHOOK_SECRET:-}" ]] || missing+=("STRIPE_WEBHOOK_SECRET")
+          [[ -n "${STRIPE_PRICE_MODULE_UNLOCK_DEFAULT:-}" ]] || missing+=("STRIPE_PRICE_MODULE_UNLOCK_DEFAULT")
+          [[ -n "${STRIPE_PRICE_PREMIUM_MONTHLY:-}" ]] || missing+=("STRIPE_PRICE_PREMIUM_MONTHLY")
+          [[ -n "${STRIPE_PRICE_PREMIUM_SIX_MONTH:-}" ]] || missing+=("STRIPE_PRICE_PREMIUM_SIX_MONTH")
+          [[ -n "${STRIPE_PRICE_PREMIUM_YEARLY:-}" ]] || missing+=("STRIPE_PRICE_PREMIUM_YEARLY")
+
+          if [ ${#missing[@]} -eq 0 ]; then
+            echo "Stripe billing env vars are configured for this deploy." >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf 'Stripe billing is still incomplete for this deploy. Missing: %s\n' "${missing[*]}" >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Deploy to Cloud Run (build from source)
         shell: bash
         run: |
@@ -41,7 +89,7 @@ jobs:
             --region "${REGION}" \
             --project "${PROJECT_ID}" \
             --allow-unauthenticated \
-            --update-env-vars "APP_COMMIT=${GITHUB_SHA},GIT_COMMIT_SHA=${GITHUB_SHA}" \
+            --env-vars-file /tmp/cloudrun-env.yaml \
             --quiet
 
       - name: Smoke test /__build

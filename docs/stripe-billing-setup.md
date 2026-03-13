@@ -9,6 +9,27 @@ Required API environment variables:
 - STRIPE_PRICE_PREMIUM_SIX_MONTH
 - STRIPE_PRICE_PREMIUM_YEARLY
 
+GitHub Actions deploy wiring:
+
+Repository variables expected by deploy-cloudrun.yml:
+
+- APP_BASE_URL
+- ALLOWED_APP_ORIGINS
+
+Repository secrets expected by deploy-cloudrun.yml:
+
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_PRICE_MODULE_UNLOCK_DEFAULT
+- STRIPE_PRICE_PREMIUM_MONTHLY
+- STRIPE_PRICE_PREMIUM_SIX_MONTH
+- STRIPE_PRICE_PREMIUM_YEARLY
+- STRIPE_PRICE_MODULE_F2
+- STRIPE_PRICE_MODULE_F3
+- STRIPE_PRICE_MODULE_F4
+
+If the required Stripe secrets are missing during a deploy, the student paywall stays visible and checkout stays disabled in production.
+
 Optional API environment variables:
 
 - APP_BASE_URL
