@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F3_MODULE_ID = "F3"
-F3_CONTENT_VERSION = "20260313_f3_impulse_link_v4"
+F3_CONTENT_VERSION = "20260313_f3_force_momentum_v5"
 F3_ALLOWLIST = [
     "work_energy_transfer_confusion",
     "kinetic_energy_relationship_error",
@@ -417,7 +417,7 @@ add_lesson(
     "F3_L6",
     6,
     "Braking, Collisions, and Safety",
-    "A crash is like closing a fast-moving account: momentum tells how much motion must be changed, while kinetic energy tells how much energy must be dissipated during the stop.",
+    "A crash is like closing a fast-moving account: momentum tells how much motion must be changed, and force tells how quickly that momentum is changed, while kinetic energy tells how much energy must be dissipated during the stop.",
     "f3_braking_safety_lab",
     [
         make_mcq("F3L6_D1", "If speed doubles for the same mass, which quantity definitely becomes four times larger?", ["momentum", "kinetic energy", "stopping time", "mass"], 1, "Kinetic energy depends on speed squared.", ["braking_energy_comparison_confusion"]),
@@ -428,14 +428,14 @@ add_lesson(
         make_mcq("F3L6_T2", "Why is high speed especially dangerous in braking?", ["Momentum and kinetic energy both fall when speed rises", "Momentum doubles and kinetic energy quadruples when speed doubles", "Only mass matters for braking", "Kinetic energy stays unchanged if mass stays the same"], 1, "Higher speed raises both momentum and kinetic energy, and kinetic energy rises especially quickly.", ["braking_energy_comparison_confusion"]),
     ],
     [
-        "Explain one reason stopping distance grows with speed using energy or force ideas.",
-        "Explain why good safety design often spreads the stop over more time and distance.",
+        "Explain explicitly why force can be described as the rate of change of momentum during braking.",
+        "Explain why good safety design often spreads the same momentum change over more time and distance.",
     ],
     [
-        prompt_block("Keep mass fixed and raise the speed.", "Momentum rises in direct proportion to speed, but kinetic energy rises much faster because speed is squared."),
-        prompt_block("Keep the vehicle the same and lengthen the stopping time.", "A longer stop reduces the average force even though the total momentum change is the same."),
+        prompt_block("Keep mass fixed and raise the speed.", "Momentum rises in direct proportion to speed, and if the stopping time stays short that larger momentum change demands a larger force."),
+        prompt_block("Keep the vehicle the same and lengthen the stopping time.", "Because force = change in momentum / time, a longer stop reduces the average force even though the total momentum change is the same."),
     ],
-    "Braking and collision safety must be explained with both momentum change and energy dissipation, because high speed makes both the motion change and the energy removal more demanding.",
+    "Braking and collision safety must be explained with both momentum change and energy dissipation, because average force is the rate of change of momentum and high speed makes both the motion change and the energy removal more demanding.",
     [
         make_mcq("F3L6_C1", "A car and a truck move at the same speed. Which has the greater momentum?", ["the car", "the truck", "they have the same momentum", "you need the stopping time first"], 1, "At the same speed, the vehicle with the larger mass has the greater momentum.", ["momentum_vector_confusion"]),
     ],
