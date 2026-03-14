@@ -5,7 +5,7 @@ Date checked: 2026-03-12
 ## Recommended launch prices
 
 - F1 stays free.
-- Premium module unlock: $9.99 one-time.
+- Premium module access pass: $9.99 for 1 month of access to one premium module.
 - Premium monthly: $12.99 per month.
 - Premium 6 months: $59.99 every 6 months ($10.00/month effective).
 - Premium yearly: $99.99 per year ($8.33/month effective).
@@ -13,7 +13,7 @@ Date checked: 2026-03-12
 ## Why these prices
 
 - Inference: price below broad career-learning subscriptions because this catalog is narrower and still growing, but above lightweight study tools because the product includes diagnostics, guided lessons, simulations, and mastery checks.
-- Keep the one-time module unlock slightly below one month of premium so a student taking one premium module can buy once, while students taking multiple premium modules have a clear reason to subscribe.
+- Keep the 1-month module access pass slightly below one month of premium so a student focused on one premium module can buy targeted access, while students taking multiple premium modules still have a clear reason to subscribe.
 
 ## Official market anchors checked on 2026-03-12
 
@@ -26,4 +26,4 @@ Date checked: 2026-03-12
 ## Pricing rule for future modules
 
 - Default every module except F1 to `access_tier: premium` unless you explicitly mark it free in Firestore.
-- Use the same one-time module unlock price for launch unless a future module is unusually large enough to justify its own Firestore price override.
+- Use the same 1-month module access pass price for launch unless a future module is unusually large enough to justify its own Firestore price override.

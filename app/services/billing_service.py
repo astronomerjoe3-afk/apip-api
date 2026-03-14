@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -14,6 +14,7 @@ from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
 from app.services.monetization_service import (
     FREE_ACCESS_TIER,
+    MODULE_UNLOCK_ACCESS_DAYS,
     REVIEW_BYPASS_ROLES,
     build_module_access,
     get_billing_catalog,
@@ -310,12 +311,17 @@ def _write_module_unlock(
     session_id: Optional[str],
     payment_intent_id: Optional[str],
 ) -> None:
+    purchased_at = datetime.now(timezone.utc)
+    ends_at = purchased_at + timedelta(days=MODULE_UNLOCK_ACCESS_DAYS)
     unlock_row = {
         module_id: {
             "status": "active",
             "module_id": module_id,
             "offer_id": offer_id,
-            "purchased_utc": _utc_now_iso(),
+            "purchased_utc": purchased_at.isoformat(),
+            "started_utc": purchased_at.isoformat(),
+            "ends_utc": ends_at.isoformat(),
+            "access_duration_days": MODULE_UNLOCK_ACCESS_DAYS,
             "source": "stripe_checkout",
             "stripe_checkout_session_id": session_id,
             "stripe_payment_intent_id": payment_intent_id,

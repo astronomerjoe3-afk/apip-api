@@ -10,19 +10,21 @@ from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
 
-MONETIZATION_VERSION = "20260312_launch_pricing_v1"
+MONETIZATION_VERSION = "20260314_module_pass_v2"
 FREE_ACCESS_TIER = "free"
 PREMIUM_ACCESS_TIER = "premium"
 FREE_MODULE_IDS = {"F1"}
 REVIEW_BYPASS_ROLES = {"admin", "instructor"}
+MODULE_UNLOCK_ACCESS_DAYS = 30
 
 DEFAULT_MODULE_UNLOCK = {
     "id": "module_unlock_default",
     "kind": "module_unlock",
-    "title": "Unlock this module forever",
+    "title": "Unlock this module for 1 month",
     "currency": "USD",
     "amount_cents": 999,
-    "description": "One-time purchase for a permanent unlock of a single premium module.",
+    "description": "One-time purchase for 1 month of access to a single premium module.",
+    "access_duration_days": MODULE_UNLOCK_ACCESS_DAYS,
     "active": True,
     "rank": 10,
 }
@@ -173,6 +175,7 @@ def _read_student_billing(uid: str) -> Dict[str, Any]:
 def _module_unlock_ids(student_billing: Dict[str, Any]) -> List[str]:
     unlocks = student_billing.get("module_unlocks")
     result: List[str] = []
+    now_ts = parse_iso_utc(_utc_now_iso())
 
     if isinstance(unlocks, list):
         for value in unlocks:
@@ -194,8 +197,12 @@ def _module_unlock_ids(student_billing: Dict[str, Any]) -> List[str]:
 
         if isinstance(payload, dict):
             status = str(payload.get("status") or "active").strip().lower()
-            if status in {"active", "purchased", "granted"}:
-                result.append(module_key)
+            ends_utc = str(payload.get("ends_utc") or "").strip()
+            if status not in {"active", "purchased", "granted"}:
+                continue
+            if ends_utc and parse_iso_utc(ends_utc) < now_ts:
+                continue
+            result.append(module_key)
 
     return sorted(set(result))
 
@@ -297,14 +304,14 @@ def build_module_access(module: Dict[str, Any], uid: Optional[str], role: Option
 
     if purchased:
         reason = "module_purchase"
-        message = "You own this module."
+        message = "Your 1-month module access is active."
     elif subscribed:
         reason = "active_subscription"
         message = "Your premium subscription unlocks this module."
     else:
         reason = "payment_required"
         message = (
-            f"Unlock this module forever for {module_offer['price_label']} or choose a premium subscription."
+            f"Unlock this module for 1 month for {module_offer['price_label']} or choose a premium subscription."
         )
 
     return {
@@ -339,7 +346,7 @@ def require_module_access(uid: str, module_id: str, role: Optional[str] = None) 
         status_code=402,
         detail=(
             f"{module.get('title') or module_id} is a premium module. "
-            f"Unlock it for {module_offer.get('price_label', '$9.99')} or subscribe to premium access."
+            f"Unlock it for 1 month for {module_offer.get('price_label', '$9.99')} or subscribe to premium access."
         ),
     )
 
