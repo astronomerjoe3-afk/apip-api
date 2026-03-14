@@ -57,6 +57,7 @@ Stripe webhook endpoint:
 Stripe events to subscribe:
 
 - checkout.session.completed
+- charge.refunded
 - customer.subscription.created
 - customer.subscription.updated
 - customer.subscription.deleted
@@ -64,6 +65,8 @@ Stripe events to subscribe:
 Expected runtime behavior:
 
 - Module unlock purchases are granted from completed Stripe checkout sessions.
+- Full Stripe charge refunds on module passes revoke that module access in student_billing.
+- Full Stripe charge refunds on subscription payments place premium access on a local refund hold until support or admin review.
 - Premium subscriptions are synchronized from Stripe subscription events into student_billing.
 - The student paywall launches Stripe Checkout.
 - Students with a saved Stripe customer can open the Stripe billing portal.

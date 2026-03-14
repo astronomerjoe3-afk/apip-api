@@ -228,6 +228,9 @@ def _active_subscription(student_billing: Dict[str, Any]) -> Optional[Dict[str, 
     if not isinstance(subscription, dict):
         return None
 
+    if str(subscription.get("access_override_status") or "").strip().lower():
+        return None
+
     status = str(subscription.get("status") or "").strip().lower()
     if status not in {"active", "trialing", "grace_period"}:
         return None

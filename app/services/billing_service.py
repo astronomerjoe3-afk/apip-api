@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import stripe
 from fastapi import HTTPException
+from google.cloud.firestore_v1 import DELETE_FIELD
 
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
@@ -341,6 +342,37 @@ def _write_module_unlock(
         _store_customer_mapping(uid, customer_id, customer_email)
 
 
+def _module_unlock_row(uid: str, module_id: str) -> Dict[str, Any]:
+    unlocks = _read_student_billing(uid).get("module_unlocks")
+    if isinstance(unlocks, dict):
+        row = unlocks.get(module_id)
+        if isinstance(row, dict):
+            return dict(row)
+    return {"module_id": module_id}
+
+
+def _module_id_from_payment_intent(uid: str, payment_intent_id: Optional[str]) -> Optional[str]:
+    normalized_payment_intent_id = _string(payment_intent_id)
+    if not normalized_payment_intent_id:
+        return None
+
+    unlocks = _read_student_billing(uid).get("module_unlocks")
+    if not isinstance(unlocks, dict):
+        return None
+
+    for module_id, row in unlocks.items():
+        if not isinstance(row, dict):
+            continue
+        if _string(row.get("stripe_payment_intent_id")) == normalized_payment_intent_id:
+            return _string(module_id)
+    return None
+
+
+def _subscription_row(uid: str) -> Dict[str, Any]:
+    row = _read_student_billing(uid).get("subscription")
+    return dict(row) if isinstance(row, dict) else {}
+
+
 def _sync_subscription(subscription: Any, uid_hint: Optional[str] = None) -> Optional[str]:
     customer_id = _extract_id(_obj_get(subscription, "customer"))
     metadata = _obj_get(subscription, "metadata", {}) or {}
@@ -362,18 +394,42 @@ def _sync_subscription(subscription: Any, uid_hint: Optional[str] = None) -> Opt
         or _obj_get(first_item, "current_period_start")
         or _obj_get(subscription, "created")
     )
+    existing_subscription = _subscription_row(uid)
+    existing_subscription_id = _string(existing_subscription.get("stripe_subscription_id"))
+    current_subscription_id = _extract_id(subscription)
+    preserve_override = bool(
+        existing_subscription_id
+        and current_subscription_id
+        and existing_subscription_id == current_subscription_id
+        and _string(existing_subscription.get("access_override_status"))
+    )
+
     subscription_row = {
         "status": stored_status,
         "provider_status": raw_status,
         "plan_id": _string(metadata.get("plan_id")) or _plan_id_from_price_id(price_id),
         "ends_utc": _unix_to_iso(period_end_value),
         "started_utc": _unix_to_iso(period_start_value),
-        "stripe_subscription_id": _extract_id(subscription),
+        "stripe_subscription_id": current_subscription_id,
         "stripe_price_id": price_id,
         "stripe_customer_id": customer_id,
         "cancel_at_period_end": bool(_obj_get(subscription, "cancel_at_period_end")),
         "source": "stripe_subscription",
     }
+    if preserve_override:
+        for key in (
+            "access_override_status",
+            "access_override_reason",
+            "access_override_utc",
+            "last_refund_utc",
+            "last_refund_amount_cents",
+            "last_refund_currency",
+            "last_refund_charge_id",
+            "last_refund_invoice_id",
+        ):
+            value = existing_subscription.get(key)
+            if value not in (None, ""):
+                subscription_row[key] = value
 
     patch: Dict[str, Any] = {
         "subscription": subscription_row,
@@ -389,6 +445,170 @@ def _sync_subscription(subscription: Any, uid_hint: Optional[str] = None) -> Opt
     _student_billing_ref(uid).set(patch, merge=True)
     if customer_id:
         _store_customer_mapping(uid, customer_id, customer_email)
+    return uid
+
+
+def _retrieve_payment_intent(payment_intent_id: Optional[str]) -> Optional[Any]:
+    normalized_payment_intent_id = _string(payment_intent_id)
+    if not normalized_payment_intent_id:
+        return None
+
+    stripe_api = _require_stripe()
+    try:
+        return stripe_api.PaymentIntent.retrieve(normalized_payment_intent_id)
+    except Exception:
+        return None
+
+
+def _retrieve_invoice(invoice_id: Optional[str]) -> Optional[Any]:
+    normalized_invoice_id = _string(invoice_id)
+    if not normalized_invoice_id:
+        return None
+
+    stripe_api = _require_stripe()
+    try:
+        return stripe_api.Invoice.retrieve(normalized_invoice_id, expand=["subscription"])
+    except Exception:
+        return None
+
+
+def _charge_context(charge: Any) -> Dict[str, Any]:
+    customer_id = _extract_id(_obj_get(charge, "customer"))
+    payment_intent_id = _extract_id(_obj_get(charge, "payment_intent"))
+    invoice_id = _extract_id(_obj_get(charge, "invoice"))
+
+    raw_metadata = _obj_get(charge, "metadata", {}) or {}
+    metadata = {str(key): str(value).strip() for key, value in raw_metadata.items() if str(value).strip()} if isinstance(raw_metadata, dict) else {}
+
+    if not metadata and payment_intent_id:
+        payment_intent = _retrieve_payment_intent(payment_intent_id)
+        pi_metadata = _obj_get(payment_intent, "metadata", {}) or {}
+        if isinstance(pi_metadata, dict):
+            metadata = {str(key): str(value).strip() for key, value in pi_metadata.items() if str(value).strip()}
+
+    uid = _string(metadata.get("uid"))
+    if not uid and customer_id:
+        uid = _string(_read_customer_mapping(customer_id).get("uid"))
+
+    invoice = _retrieve_invoice(invoice_id)
+    if invoice is not None and not customer_id:
+        customer_id = _extract_id(_obj_get(invoice, "customer"))
+        if not uid and customer_id:
+            uid = _string(_read_customer_mapping(customer_id).get("uid"))
+
+    module_id = _string(metadata.get("module_id"))
+    if not module_id and uid and payment_intent_id:
+        module_id = _module_id_from_payment_intent(uid, payment_intent_id)
+
+    subscription_id = _extract_id(_obj_get(invoice, "subscription"))
+    purchase_kind = _string(metadata.get("purchase_kind"))
+    if not purchase_kind:
+        purchase_kind = "module_unlock" if module_id else ("subscription" if subscription_id else None)
+
+    amount_cents = int(_obj_get(charge, "amount") or 0)
+    amount_refunded_cents = int(_obj_get(charge, "amount_refunded") or 0)
+
+    return {
+        "uid": uid,
+        "customer_id": customer_id,
+        "payment_intent_id": payment_intent_id,
+        "invoice_id": invoice_id,
+        "subscription_id": subscription_id,
+        "module_id": module_id,
+        "purchase_kind": purchase_kind,
+        "charge_id": _extract_id(charge),
+        "amount_cents": amount_cents,
+        "amount_refunded_cents": amount_refunded_cents,
+        "currency": (_string(_obj_get(charge, "currency")) or "").upper() or None,
+        "fully_refunded": bool(_obj_get(charge, "refunded")) or (amount_refunded_cents >= amount_cents > 0),
+    }
+
+
+def _record_module_unlock_refund(*, uid: str, module_id: str, charge_context: Dict[str, Any]) -> None:
+    current_row = _module_unlock_row(uid, module_id)
+    fully_refunded = bool(charge_context.get("fully_refunded"))
+    now_iso = _utc_now_iso()
+
+    updated_row = dict(current_row)
+    updated_row.update(
+        {
+            "module_id": module_id,
+            "last_refund_utc": now_iso,
+            "last_refund_amount_cents": charge_context.get("amount_refunded_cents"),
+            "last_refund_currency": charge_context.get("currency"),
+            "last_refund_charge_id": charge_context.get("charge_id"),
+            "stripe_payment_intent_id": charge_context.get("payment_intent_id") or current_row.get("stripe_payment_intent_id"),
+            "refund_status": "full" if fully_refunded else "partial",
+        }
+    )
+    if fully_refunded:
+        updated_row["status"] = "refunded"
+        updated_row["access_revoked_utc"] = now_iso
+
+    patch: Dict[str, Any] = {
+        "module_unlocks": {module_id: updated_row},
+        "updated_utc": now_iso,
+    }
+    if charge_context.get("customer_id"):
+        patch["stripe_customer_id"] = charge_context.get("customer_id")
+    _student_billing_ref(uid).set(patch, merge=True)
+
+
+def _record_subscription_refund(*, uid: str, charge_context: Dict[str, Any]) -> None:
+    current_row = _subscription_row(uid)
+    now_iso = _utc_now_iso()
+    fully_refunded = bool(charge_context.get("fully_refunded"))
+
+    updated_row = dict(current_row)
+    if charge_context.get("subscription_id"):
+        updated_row["stripe_subscription_id"] = charge_context.get("subscription_id")
+    if charge_context.get("customer_id"):
+        updated_row["stripe_customer_id"] = charge_context.get("customer_id")
+    updated_row.update(
+        {
+            "source": updated_row.get("source") or "stripe_subscription",
+            "last_refund_utc": now_iso,
+            "last_refund_amount_cents": charge_context.get("amount_refunded_cents"),
+            "last_refund_currency": charge_context.get("currency"),
+            "last_refund_charge_id": charge_context.get("charge_id"),
+            "last_refund_invoice_id": charge_context.get("invoice_id"),
+        }
+    )
+    if fully_refunded:
+        updated_row["access_override_status"] = "refunded"
+        updated_row["access_override_reason"] = "stripe_charge_refunded"
+        updated_row["access_override_utc"] = now_iso
+        updated_row["status"] = "refunded"
+        updated_row["provider_status"] = "refunded"
+
+    patch: Dict[str, Any] = {
+        "subscription": updated_row,
+        "updated_utc": now_iso,
+    }
+    if charge_context.get("customer_id"):
+        patch["stripe_customer_id"] = charge_context.get("customer_id")
+
+    _student_billing_ref(uid).set(patch, merge=True)
+
+
+def _sync_charge_refund(charge: Any) -> Optional[str]:
+    charge_context = _charge_context(charge)
+    uid = _string(charge_context.get("uid"))
+    if not uid:
+        return None
+
+    if charge_context.get("purchase_kind") == "module_unlock" and charge_context.get("module_id"):
+        _record_module_unlock_refund(
+            uid=uid,
+            module_id=_string(charge_context.get("module_id")) or "",
+            charge_context=charge_context,
+        )
+        return uid
+
+    if charge_context.get("purchase_kind") == "subscription" or charge_context.get("subscription_id"):
+        _record_subscription_refund(uid=uid, charge_context=charge_context)
+        return uid
+
     return uid
 
 
@@ -792,6 +1012,9 @@ def process_stripe_webhook(payload: bytes, signature: Optional[str]) -> Dict[str
         if event_type == "checkout.session.completed":
             resolved_uid = _sync_checkout_session(payload_object)
             processed = True
+        elif event_type == "charge.refunded":
+            resolved_uid = _sync_charge_refund(payload_object)
+            processed = True
         elif event_type in {
             "customer.subscription.created",
             "customer.subscription.updated",
@@ -853,6 +1076,15 @@ def resync_subscription_for_student(*, uid: str, stripe_subscription_id: Optiona
 
     if subscription is None:
         raise HTTPException(status_code=404, detail="No Stripe subscription could be found for that student.")
+
+    if _string(stored_subscription.get("access_override_status")):
+        _student_billing_ref(normalized_uid).update(
+            {
+                "subscription.access_override_status": DELETE_FIELD,
+                "subscription.access_override_reason": DELETE_FIELD,
+                "subscription.access_override_utc": DELETE_FIELD,
+            }
+        )
 
     resolved_uid = _sync_subscription(subscription, uid_hint=normalized_uid) or normalized_uid
     refreshed_billing = _read_student_billing(resolved_uid)
