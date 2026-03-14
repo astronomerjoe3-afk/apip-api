@@ -4,14 +4,15 @@ from fastapi import APIRouter, Depends, Request
 
 from app.audit import write_audit_log
 from app.common import get_client_ip
-from app.dependencies import require_authenticated_user
-from app.schemas.billing import CheckoutConfirmRequest, CheckoutSessionRequest, PortalSessionRequest
+from app.dependencies import require_admin, require_authenticated_user
+from app.schemas.billing import AdminSubscriptionResyncRequest, CheckoutConfirmRequest, CheckoutSessionRequest, PortalSessionRequest
 from app.services.billing_service import (
     build_billing_summary,
     confirm_checkout_session_for_student,
     create_checkout_session_for_student,
     create_portal_session_for_student,
     process_stripe_webhook,
+    resync_subscription_for_student,
 )
 
 router = APIRouter(prefix="/billing", tags=["billing"])
@@ -153,3 +154,34 @@ async def stripe_webhook(request: Request):
         },
     )
     return result
+
+
+@router.post("/admin/subscription-resync")
+def admin_resync_subscription(
+    payload: AdminSubscriptionResyncRequest,
+    request: Request,
+    user=Depends(require_admin),
+):
+    result = resync_subscription_for_student(
+        uid=payload.uid,
+        stripe_subscription_id=payload.stripe_subscription_id,
+    )
+    write_audit_log(
+        event_type="billing.admin.subscription_resync",
+        actor_uid=(user or {}).get("uid"),
+        actor_email=(user or {}).get("email"),
+        role=(user or {}).get("role"),
+        path="/billing/admin/subscription-resync",
+        method="POST",
+        status=200,
+        request_id=getattr(request.state, "request_id", None),
+        ip=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        details={
+            "target_uid": payload.uid,
+            "stripe_subscription_id": payload.stripe_subscription_id,
+            "resolved_subscription_id": result.get("subscription_id"),
+            "provider_status": result.get("provider_status"),
+        },
+    )
+    return {"ok": True, **result}

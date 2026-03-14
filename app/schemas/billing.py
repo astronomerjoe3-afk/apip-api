@@ -22,3 +22,8 @@ class CheckoutConfirmRequest(BaseModel):
 class PortalSessionRequest(BaseModel):
     origin: Optional[str] = None
     return_path: Optional[str] = None
+
+
+class AdminSubscriptionResyncRequest(BaseModel):
+    uid: str = Field(min_length=1)
+    stripe_subscription_id: Optional[str] = None

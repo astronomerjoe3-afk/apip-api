@@ -692,3 +692,39 @@ def process_stripe_webhook(payload: bytes, signature: Optional[str]) -> Dict[str
             merge=True,
         )
         raise
+
+
+def resync_subscription_for_student(*, uid: str, stripe_subscription_id: Optional[str] = None) -> Dict[str, Any]:
+    normalized_uid = _string(uid)
+    if not normalized_uid:
+        raise HTTPException(status_code=400, detail="uid is required.")
+
+    stripe_api = _require_stripe()
+    student_billing = _read_student_billing(normalized_uid)
+    stored_subscription = student_billing.get("subscription") if isinstance(student_billing.get("subscription"), dict) else {}
+    customer_id = _string(student_billing.get("stripe_customer_id"))
+    subscription_id = _string(stripe_subscription_id) or _string(stored_subscription.get("stripe_subscription_id"))
+
+    subscription = None
+    if subscription_id:
+        subscription = stripe_api.Subscription.retrieve(subscription_id, expand=["items.data.price"])
+    elif customer_id:
+        listing = stripe_api.Subscription.list(customer=customer_id, status="all", limit=10, expand=["data.items.data.price"])
+        candidates = list(_obj_get(listing, "data", []) or [])
+        if candidates:
+            priority = {"active": 0, "trialing": 1, "past_due": 2, "unpaid": 3, "canceled": 4, "incomplete": 5, "incomplete_expired": 6}
+            candidates.sort(key=lambda item: (priority.get((_string(_obj_get(item, "status")) or "").lower(), 99), -int(_obj_get(item, "created") or 0)))
+            subscription = candidates[0]
+
+    if subscription is None:
+        raise HTTPException(status_code=404, detail="No Stripe subscription could be found for that student.")
+
+    resolved_uid = _sync_subscription(subscription, uid_hint=normalized_uid) or normalized_uid
+    refreshed_billing = _read_student_billing(resolved_uid)
+    return {
+        "uid": resolved_uid,
+        "subscription_id": _extract_id(subscription),
+        "provider_status": _string(_obj_get(subscription, "status")),
+        "billing": build_billing_summary(resolved_uid),
+        "subscription": refreshed_billing.get("subscription"),
+    }
