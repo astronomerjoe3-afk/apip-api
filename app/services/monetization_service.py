@@ -84,6 +84,20 @@ def _normalized_role(role: Optional[str]) -> str:
 
 
 
+def _normalize_module_unlock_offer(doc: Dict[str, Any]) -> Dict[str, Any]:
+    row = dict(doc)
+    kind = str(row.get("kind") or "module_unlock").strip().lower()
+    if kind != "module_unlock":
+        return row
+
+    row["kind"] = "module_unlock"
+    row["title"] = "Unlock this module for 1 month"
+    row["description"] = "One-time purchase for 1 month of access to a single premium module."
+    row["access_duration_days"] = MODULE_UNLOCK_ACCESS_DAYS
+    return row
+
+
+
 def _pricing_doc_with_labels(doc: Dict[str, Any]) -> Dict[str, Any]:
     row = dict(doc)
     amount_cents = int(row.get("amount_cents") or 0)
@@ -137,7 +151,9 @@ def get_billing_catalog() -> Dict[str, Any]:
         docs = {}
 
     module_unlock = _pricing_doc_with_labels(
-        docs.get("module_unlock_default") or defaults["module_unlock_default"]
+        _normalize_module_unlock_offer(
+            docs.get("module_unlock_default") or defaults["module_unlock_default"]
+        )
     )
 
     subscription_rows: List[Dict[str, Any]] = []
@@ -154,7 +170,7 @@ def get_billing_catalog() -> Dict[str, Any]:
         module_id = str(doc.get("module_id") or doc_id.replace("module_", "", 1)).strip()
         if not module_id:
             continue
-        module_overrides[module_id] = _pricing_doc_with_labels(doc)
+        module_overrides[module_id] = _pricing_doc_with_labels(_normalize_module_unlock_offer(doc))
 
     return {
         "module_unlock_default": module_unlock,
