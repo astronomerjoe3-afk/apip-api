@@ -355,12 +355,19 @@ def _sync_subscription(subscription: Any, uid_hint: Optional[str] = None) -> Opt
     price_id = _extract_id(_obj_get(first_item, "price"))
     raw_status = (_string(_obj_get(subscription, "status")) or "inactive").lower()
     stored_status = "grace_period" if raw_status == "past_due" else raw_status
+    period_end_value = _obj_get(subscription, "current_period_end") or _obj_get(first_item, "current_period_end")
+    period_start_value = (
+        _obj_get(subscription, "start_date")
+        or _obj_get(subscription, "current_period_start")
+        or _obj_get(first_item, "current_period_start")
+        or _obj_get(subscription, "created")
+    )
     subscription_row = {
         "status": stored_status,
         "provider_status": raw_status,
         "plan_id": _string(metadata.get("plan_id")) or _plan_id_from_price_id(price_id),
-        "ends_utc": _unix_to_iso(_obj_get(subscription, "current_period_end")),
-        "started_utc": _unix_to_iso(_obj_get(subscription, "start_date") or _obj_get(subscription, "created")),
+        "ends_utc": _unix_to_iso(period_end_value),
+        "started_utc": _unix_to_iso(period_start_value),
         "stripe_subscription_id": _extract_id(subscription),
         "stripe_price_id": price_id,
         "stripe_customer_id": customer_id,
