@@ -483,6 +483,134 @@ def build_billing_summary(uid: str, role: Optional[str] = None) -> Dict[str, Any
     }
 
 
+
+def _subscription_return_url(origin: Optional[str], return_path: Optional[str]) -> str:
+    return _merge_query(_app_url(origin, return_path, "/student"), billing="return")
+
+def _plan_priority(plan_id: Optional[str]) -> int:
+    return {
+        "premium_monthly": 1,
+        "premium_six_month": 2,
+        "premium_yearly": 3,
+    }.get(_string(plan_id) or "", 0)
+
+
+def _subscription_item_id(subscription: Any) -> Optional[str]:
+    items = _obj_get(_obj_get(subscription, "items"), "data", [])
+    if not isinstance(items, list) or not items:
+        return None
+    return _extract_id(items[0])
+
+
+def _retrieve_subscription(subscription_id: Optional[str]) -> Optional[Any]:
+    normalized_subscription_id = _string(subscription_id)
+    if not normalized_subscription_id:
+        return None
+
+    stripe_api = _require_stripe()
+    try:
+        return stripe_api.Subscription.retrieve(
+            normalized_subscription_id,
+            expand=["items.data.price"],
+        )
+    except Exception:
+        return None
+
+
+def _active_subscription_for_customer(customer_id: str, subscription_id_hint: Optional[str] = None) -> Optional[Any]:
+    hinted = _retrieve_subscription(subscription_id_hint)
+    if _string(_obj_get(hinted, "status")) in ACTIVE_SUBSCRIPTION_STATUSES:
+        return hinted
+
+    stripe_api = _require_stripe()
+    subscriptions = stripe_api.Subscription.list(
+        customer=customer_id,
+        status="all",
+        limit=10,
+        expand=["data.items.data.price"],
+    )
+    for subscription in _obj_get(subscriptions, "data", []) or []:
+        if _string(_obj_get(subscription, "status")) in ACTIVE_SUBSCRIPTION_STATUSES:
+            return subscription
+    return hinted
+
+
+def _create_billing_portal_session(
+    *,
+    customer_id: str,
+    origin: Optional[str],
+    return_path: Optional[str],
+    flow_data: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    stripe_api = _require_stripe()
+    params: Dict[str, Any] = {
+        "customer": customer_id,
+        "return_url": _subscription_return_url(origin, return_path),
+    }
+    if flow_data:
+        params["flow_data"] = flow_data
+
+    session = stripe_api.billing_portal.Session.create(**params)
+    return {
+        "checkout_url": _string(_obj_get(session, "url")),
+        "session_id": _extract_id(session),
+    }
+
+
+def _create_subscription_management_session(
+    *,
+    customer_id: str,
+    requested_plan_id: str,
+    current_plan_id: Optional[str],
+    student_billing: Dict[str, Any],
+    origin: Optional[str],
+    return_path: Optional[str],
+) -> Dict[str, Any]:
+    subscription_row = student_billing.get("subscription") if isinstance(student_billing.get("subscription"), dict) else {}
+    subscription = _active_subscription_for_customer(
+        customer_id,
+        _string(subscription_row.get("stripe_subscription_id")),
+    )
+
+    if _plan_priority(requested_plan_id) > _plan_priority(current_plan_id) and subscription is not None:
+        subscription_id = _extract_id(subscription)
+        subscription_item_id = _subscription_item_id(subscription)
+        requested_price_id = _plan_price_id(requested_plan_id)
+        if subscription_id and subscription_item_id and requested_price_id:
+            redirect_url = _subscription_return_url(origin, return_path)
+            try:
+                return _create_billing_portal_session(
+                    customer_id=customer_id,
+                    origin=origin,
+                    return_path=return_path,
+                    flow_data={
+                        "type": "subscription_update_confirm",
+                        "after_completion": {
+                            "type": "redirect",
+                            "redirect": {"return_url": redirect_url},
+                        },
+                        "subscription_update_confirm": {
+                            "subscription": subscription_id,
+                            "items": [
+                                {
+                                    "id": subscription_item_id,
+                                    "price": requested_price_id,
+                                    "quantity": 1,
+                                }
+                            ],
+                        },
+                    },
+                )
+            except Exception:
+                pass
+
+    return _create_billing_portal_session(
+        customer_id=customer_id,
+        origin=origin,
+        return_path=return_path,
+    )
+
+
 def create_checkout_session_for_student(
     *,
     uid: str,
@@ -550,7 +678,14 @@ def create_checkout_session_for_student(
 
         entitlements = get_student_entitlements(uid)
         if entitlements.get("has_active_subscription"):
-            raise HTTPException(status_code=409, detail="Your subscription is already active. Use manage billing instead.")
+            return _create_subscription_management_session(
+                customer_id=customer_id,
+                requested_plan_id=normalized_plan_id,
+                current_plan_id=_string(entitlements.get("active_subscription_plan_id")),
+                student_billing=_read_student_billing(uid),
+                origin=origin,
+                return_path=success_path or "/student",
+            )
 
         price_id = _plan_price_id(normalized_plan_id)
         if not price_id:
@@ -585,15 +720,15 @@ def create_portal_session_for_student(
     origin: Optional[str] = None,
     return_path: Optional[str] = None,
 ) -> Dict[str, Any]:
-    stripe_api = _require_stripe()
     customer_id = _ensure_customer(uid, email)
-    session = stripe_api.billing_portal.Session.create(
-        customer=customer_id,
-        return_url=_merge_query(_app_url(origin, return_path, "/student"), billing="return"),
+    portal = _create_billing_portal_session(
+        customer_id=customer_id,
+        origin=origin,
+        return_path=return_path,
     )
     return {
-        "portal_url": _string(_obj_get(session, "url")),
-        "session_id": _extract_id(session),
+        "portal_url": portal.get("checkout_url"),
+        "session_id": portal.get("session_id"),
     }
 
 
