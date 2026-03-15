@@ -18,7 +18,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M1_MODULE_ID = "M1"
-M1_CONTENT_VERSION = "20260315_m1_quest_log_v2"
+M1_CONTENT_VERSION = "20260315_m1_quest_log_v3"
 M1_ALLOWLIST = [
     "distance_time_story_confusion",
     "graph_shape_path_confusion",
@@ -35,7 +35,7 @@ M1_ALLOWLIST = [
 ]
 M1_SPEC = json.loads(r'''
 {
-  "module_description": "Module 1 is the first true kinematics leap after the foundation strand. Through the Quest-Log model, students separate the lane where motion happens from the log that records it, then use that distinction to reason about graph meaning, acceleration, constant-acceleration equations, gradient, and area with much stronger conceptual control than in F2.",
+  "module_description": "Module 1 uses Quest-Log to connect motion, graphs, acceleration, and constant acceleration: the lane is where motion happens, and the log is how it is recorded.",
   "mastery_outcomes": [
     "Explain why the quest lane is the motion world while the mission log is the graph world.",
     "Read progress logs conceptually and use gradient on a distance-time graph as pace.",
