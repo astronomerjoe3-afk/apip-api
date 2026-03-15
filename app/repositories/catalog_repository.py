@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
@@ -48,7 +48,14 @@ def get_modules(curriculum_id: Optional[str] = None) -> List[Dict[str, Any]]:
     if curriculum_id:
         query = where_eq(query, "curriculum_id", curriculum_id)
     docs = list(query.stream())
-    return [_with_id(d) for d in docs]
+    modules = [_with_id(d) for d in docs]
+    modules.sort(
+        key=lambda row: (
+            _safe_int(row.get("sequence")),
+            str(row.get("title") or row.get("module_id") or row.get("id") or "").lower(),
+        )
+    )
+    return modules
 
 
 def get_module_by_id(module_id: str) -> Optional[Dict[str, Any]]:
@@ -218,3 +225,4 @@ def get_sim_lab(lab_id: str) -> Optional[Dict[str, Any]]:
 
 def get_simulation_lab(lab_id: str) -> Optional[Dict[str, Any]]:
     return get_sim_lab_by_id(lab_id)
+

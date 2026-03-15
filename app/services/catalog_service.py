@@ -15,8 +15,30 @@ from app.repositories.catalog_repository import (
     list_lessons_for_module_unordered,
     list_modules,
 )
+from app.services.catalog_bootstrap import CATALOG_MODULES, ensure_catalog_seeded
 from app.services.content_normalizer import to_student_lesson_view, to_student_lessons_view
 from app.services.monetization_service import enrich_module_for_student
+
+
+_BOOTSTRAP_MODULE_IDS = {
+    str(module.get("module_id") or "").strip()
+    for module in CATALOG_MODULES
+    if str(module.get("module_id") or "").strip()
+}
+
+
+def _retry_seeded_modules_if_missing(modules: List[Dict[str, Any]], curriculum_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    returned_ids = {
+        str(module.get("id") or module.get("module_id") or "").strip()
+        for module in modules
+        if str(module.get("id") or module.get("module_id") or "").strip()
+    }
+    missing_seeded_modules = _BOOTSTRAP_MODULE_IDS - returned_ids
+    if not missing_seeded_modules:
+        return modules
+
+    ensure_catalog_seeded()
+    return list_modules(curriculum_id=curriculum_id)
 
 
 def fetch_curricula() -> List[Dict[str, Any]]:
@@ -24,11 +46,16 @@ def fetch_curricula() -> List[Dict[str, Any]]:
 
 
 def fetch_modules(curriculum_id: Optional[str] = None, uid: Optional[str] = None, role: Optional[str] = None) -> List[Dict[str, Any]]:
-    return [enrich_module_for_student(module, uid, role=role) for module in list_modules(curriculum_id=curriculum_id)]
+    modules = list_modules(curriculum_id=curriculum_id)
+    modules = _retry_seeded_modules_if_missing(modules, curriculum_id=curriculum_id)
+    return [enrich_module_for_student(module, uid, role=role) for module in modules]
 
 
 def fetch_module(module_id: str, uid: Optional[str] = None, role: Optional[str] = None) -> Dict[str, Any]:
     module = get_module_by_id(module_id)
+    if not module and module_id in _BOOTSTRAP_MODULE_IDS:
+        ensure_catalog_seeded()
+        module = get_module_by_id(module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
     return enrich_module_for_student(module, uid, role=role)
