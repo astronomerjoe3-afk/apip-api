@@ -18,7 +18,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M1_MODULE_ID = "M1"
-M1_CONTENT_VERSION = "20260315_m1_motion_extended_v1"
+M1_CONTENT_VERSION = "20260315_m1_quest_log_v2"
 M1_ALLOWLIST = [
     "distance_time_story_confusion",
     "graph_shape_path_confusion",
@@ -35,14 +35,14 @@ M1_ALLOWLIST = [
 ]
 M1_SPEC = json.loads(r'''
 {
-  "module_description": "The first core motion module lifts students from foundational travel stories into extended graph interpretation, constant-acceleration modeling, and representation switching. Students do not just compute values; they explain why each graph feature means what it means and when a motion equation is valid.",
+  "module_description": "Module 1 is the first true kinematics leap after the foundation strand. Through the Quest-Log model, students separate the lane where motion happens from the log that records it, then use that distinction to reason about graph meaning, acceleration, constant-acceleration equations, gradient, and area with much stronger conceptual control than in F2.",
   "mastery_outcomes": [
-    "Read distance-time graphs as motion stories and use gradient as speed.",
-    "Read speed-time graphs as changing-speed records and connect slope to change rate.",
-    "Interpret acceleration as the rate of change of velocity with sign and direction reasoning.",
-    "Choose and use constant-acceleration equations deliberately rather than by pattern matching.",
-    "Explain why graph gradient means different things on different motion graphs.",
-    "Use area under a speed-time graph to synthesize distance, graph shape, and motion story."
+    "Explain why the quest lane is the motion world while the mission log is the graph world.",
+    "Read progress logs conceptually and use gradient on a distance-time graph as pace.",
+    "Read pace logs conceptually and connect graph slope to acceleration or deceleration.",
+    "Interpret acceleration as a signed rate of velocity change, not a synonym for going faster.",
+    "Choose and justify constant-acceleration equations from the motion story instead of by pattern matching.",
+    "Use area under a speed-time graph as accumulated distance and compare different motion stories with the same total area."
   ],
   "lessons": [
     {
@@ -51,7 +51,7 @@ M1_SPEC = json.loads(r'''
       "sim": {
         "lab_id": "m1_distance_time_story_lab",
         "title": "Distance-time story explorer",
-        "description": "Use the Motion Control Wall route log to compare graph height, graph steepness, and pauses so students read the graph as a running record of motion rather than as the shape of a road.",
+        "description": "Use the Quest-Log lane and mission log together so students keep the motion world separate from the graph world and stop reading the graph as the shape of the route.",
         "instructions": [
           "Build one journey with a steady section, a pause, and a second steady section.",
           "Compare two segments with the same height change but different time widths.",
@@ -70,11 +70,11 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of graph-story comparisons that correctly separate graph height from gradient meaning"
       },
-      "analogy_text": "The Motion Control Wall begins with a route log: every new metre traveled makes the log climb. The line is not a picture of the road itself; it is the running record of total distance added over time.",
+      "analogy_text": "In the Quest-Log model, the avatar moves on a quest lane while a separate mission log records the progress score at each equal clock beat. The lane is where motion happens; the log is how motion is recorded.",
       "commitment_prompt": "Before you answer, decide whether the graph is recording total distance or drawing the shape of the path.",
       "micro_prompts": [
         {
-          "prompt": "Compare graph height with graph steepness on the route log.",
+          "prompt": "Compare the quest lane with the mission log, then compare graph height with graph steepness on the mission log.",
           "hint": "Height tells the recorded distance by that time; steepness tells how quickly distance is being added."
         },
         {
@@ -383,13 +383,13 @@ M1_SPEC = json.loads(r'''
           }
         ],
         "analogy_map": {
-          "comparison": "A route log on the Motion Control Wall stands for a distance-time graph.",
+          "comparison": "The quest lane is the motion world, while the mission log stands for a distance-time graph.",
           "mapping": [
             "The log height stands for the total distance recorded by that time.",
             "The steepness of the log stands for how quickly distance is being added, which is the speed."
           ],
           "limit": "The graph is not a map of hills, bends, or route shape; it only records how distance changes with time.",
-          "prediction_prompt": "If the route log stops rising for 5 s, what motion story should the graph tell?"
+          "prediction_prompt": "If the mission log goes flat for three clock beats while the lane still exists, what must the avatar be doing?"
         },
         "worked_examples": [
           {
@@ -452,7 +452,7 @@ M1_SPEC = json.loads(r'''
       "sim": {
         "lab_id": "m1_speed_time_story_lab",
         "title": "Speed-time change explorer",
-        "description": "Use the Motion Control Wall speed strip to compare graph height, upward slope, downward slope, and flat sections so students read changing speed correctly.",
+        "description": "Use the Quest-Log pace log to keep speed-now and change-of-speed separate, so graph height and graph slope stop collapsing into one idea.",
         "instructions": [
           "Build one graph with a flat section, one with a gentle rise, and one with a steep rise.",
           "Compare a downward slope with a reverse-motion guess.",
@@ -471,11 +471,11 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of speed-time graph stories explained using both height and slope correctly"
       },
-      "analogy_text": "The Motion Control Wall speed strip records the current speed at each moment. Its height is the speed now; its slope tells whether that speed is being held, raised, or lowered.",
+      "analogy_text": "The Quest-Log pace log records the avatar's pace meter beat by beat. Its height tells the speed now, while its slope tells whether the pace is being held, boosted, or reduced.",
       "commitment_prompt": "Before you interpret the graph, decide whether you are reading the speed level or the way the speed level is changing.",
       "micro_prompts": [
         {
-          "prompt": "Compare graph height with graph slope on the speed strip.",
+          "prompt": "Compare pace-log height with pace-log slope before you describe the motion story.",
           "hint": "Height tells current speed; slope tells how speed is changing."
         },
         {
@@ -700,7 +700,7 @@ M1_SPEC = json.loads(r'''
             "The object covers the same distance each second all the way through."
           ],
           "answer_index": 0,
-          "hint": "Compare how quickly the speed strip climbs in each section.",
+          "hint": "Compare how quickly the pace log climbs in each section and keep that separate from the pace value itself.",
           "tags": [
             "speed_time_story_confusion",
             "acceleration_rate_confusion"
@@ -787,13 +787,13 @@ M1_SPEC = json.loads(r'''
           }
         ],
         "analogy_map": {
-          "comparison": "A speed strip on the Motion Control Wall stands for a speed-time graph.",
+          "comparison": "The pace log in Quest-Log stands for a speed-time graph.",
           "mapping": [
             "The height of the strip stands for the current speed.",
             "The tilt of the strip stands for how quickly the speed is changing."
           ],
           "limit": "The graph does not show direction automatically, so a downward slope means slowing down, not reverse travel by itself.",
-          "prediction_prompt": "If the speed strip keeps the same height for 6 s, what kind of motion story should the graph tell?"
+          "prediction_prompt": "If the pace log stays horizontal at 6 units for five beats, what should the avatar's motion be like on the lane?"
         },
         "worked_examples": [
           {
@@ -856,7 +856,7 @@ M1_SPEC = json.loads(r'''
       "sim": {
         "lab_id": "m1_acceleration_rate_lab",
         "title": "Acceleration rate explorer",
-        "description": "Use the Motion Control Wall change-rate dial to compare velocity changes with time so acceleration is treated as a change story with sign and direction, not as a synonym for going faster.",
+        "description": "Use signed pace arrows and boost shift so acceleration becomes a directional rate of velocity change rather than a vague idea of getting faster.",
         "instructions": [
           "Compare one case that speeds up in the positive direction with one that slows down in that direction.",
           "Reverse the direction convention and explain how the sign changes.",
@@ -875,7 +875,7 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of acceleration cases explained using signed velocity change rather than a speed-only rule"
       },
-      "analogy_text": "The Motion Control Wall change-rate dial does not ask how big the speed is. It asks how the velocity arrow changes from one moment to the next, including whether the change points with or against the chosen positive direction.",
+      "analogy_text": "Quest-Log's boost shift compares the pace arrow from one beat to the next. It tracks how the signed velocity changes over time, so the sign comes from the chosen positive direction, not from a guess about whether the avatar feels faster.",
       "commitment_prompt": "Before deciding whether acceleration is positive, negative, or zero, choose the positive direction and compare the final velocity with the initial velocity.",
       "micro_prompts": [
         {
@@ -1186,13 +1186,13 @@ M1_SPEC = json.loads(r'''
           }
         ],
         "analogy_map": {
-          "comparison": "A change-rate dial on the Motion Control Wall stands for acceleration.",
+          "comparison": "The pace arrow stands for velocity, and boost shift stands for acceleration.",
           "mapping": [
             "The initial and final velocity arrows stand for the start and end motion states.",
             "The dial direction stands for the direction of the velocity change, which is the acceleration sign."
           ],
           "limit": "Acceleration is not just a feeling of getting faster; the model is only useful when the signed velocity change is tracked carefully.",
-          "prediction_prompt": "If the velocity arrow keeps the same size and direction for 5 s, what should the change-rate dial read?"
+          "prediction_prompt": "If the avatar is moving west but the boost shift points east, what can happen to the speed?"
         },
         "worked_examples": [
           {
@@ -1255,7 +1255,7 @@ M1_SPEC = json.loads(r'''
       "sim": {
         "lab_id": "m1_suvat_console_lab",
         "title": "Constant-acceleration equation explorer",
-        "description": "Use the Motion Control Wall forecast console to choose equations deliberately, compare which variable is missing, and test the constant-acceleration condition before calculating.",
+        "description": "Use the Quest-Log forecast board to choose equations from the motion story, but only after checking that the boost shift stays constant.",
         "instructions": [
           "Choose one case where final speed is unknown and one where time is unknown.",
           "Compare a constant-acceleration case with a changing-acceleration story.",
@@ -1274,7 +1274,7 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of motion stories correctly matched to an appropriate constant-acceleration equation"
       },
-      "analogy_text": "The Motion Control Wall forecast console works only when one clear rule is holding: the acceleration stays constant. Then each console screen becomes a different way to predict the motion, depending on which variable is missing from the story.",
+      "analogy_text": "The Quest-Log forecast board works only when the avatar keeps the same boost shift from beat to beat. Then the motion equations are summaries of a steady block of starting pace plus a triangular build of extra pace.",
       "commitment_prompt": "Before choosing an equation, decide whether the acceleration is constant and which variable the question does not need.",
       "micro_prompts": [
         {
@@ -1602,7 +1602,7 @@ M1_SPEC = json.loads(r'''
           }
         ],
         "analogy_map": {
-          "comparison": "A forecast console on the Motion Control Wall stands for the set of constant-acceleration equations.",
+          "comparison": "The Quest-Log forecast board stands for the set of constant-acceleration equations.",
           "mapping": [
             "Each console screen stands for a different equation that leaves out one variable.",
             "The steady system setting stands for the constant-acceleration condition that must remain true before a prediction is valid."
@@ -1671,7 +1671,7 @@ M1_SPEC = json.loads(r'''
       "sim": {
         "lab_id": "m1_gradient_context_lab",
         "title": "Gradient meaning explorer",
-        "description": "Use the Motion Control Wall slope gauge to compare equal tilts on different graph screens so students see that gradient meaning depends on the axes, not on steepness alone.",
+        "description": "Lay the same tilt across a progress log and a pace log so students learn that slope meaning comes from the axes, not from steepness alone.",
         "instructions": [
           "Place the same tilt on a distance-time screen and a speed-time screen.",
           "Compare a high but shallow graph segment with a low but steep one.",
@@ -1690,7 +1690,7 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of cross-graph comparisons that correctly explain what the same gradient means on each graph type"
       },
-      "analogy_text": "The Motion Control Wall slope gauge measures tilt, but the screen behind it decides what that tilt means. On the route log, tilt means speed. On the speed strip, tilt means acceleration. The same steepness can therefore tell a different physics story on a different graph.",
+      "analogy_text": "Quest-Log uses two logs: the progress log and the pace log. The same slope gauge can sit on both, but the axes decide the meaning. On the progress log it reads pace; on the pace log it reads boost shift.",
       "commitment_prompt": "Before you interpret a slope, say which graph the slope belongs to and what the axes represent.",
       "micro_prompts": [
         {
@@ -2016,13 +2016,13 @@ M1_SPEC = json.loads(r'''
           }
         ],
         "analogy_map": {
-          "comparison": "A slope gauge laid over different Motion Control Wall screens stands for gradient interpretation across graph types.",
+          "comparison": "One slope gauge laid over different Quest-Log screens stands for gradient interpretation across graph types.",
           "mapping": [
             "The same tilt stands for the same mathematical idea of rise/run.",
             "The screen beneath it stands for the graph axes that decide whether the tilt means speed or acceleration."
           ],
           "limit": "The same visual steepness does not guarantee the same physical quantity; you must inspect the graph axes before interpreting the slope.",
-          "prediction_prompt": "If the slope gauge reads zero on a distance-time screen and then on a speed-time screen, what different motion stories should result?"
+          "prediction_prompt": "If the same tilt is placed on a progress log and then on a pace log, what two different motion meanings should appear?"
         },
         "worked_examples": [
           {
@@ -2085,7 +2085,7 @@ M1_SPEC = json.loads(r'''
       "sim": {
         "lab_id": "m1_area_motion_synthesis_lab",
         "title": "Area and motion synthesis explorer",
-        "description": "Use the Motion Control Wall distance accumulator to build rectangle, triangle, and trapezium areas under a speed-time graph and connect them to total distance and complete motion stories.",
+        "description": "Use the Quest-Log pace log as accumulated progress strips so area becomes total distance, not just a shape under a graph.",
         "instructions": [
           "Create one rectangular area, one triangular area, and one mixed journey with both.",
           "Compare two different speed-time graphs that have the same total area.",
@@ -2104,7 +2104,7 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of speed-time graph areas correctly turned into distance and matched back to a motion story"
       },
-      "analogy_text": "The Motion Control Wall distance accumulator collects motion strips like area tiles. A wide strip adds distance because motion continues for time; a tall strip adds distance because the speed is larger. Total distance is the whole filled area under the speed-time graph.",
+      "analogy_text": "In Quest-Log, every strip under the pace log is progress earned during one beat of the mission clock. Add the strips and you get the total progress, so the whole shaded area under a speed-time graph becomes distance traveled.",
       "commitment_prompt": "Before you calculate, decide whether the graph question is asking for a slope meaning or an area meaning.",
       "micro_prompts": [
         {
@@ -2426,7 +2426,7 @@ M1_SPEC = json.loads(r'''
           }
         ],
         "analogy_map": {
-          "comparison": "A distance accumulator made of area tiles on the Motion Control Wall stands for area under a speed-time graph.",
+          "comparison": "The shaded region under the Quest-Log pace log stands for accumulated distance traveled.",
           "mapping": [
             "Tile height stands for speed and tile width stands for time.",
             "The total filled area stands for the total distance built across the whole motion interval."
@@ -2459,7 +2459,7 @@ M1_SPEC = json.loads(r'''
         "visual_assets": [
           {
             "asset_id": "m1-l6-area.svg",
-            "purpose": "Show rectangle, triangle, and trapezium areas under one speed-time graph feeding into a total-distance accumulator.",
+            "purpose": "Show shaded strips, rectangle-plus-triangle decomposition, and a same-area comparison within the Quest-Log world.",
             "caption": "The accumulator picture makes total distance feel like built area rather than a guessed number."
           }
         ],
@@ -2570,13 +2570,13 @@ RELEASE_CHECKS = [
 
 M1_MODULE_DOC, _LESSONS, _SIMS = build_nextgen_module_scaffold(
     M1_MODULE_ID,
-    "Motion",
+    "Kinematics, Graphs & Constant Acceleration",
     M1_SPEC["module_description"],
     [lesson["title"] for lesson in M1_SPEC["lessons"]],
     M1_ALLOWLIST,
     sequence=5,
     level="Module 1",
-    estimated_minutes=180,
+    estimated_minutes=210,
 )
 M1_MODULE_DOC.update({
     "content_version": M1_CONTENT_VERSION,
