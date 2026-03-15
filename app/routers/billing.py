@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request
 
 from app.audit import write_audit_log
-from app.common import get_client_ip
+from app.common import get_client_ip, normalize_module_id
 from app.dependencies import require_admin, require_authenticated_user
 from app.schemas.billing import AdminSubscriptionResyncRequest, CheckoutConfirmRequest, CheckoutSessionRequest, PortalSessionRequest
 from app.services.billing_service import (
@@ -43,12 +43,13 @@ def create_checkout_session(
     request: Request,
     user=Depends(require_authenticated_user),
 ):
+    normalized_module_id = normalize_module_id(payload.module_id)
     result = create_checkout_session_for_student(
         uid=(user or {}).get("uid"),
         email=(user or {}).get("email"),
         role=(user or {}).get("role"),
         purchase_kind=payload.purchase_kind,
-        module_id=payload.module_id,
+        module_id=normalized_module_id,
         plan_id=payload.plan_id,
         origin=payload.origin,
         success_path=payload.success_path,
@@ -67,7 +68,7 @@ def create_checkout_session(
         user_agent=request.headers.get("User-Agent"),
         details={
             "purchase_kind": payload.purchase_kind,
-            "module_id": payload.module_id,
+            "module_id": normalized_module_id,
             "plan_id": payload.plan_id,
             "session_id": result.get("session_id"),
         },
@@ -81,11 +82,12 @@ def confirm_checkout_session(
     request: Request,
     user=Depends(require_authenticated_user),
 ):
+    normalized_module_id = normalize_module_id(payload.module_id)
     result = confirm_checkout_session_for_student(
         uid=(user or {}).get("uid"),
         role=(user or {}).get("role"),
         session_id=payload.session_id,
-        module_id=payload.module_id,
+        module_id=normalized_module_id,
     )
     write_audit_log(
         event_type="billing.checkout_session.confirm",
@@ -98,7 +100,7 @@ def confirm_checkout_session(
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={"session_id": payload.session_id, "module_id": payload.module_id},
+        details={"session_id": payload.session_id, "module_id": normalized_module_id},
     )
     return {"ok": True, **result}
 

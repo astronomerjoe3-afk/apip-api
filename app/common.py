@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime, timezone
 from typing import Any, List, Optional
 
@@ -73,3 +74,16 @@ def parse_iso_utc(s: Any) -> float:
         return datetime.fromisoformat(str(s)).timestamp()
     except Exception:
         return 0.0
+
+
+def normalize_module_id(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    collapsed = re.sub(r"[^A-Za-z0-9]+", "", raw).upper()
+    if collapsed in {"1", "M1", "MODULE1"}:
+        return "M1"
+    if collapsed in {"F1", "F2", "F3", "F4"}:
+        return collapsed
+    return raw

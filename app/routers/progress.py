@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 
 from app.audit import write_audit_log
-from app.common import get_client_ip, utc_now
+from app.common import get_client_ip, normalize_module_id, utc_now
 from app.dependencies import require_authenticated_user
 from app.schemas.progress import ProgressEventIn, ProgressEventWriteResponse, ProgressMeResponse
 from app.services.monetization_service import require_module_access
@@ -19,14 +19,15 @@ def post_progress_event(
     user=Depends(require_authenticated_user),
     payload: ProgressEventIn = Body(...),
 ):
+    normalized_module_id = normalize_module_id(module_id)
     uid = (user or {}).get("uid")
     if not uid:
         raise HTTPException(status_code=401, detail="Missing uid")
 
-    require_module_access(uid, module_id, role=(user or {}).get("role"))
+    require_module_access(uid, normalized_module_id, role=(user or {}).get("role"))
     result = process_progress_event(
         uid=uid,
-        module_id=module_id,
+        module_id=normalized_module_id,
         payload=payload.model_dump(),
         request_id=getattr(request.state, "request_id", None),
     )
@@ -37,14 +38,14 @@ def post_progress_event(
         actor_email=(user or {}).get("email"),
         role=(user or {}).get("role"),
         key_id=None,
-        path=f"/progress/{module_id}/event",
+        path=f"/progress/{normalized_module_id}/event",
         method="POST",
         status=200,
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
         details={
-            "module_id": module_id,
+            "module_id": normalized_module_id,
             "event_id": result["event_id"],
             "stored_event": result["stored_event"],
         },

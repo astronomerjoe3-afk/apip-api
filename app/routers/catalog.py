@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 
 from app.audit import write_audit_log
-from app.common import get_client_ip
+from app.common import get_client_ip, normalize_module_id
 from app.dependencies import require_authenticated_user
 from app.schemas.catalog import (
     CurriculaResponse,
@@ -48,27 +48,29 @@ def get_modules(
 
 @router.get("/modules/{module_id}", response_model=ModuleResponse)
 def get_module(module_id: str, user=Depends(require_authenticated_user)):
-    module = fetch_module(module_id, uid=(user or {}).get("uid"), role=(user or {}).get("role"))
+    normalized_module_id = normalize_module_id(module_id)
+    module = fetch_module(normalized_module_id, uid=(user or {}).get("uid"), role=(user or {}).get("role"))
     return {"ok": True, "module": module}
 
 
 @router.get("/modules/{module_id}/lessons", response_model=StudentLessonsResponse)
 def get_module_lessons(module_id: str, request: Request, user=Depends(require_authenticated_user)):
-    require_module_access((user or {}).get("uid"), module_id, role=(user or {}).get("role"))
-    lessons, warnings = fetch_module_lessons(module_id)
+    normalized_module_id = normalize_module_id(module_id)
+    require_module_access((user or {}).get("uid"), normalized_module_id, role=(user or {}).get("role"))
+    lessons, warnings = fetch_module_lessons(normalized_module_id)
 
     write_audit_log(
         event_type="catalog.module_lessons.read",
         actor_uid=(user or {}).get("uid"),
         actor_email=(user or {}).get("email"),
         role=(user or {}).get("role"),
-        path=f"/modules/{module_id}/lessons",
+        path=f"/modules/{normalized_module_id}/lessons",
         method="GET",
         status=200,
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={"module_id": module_id, "returned": len(lessons), "warnings": warnings},
+        details={"module_id": normalized_module_id, "returned": len(lessons), "warnings": warnings},
     )
 
     return {"ok": True, "lessons": lessons, "warnings": warnings}
@@ -81,8 +83,9 @@ def get_module_lesson(
     request: Request,
     user=Depends(require_authenticated_user),
 ):
-    require_module_access((user or {}).get("uid"), module_id, role=(user or {}).get("role"))
-    lesson = fetch_module_lesson(module_id, lesson_id)
+    normalized_module_id = normalize_module_id(module_id)
+    require_module_access((user or {}).get("uid"), normalized_module_id, role=(user or {}).get("role"))
+    lesson = fetch_module_lesson(normalized_module_id, lesson_id)
     normalized = lesson_id.replace("-", "_")
 
     write_audit_log(
@@ -90,13 +93,13 @@ def get_module_lesson(
         actor_uid=(user or {}).get("uid"),
         actor_email=(user or {}).get("email"),
         role=(user or {}).get("role"),
-        path=f"/modules/{module_id}/lessons/{lesson_id}",
+        path=f"/modules/{normalized_module_id}/lessons/{lesson_id}",
         method="GET",
         status=200,
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={"module_id": module_id, "lesson_id": normalized},
+        details={"module_id": normalized_module_id, "lesson_id": normalized},
     )
 
     return {"ok": True, "lesson": lesson}
