@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
 
-MONETIZATION_VERSION = "20260314_module_pass_v2"
+MONETIZATION_VERSION = "20260315_module_pass_v3"
 FREE_ACCESS_TIER = "free"
 PREMIUM_ACCESS_TIER = "premium"
 FREE_MODULE_IDS = {"F1"}
@@ -382,14 +382,26 @@ def ensure_monetization_seeded() -> bool:
 
     f1_tier = ""
     f2_tier = ""
+    f3_tier = ""
+    f4_tier = ""
+    m1_tier = ""
     f1_snap = db.collection("modules").document("F1").get()
     if f1_snap.exists:
         f1_tier = str((f1_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
     f2_snap = db.collection("modules").document("F2").get()
     if f2_snap.exists:
         f2_tier = str((f2_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
+    f3_snap = db.collection("modules").document("F3").get()
+    if f3_snap.exists:
+        f3_tier = str((f3_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
+    f4_snap = db.collection("modules").document("F4").get()
+    if f4_snap.exists:
+        f4_tier = str((f4_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
+    m1_snap = db.collection("modules").document("M1").get()
+    if m1_snap.exists:
+        m1_tier = str((m1_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
 
-    if version_matches and f1_tier == FREE_ACCESS_TIER and f2_tier == PREMIUM_ACCESS_TIER:
+    if version_matches and f1_tier == FREE_ACCESS_TIER and f2_tier == PREMIUM_ACCESS_TIER and f3_tier == PREMIUM_ACCESS_TIER and f4_tier == PREMIUM_ACCESS_TIER and m1_tier == PREMIUM_ACCESS_TIER:
         return False
 
     batch = db.batch()
@@ -426,6 +438,11 @@ def ensure_monetization_seeded() -> bool:
     )
     batch.set(
         db.collection("modules").document("F4"),
+        {"access_tier": PREMIUM_ACCESS_TIER},
+        merge=True,
+    )
+    batch.set(
+        db.collection("modules").document("M1"),
         {"access_tier": PREMIUM_ACCESS_TIER},
         merge=True,
     )
