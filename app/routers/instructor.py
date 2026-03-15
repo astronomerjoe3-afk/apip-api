@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Dict, List
 
@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from google.cloud import firestore
 
 from app.audit import write_audit_log
-from app.common import get_client_ip, is_missing_index_error, parse_iso_utc
+from app.common import get_client_ip, is_missing_index_error, normalize_module_id, parse_iso_utc
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
 from app.dependencies import require_instructor_or_admin
@@ -18,7 +18,6 @@ def _safe_dict(value: Any) -> Dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-
 @router.get("/instructor/module/{module_id}/students")
 def instructor_module_students(
     module_id: str,
@@ -27,6 +26,7 @@ def instructor_module_students(
     limit: int = Query(30, ge=1, le=200),
     max_events_per_student: int = Query(60, ge=10, le=200),
 ):
+    normalized_module_id = normalize_module_id(module_id)
     db = get_firestore_client()
     warnings: List[str] = []
 
@@ -65,7 +65,7 @@ def instructor_module_students(
 
         mp: Dict[str, Any] = {}
         try:
-            snap = db.collection("progress").document(uid).collection("modules").document(module_id).get()
+            snap = db.collection("progress").document(uid).collection("modules").document(normalized_module_id).get()
             mp = snap.to_dict() if snap.exists else {}
         except Exception as e:
             warnings.append(f"progress_read_failed:{uid}:{str(e)[:120]}")
@@ -85,7 +85,7 @@ def instructor_module_students(
         events: List[Dict[str, Any]] = []
         try:
             q = (
-                where_eq(where_eq(db.collection("progress_events"), "uid", uid), "module_id", module_id)
+                where_eq(where_eq(db.collection("progress_events"), "uid", uid), "module_id", normalized_module_id)
                 .order_by("utc", direction=firestore.Query.DESCENDING)
                 .limit(max_events_per_student)
             )
@@ -96,7 +96,7 @@ def instructor_module_students(
                 warnings.append(f"events_ordering_missing_index_fallback:{uid}:{str(e)[:160]}")
                 try:
                     q = (
-                        where_eq(where_eq(db.collection("progress_events"), "uid", uid), "module_id", module_id)
+                        where_eq(where_eq(db.collection("progress_events"), "uid", uid), "module_id", normalized_module_id)
                         .limit(max_events_per_student)
                     )
                     for ev in q.stream():
@@ -151,7 +151,7 @@ def instructor_module_students(
                 "uid": uid,
                 "email": s.get("email"),
                 "display_name": s.get("display_name"),
-                "module_id": module_id,
+                "module_id": normalized_module_id,
                 "mastery_score": float(mastery.get("score") or 0.0),
                 "readiness": readiness.get("state") or "not_ready",
                 "readiness_reason": readiness.get("reason") or "unknown",
@@ -175,13 +175,13 @@ def instructor_module_students(
         actor_uid=(user or {}).get("uid"),
         actor_email=(user or {}).get("email"),
         role=(user or {}).get("role"),
-        path=f"/instructor/module/{module_id}/students",
+        path=f"/instructor/module/{normalized_module_id}/students",
         method="GET",
         status=200,
         request_id=getattr(request.state, "request_id", None),
         ip=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
-        details={"module_id": module_id, "returned": len(rows), "warnings": warnings},
+        details={"module_id": normalized_module_id, "returned": len(rows), "warnings": warnings},
     )
 
-    return {"ok": True, "module_id": module_id, "students": rows, "warnings": warnings}
+    return {"ok": True, "module_id": normalized_module_id, "students": rows, "warnings": warnings}

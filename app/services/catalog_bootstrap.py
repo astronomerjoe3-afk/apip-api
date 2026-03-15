@@ -5,6 +5,7 @@ from typing import Iterable, Tuple
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
+from scripts.seed_f1_module import F1_CONTENT_VERSION, F1_LESSONS, F1_MODULE_DOC, F1_MODULE_ID, F1_SIM_LABS
 from scripts.seed_f2_module import F2_CONTENT_VERSION, F2_LESSONS, F2_MODULE_DOC, F2_MODULE_ID, F2_SIM_LABS
 from scripts.seed_f3_module import F3_CONTENT_VERSION, F3_LESSONS, F3_MODULE_DOC, F3_MODULE_ID, F3_SIM_LABS
 from scripts.seed_f4_module import F4_CONTENT_VERSION, F4_LESSONS, F4_MODULE_DOC, F4_MODULE_ID, F4_SIM_LABS
@@ -12,6 +13,13 @@ from scripts.seed_m1_module import M1_CONTENT_VERSION, M1_LESSONS, M1_MODULE_DOC
 
 
 CATALOG_MODULES = [
+    {
+        "module_id": F1_MODULE_ID,
+        "content_version": F1_CONTENT_VERSION,
+        "module_doc": F1_MODULE_DOC,
+        "lessons": F1_LESSONS,
+        "sim_labs": F1_SIM_LABS,
+    },
     {
         "module_id": F2_MODULE_ID,
         "content_version": F2_CONTENT_VERSION,

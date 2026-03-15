@@ -60,6 +60,7 @@ def print_preview(title: str, items: List[Tuple[str, str]]) -> None:
 # ----------------------------
 
 F1_MODULE_ID = "F1"
+F1_CONTENT_VERSION = "20260315_f1_foundations_v1"
 
 F1_ALLOWLIST = [
     "unit_conversion",
@@ -77,6 +78,7 @@ F1_ALLOWLIST = [
 
 F1_MODULE_DOC: Dict[str, Any] = {
     "module_id": F1_MODULE_ID,
+    "content_version": F1_CONTENT_VERSION,
     "title": "Physical Quantities & Measurement",
     "description": (
         "Foundations of measurement in physics: SI units and prefixes, scalars vs vectors, "

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
 
-from app.common import parse_iso_utc
+from app.common import normalize_module_id, parse_iso_utc
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
@@ -75,7 +75,7 @@ def _format_usd(amount_cents: int) -> str:
 
 
 def _module_id_from_row(module: Dict[str, Any]) -> str:
-    return str(module.get("id") or module.get("module_id") or "").strip()
+    return normalize_module_id(module.get("id") or module.get("module_id"))
 
 
 
@@ -167,7 +167,7 @@ def get_billing_catalog() -> Dict[str, Any]:
     for doc_id, doc in docs.items():
         if not doc_id.startswith("module_"):
             continue
-        module_id = str(doc.get("module_id") or doc_id.replace("module_", "", 1)).strip()
+        module_id = normalize_module_id(doc.get("module_id") or doc_id.replace("module_", "", 1))
         if not module_id:
             continue
         module_overrides[module_id] = _pricing_doc_with_labels(_normalize_module_unlock_offer(doc))
@@ -195,15 +195,16 @@ def _module_unlock_ids(student_billing: Dict[str, Any]) -> List[str]:
 
     if isinstance(unlocks, list):
         for value in unlocks:
-            if isinstance(value, str) and value.strip():
-                result.append(value.strip())
+            module_id = normalize_module_id(value)
+            if module_id:
+                result.append(module_id)
         return sorted(set(result))
 
     if not isinstance(unlocks, dict):
         return []
 
     for module_id, payload in unlocks.items():
-        module_key = str(module_id or "").strip()
+        module_key = normalize_module_id(module_id)
         if not module_key:
             continue
 
@@ -282,9 +283,10 @@ def module_access_tier(module: Dict[str, Any]) -> str:
 
 
 def module_offer_for_module(module_id: str) -> Dict[str, Any]:
+    normalized_module_id = normalize_module_id(module_id)
     catalog = get_billing_catalog()
     return dict(
-        catalog["module_overrides"].get(module_id) or catalog["module_unlock_default"]
+        catalog["module_overrides"].get(normalized_module_id) or catalog["module_unlock_default"]
     )
 
 
@@ -352,7 +354,8 @@ def enrich_module_for_student(module: Dict[str, Any], uid: Optional[str], role: 
 
 
 def require_module_access(uid: str, module_id: str, role: Optional[str] = None) -> Dict[str, Any]:
-    module = get_module_by_id(module_id)
+    normalized_module_id = normalize_module_id(module_id)
+    module = get_module_by_id(normalized_module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
 
@@ -360,11 +363,11 @@ def require_module_access(uid: str, module_id: str, role: Optional[str] = None) 
     if access.get("is_unlocked") is True:
         return enrich_module_for_student(module, uid, role=role)
 
-    module_offer = access.get("module_purchase") or module_offer_for_module(module_id)
+    module_offer = access.get("module_purchase") or module_offer_for_module(normalized_module_id)
     raise HTTPException(
         status_code=402,
         detail=(
-            f"{module.get('title') or module_id} is a premium module. "
+            f"{module.get('title') or normalized_module_id} is a premium module. "
             f"Unlock it for 1 month for {module_offer.get('price_label', '$9.99')} or subscribe to premium access."
         ),
     )

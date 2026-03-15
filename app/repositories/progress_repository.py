@@ -1,9 +1,10 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Dict, List
 
 from google.cloud import firestore
 
+from app.common import normalize_module_id
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
 
@@ -14,7 +15,8 @@ def progress_doc(uid: str):
 
 
 def module_progress_doc(uid: str, module_id: str):
-    return progress_doc(uid).collection("modules").document(module_id)
+    normalized_module_id = normalize_module_id(module_id)
+    return progress_doc(uid).collection("modules").document(normalized_module_id)
 
 
 def get_module_progress(uid: str, module_id: str) -> Dict[str, Any]:
@@ -41,7 +43,7 @@ def list_progress_modules(uid: str) -> List[Dict[str, Any]]:
 
     for d in docs:
         data = d.to_dict() or {}
-        data["module_id"] = d.id
+        data["module_id"] = normalize_module_id(d.id) or d.id
         result.append(data)
 
     return result
@@ -77,6 +79,7 @@ def list_recent_transfer_events_for_module(
     2) unordered query if index is missing
     3) in-app filter + sort
     """
+    normalized_module_id = normalize_module_id(module_id)
     db = get_firestore_client()
     result: List[Dict[str, Any]] = []
 
@@ -86,7 +89,7 @@ def list_recent_transfer_events_for_module(
                 where_eq(
                     where_eq(db.collection("progress_events"), "uid", uid),
                     "module_id",
-                    module_id,
+                    normalized_module_id,
                 ),
                 "event_type",
                 "transfer",
@@ -108,7 +111,7 @@ def list_recent_transfer_events_for_module(
                 where_eq(
                     where_eq(db.collection("progress_events"), "uid", uid),
                     "module_id",
-                    module_id,
+                    normalized_module_id,
                 ),
                 "event_type",
                 "transfer",
@@ -124,13 +127,12 @@ def list_recent_transfer_events_for_module(
     except Exception:
         pass
 
-    # final defensive fallback
     q = where_eq(db.collection("progress_events"), "uid", uid).limit(limit_events * 5)
 
     scanned: List[Dict[str, Any]] = []
     for s in q.stream():
         data = s.to_dict() or {}
-        if str(data.get("module_id") or "") != module_id:
+        if normalize_module_id(data.get("module_id")) != normalized_module_id:
             continue
         if str(data.get("event_type") or "").strip().lower() != "transfer":
             continue

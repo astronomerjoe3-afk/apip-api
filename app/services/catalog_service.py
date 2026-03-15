@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException
 
-from app.common import is_missing_index_error
+from app.common import is_missing_index_error, normalize_module_id
 from app.repositories.catalog_repository import (
     get_lesson_by_doc_id,
     get_lesson_by_fields,
@@ -21,17 +21,17 @@ from app.services.monetization_service import enrich_module_for_student
 
 
 _BOOTSTRAP_MODULE_IDS = {
-    str(module.get("module_id") or "").strip()
+    normalize_module_id(module.get("module_id"))
     for module in CATALOG_MODULES
-    if str(module.get("module_id") or "").strip()
+    if normalize_module_id(module.get("module_id"))
 }
 
 
 def _retry_seeded_modules_if_missing(modules: List[Dict[str, Any]], curriculum_id: Optional[str] = None) -> List[Dict[str, Any]]:
     returned_ids = {
-        str(module.get("id") or module.get("module_id") or "").strip()
+        normalize_module_id(module.get("id") or module.get("module_id"))
         for module in modules
-        if str(module.get("id") or module.get("module_id") or "").strip()
+        if normalize_module_id(module.get("id") or module.get("module_id"))
     }
     missing_seeded_modules = _BOOTSTRAP_MODULE_IDS - returned_ids
     if not missing_seeded_modules:
@@ -52,10 +52,11 @@ def fetch_modules(curriculum_id: Optional[str] = None, uid: Optional[str] = None
 
 
 def fetch_module(module_id: str, uid: Optional[str] = None, role: Optional[str] = None) -> Dict[str, Any]:
-    module = get_module_by_id(module_id)
-    if not module and module_id in _BOOTSTRAP_MODULE_IDS:
+    normalized_module_id = normalize_module_id(module_id)
+    module = get_module_by_id(normalized_module_id)
+    if not module and normalized_module_id in _BOOTSTRAP_MODULE_IDS:
         ensure_catalog_seeded()
-        module = get_module_by_id(module_id)
+        module = get_module_by_id(normalized_module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
     return enrich_module_for_student(module, uid, role=role)
@@ -82,13 +83,14 @@ def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str
 
 
 def fetch_module_lesson(module_id: str, lesson_id: str) -> Dict[str, Any]:
-    normalized = lesson_id.replace("-", "_")
+    normalized_module_id = normalize_module_id(module_id)
+    normalized_lesson_id = lesson_id.replace("-", "_")
 
-    lesson = get_lesson_by_doc_id(normalized)
-    if lesson and lesson.get("module_id") == module_id:
+    lesson = get_lesson_by_doc_id(normalized_lesson_id)
+    if lesson and normalize_module_id(lesson.get("module_id")) == normalized_module_id:
         return to_student_lesson_view(lesson)
 
-    lesson = get_lesson_by_fields(module_id, normalized)
+    lesson = get_lesson_by_fields(normalized_module_id, normalized_lesson_id)
     if lesson:
         return to_student_lesson_view(lesson)
 

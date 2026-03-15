@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import ceil
 from typing import Any, Dict, List
 
+from app.common import normalize_module_id
 from app.repositories.catalog_repository import get_lesson_by_doc_id, get_lesson_by_fields
 from app.services.student_progression_service import get_student_lesson_progress
 
@@ -14,13 +15,14 @@ MASTERY_MAX_QUESTIONS = 10
 
 
 def _load_lesson(module_id: str, lesson_id: str) -> Dict[str, Any] | None:
+    normalized_module_id = normalize_module_id(module_id)
     normalized = str(lesson_id).replace("-", "_")
 
     lesson = get_lesson_by_doc_id(normalized)
-    if lesson and lesson.get("module_id") == module_id:
+    if lesson and normalize_module_id(lesson.get("module_id")) == normalized_module_id:
         return lesson
 
-    lesson = get_lesson_by_fields(module_id, normalized)
+    lesson = get_lesson_by_fields(normalized_module_id, normalized)
     if lesson:
         return lesson
 
