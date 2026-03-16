@@ -9,6 +9,7 @@ from app.common import normalize_module_id, parse_iso_utc
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
+from app.services.catalog_bootstrap import ensure_catalog_seeded
 
 MONETIZATION_VERSION = "20260315_module_pass_v3"
 FREE_ACCESS_TIER = "free"
@@ -357,6 +358,9 @@ def require_module_access(uid: str, module_id: str, role: Optional[str] = None) 
     normalized_module_id = normalize_module_id(module_id)
     module = get_module_by_id(normalized_module_id)
     if not module:
+        ensure_catalog_seeded()
+        module = get_module_by_id(normalized_module_id)
+    if not module:
         raise HTTPException(status_code=404, detail="Module not found")
 
     access = build_module_access(module, uid, role=role)
@@ -373,8 +377,18 @@ def require_module_access(uid: str, module_id: str, role: Optional[str] = None) 
     )
 
 
+def _active_project_id() -> str:
+    configured = str(getattr(settings, "google_cloud_project", "") or "").strip().lower()
+    if configured not in {"", "local", "none"}:
+        return configured
+    try:
+        return str(getattr(get_firestore_client(), "project", "") or "").strip().lower()
+    except Exception:
+        return configured
+
+
 def ensure_monetization_seeded() -> bool:
-    project_id = str(getattr(settings, "google_cloud_project", "") or "").strip().lower()
+    project_id = _active_project_id()
     if project_id in {"", "local", "none"}:
         return False
 
@@ -388,6 +402,7 @@ def ensure_monetization_seeded() -> bool:
     f3_tier = ""
     f4_tier = ""
     m1_tier = ""
+    m2_tier = ""
     f1_snap = db.collection("modules").document("F1").get()
     if f1_snap.exists:
         f1_tier = str((f1_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
@@ -403,8 +418,11 @@ def ensure_monetization_seeded() -> bool:
     m1_snap = db.collection("modules").document("M1").get()
     if m1_snap.exists:
         m1_tier = str((m1_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
+    m2_snap = db.collection("modules").document("M2").get()
+    if m2_snap.exists:
+        m2_tier = str((m2_snap.to_dict() or {}).get("access_tier") or "").strip().lower()
 
-    if version_matches and f1_tier == FREE_ACCESS_TIER and f2_tier == PREMIUM_ACCESS_TIER and f3_tier == PREMIUM_ACCESS_TIER and f4_tier == PREMIUM_ACCESS_TIER and m1_tier == PREMIUM_ACCESS_TIER:
+    if version_matches and f1_tier == FREE_ACCESS_TIER and f2_tier == PREMIUM_ACCESS_TIER and f3_tier == PREMIUM_ACCESS_TIER and f4_tier == PREMIUM_ACCESS_TIER and m1_tier == PREMIUM_ACCESS_TIER and m2_tier == PREMIUM_ACCESS_TIER:
         return False
 
     batch = db.batch()
@@ -449,5 +467,11 @@ def ensure_monetization_seeded() -> bool:
         {"access_tier": PREMIUM_ACCESS_TIER},
         merge=True,
     )
+    batch.set(
+        db.collection("modules").document("M2"),
+        {"access_tier": PREMIUM_ACCESS_TIER},
+        merge=True,
+    )
     batch.commit()
     return True
+

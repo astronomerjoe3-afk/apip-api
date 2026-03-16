@@ -10,6 +10,7 @@ from scripts.seed_f2_module import F2_CONTENT_VERSION, F2_LESSONS, F2_MODULE_DOC
 from scripts.seed_f3_module import F3_CONTENT_VERSION, F3_LESSONS, F3_MODULE_DOC, F3_MODULE_ID, F3_SIM_LABS
 from scripts.seed_f4_module import F4_CONTENT_VERSION, F4_LESSONS, F4_MODULE_DOC, F4_MODULE_ID, F4_SIM_LABS
 from scripts.seed_m1_module import M1_CONTENT_VERSION, M1_LESSONS, M1_MODULE_DOC, M1_MODULE_ID, M1_SIM_LABS
+from scripts.seed_m2_module import M2_CONTENT_VERSION, M2_LESSONS, M2_MODULE_DOC, M2_MODULE_ID, M2_SIM_LABS
 
 
 CATALOG_MODULES = [
@@ -48,6 +49,13 @@ CATALOG_MODULES = [
         "lessons": M1_LESSONS,
         "sim_labs": M1_SIM_LABS,
     },
+    {
+        "module_id": M2_MODULE_ID,
+        "content_version": M2_CONTENT_VERSION,
+        "module_doc": M2_MODULE_DOC,
+        "lessons": M2_LESSONS,
+        "sim_labs": M2_SIM_LABS,
+    },
 ]
 
 
@@ -77,8 +85,18 @@ def _module_is_ready(module: dict) -> bool:
     return module_snap.exists and version_matches and lessons_ready and sim_labs_ready
 
 
+def _active_project_id() -> str:
+    configured = str(getattr(settings, "google_cloud_project", "") or "").strip().lower()
+    if configured not in ("", "local", "none"):
+        return configured
+    try:
+        return str(getattr(get_firestore_client(), "project", "") or "").strip().lower()
+    except Exception:
+        return configured
+
+
 def ensure_catalog_seeded() -> bool:
-    project_id = str(getattr(settings, "google_cloud_project", "") or "").strip().lower()
+    project_id = _active_project_id()
     if project_id in ("", "local", "none"):
         return False
 
