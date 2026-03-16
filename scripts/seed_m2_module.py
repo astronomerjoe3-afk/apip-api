@@ -113,7 +113,7 @@ M2_SPEC = json.loads(r'''
         "representations": [
           { "kind": "words", "purpose": "Separate individual Drive Arrows from the single Master Arrow." },
           { "kind": "diagram", "purpose": "Use force-arrow diagrams to combine forces." },
-          { "kind": "equation", "purpose": "Link the combined force to the zero-acceleration case." }
+          { "kind": "formula", "purpose": "Link the combined force to the zero-acceleration case." }
         ],
         "analogy_map": {
           "comparison": "Drive Arrows are force vectors and the Master Arrow is the resultant force.",
