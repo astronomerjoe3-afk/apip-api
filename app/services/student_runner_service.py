@@ -62,7 +62,8 @@ def _has_concept_gate(lesson: Dict[str, Any]) -> bool:
         if capsule.get("checks"):
             return True
 
-    return False
+    transfer = _phases(lesson).get("transfer") or {}
+    return len(transfer.get("items") or []) > 0
 
 
 def _has_reflection(lesson: Dict[str, Any]) -> bool:
