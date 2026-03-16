@@ -183,6 +183,7 @@ def _generated_asset_from_request(
 ) -> GeneratedAsset:
     module_id = _text(lesson.get("module_id"))
     lesson_id = _text(lesson.get("lesson_id") or lesson.get("id"))
+    normalized_relative_path = relative_path.replace("\\", "/")
     return GeneratedAsset(
         asset_id=asset_id,
         kind=kind,
@@ -190,7 +191,7 @@ def _generated_asset_from_request(
         title=title,
         concept=concept,
         storage_path=_predicted_storage_path(asset_root, relative_path),
-        public_url=f"{public_base.rstrip('/')}/{module_id}/{lesson_id}/{relative_path.replace('\\', '/')}",
+        public_url=f"{public_base.rstrip('/')}/{module_id}/{lesson_id}/{normalized_relative_path}",
         mime_type=mime_type,
         provider=provider,
         meta=meta,
