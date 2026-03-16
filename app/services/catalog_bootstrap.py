@@ -11,6 +11,7 @@ from scripts.seed_f3_module import F3_CONTENT_VERSION, F3_LESSONS, F3_MODULE_DOC
 from scripts.seed_f4_module import F4_CONTENT_VERSION, F4_LESSONS, F4_MODULE_DOC, F4_MODULE_ID, F4_SIM_LABS
 from scripts.seed_m1_module import M1_CONTENT_VERSION, M1_LESSONS, M1_MODULE_DOC, M1_MODULE_ID, M1_SIM_LABS
 from scripts.seed_m2_module import M2_CONTENT_VERSION, M2_LESSONS, M2_MODULE_DOC, M2_MODULE_ID, M2_SIM_LABS
+from scripts.seed_m3_module import M3_CONTENT_VERSION, M3_LESSONS, M3_MODULE_DOC, M3_MODULE_ID, M3_SIM_LABS
 
 
 CATALOG_MODULES = [
@@ -55,6 +56,13 @@ CATALOG_MODULES = [
         "module_doc": M2_MODULE_DOC,
         "lessons": M2_LESSONS,
         "sim_labs": M2_SIM_LABS,
+    },
+    {
+        "module_id": M3_MODULE_ID,
+        "content_version": M3_CONTENT_VERSION,
+        "module_doc": M3_MODULE_DOC,
+        "lessons": M3_LESSONS,
+        "sim_labs": M3_SIM_LABS,
     },
 ]
 

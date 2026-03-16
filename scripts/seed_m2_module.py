@@ -2,19 +2,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-from datetime import datetime, timezone
+from copy import deepcopy
 from typing import Any, Dict, List, Tuple
-
-import firebase_admin
-from firebase_admin import credentials
-from google.cloud import firestore
 
 try:
     from scripts.lesson_authoring_contract import validate_nextgen_module
+    from scripts.module_asset_pipeline import default_asset_root, render_module_assets
     from scripts.nextgen_module_scaffold import build_nextgen_module_scaffold
 except ModuleNotFoundError:
     from lesson_authoring_contract import validate_nextgen_module
+    from module_asset_pipeline import default_asset_root, render_module_assets
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M2_MODULE_ID = "M2"
@@ -647,18 +644,38 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Seed Module M2 into Firestore")
     parser.add_argument("--project", default=None)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--compile-assets", action="store_true")
+    parser.add_argument("--asset-root", default="")
+    parser.add_argument("--public-base", default="/lesson_assets")
     args = parser.parse_args()
     project = get_project_id(args.project)
-    db = init_firebase(project)
     apply = bool(args.apply)
-    plan: List[Tuple[str, str]] = [("modules", M2_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in M2_LESSONS] + [("sim_labs", doc_id) for doc_id, _ in M2_SIM_LABS]
+    db = init_firebase(project) if apply else None
+
+    module_doc = deepcopy(M2_MODULE_DOC)
+    lesson_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M2_LESSONS]
+    sim_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M2_SIM_LABS]
+
+    asset_root = args.asset_root or str(default_asset_root())
+    if args.compile_assets:
+        render_module_assets(
+            lesson_pairs,
+            sim_pairs,
+            asset_root=asset_root,
+            public_base=args.public_base,
+        )
+
+    plan: List[Tuple[str, str]] = [("modules", M2_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in lesson_pairs] + [("sim_labs", doc_id) for doc_id, _ in sim_pairs]
     print(f"Project: {project}")
     print(f"Mode: {'APPLY (writes enabled)' if apply else 'DRY RUN (no writes)'}")
+    if args.compile_assets:
+        print(f"Asset root: {asset_root}")
+        print(f"Public base: {args.public_base}")
     print_preview("Planned upserts", plan)
-    upsert_doc(db, "modules", M2_MODULE_ID, M2_MODULE_DOC, apply)
-    for doc_id, payload in M2_LESSONS:
+    upsert_doc(db, "modules", M2_MODULE_ID, module_doc, apply)
+    for doc_id, payload in lesson_pairs:
         upsert_doc(db, "lessons", doc_id, payload, apply)
-    for doc_id, payload in M2_SIM_LABS:
+    for doc_id, payload in sim_pairs:
         upsert_doc(db, "sim_labs", doc_id, payload, apply)
     print("DONE")
 

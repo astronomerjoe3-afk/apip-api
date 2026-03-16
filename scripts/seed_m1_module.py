@@ -6,9 +6,14 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
-import firebase_admin
-from firebase_admin import credentials
-from google.cloud import firestore
+try:
+    import firebase_admin
+    from firebase_admin import credentials
+    from google.cloud import firestore
+except ModuleNotFoundError:
+    firebase_admin = None
+    credentials = None
+    firestore = None
 
 try:
     from scripts.lesson_authoring_contract import validate_nextgen_module
@@ -2501,15 +2506,21 @@ def get_project_id(cli_project: str | None) -> str:
     return cli_project or os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT") or os.getenv("GCLOUD_PROJECT") or "apip-dev-487809-c949c"
 
 
-def init_firebase(project_id: str) -> firestore.Client:
+def init_firebase(project_id: str):
+    if firebase_admin is None or credentials is None or firestore is None:
+        raise RuntimeError(
+            "firebase_admin and google-cloud-firestore are required for --apply runs."
+        )
     if not firebase_admin._apps:
         firebase_admin.initialize_app(credentials.ApplicationDefault(), {"projectId": project_id})
     return firestore.Client(project=project_id)
 
 
-def upsert_doc(db: firestore.Client, collection: str, doc_id: str, data: Dict[str, Any], apply: bool) -> None:
-    ref = db.collection(collection).document(doc_id)
+def upsert_doc(db, collection: str, doc_id: str, data: Dict[str, Any], apply: bool) -> None:
     if apply:
+        if db is None:
+            raise RuntimeError("Firestore client is required for apply mode.")
+        ref = db.collection(collection).document(doc_id)
         ref.set(data, merge=True)
         print(f"UPSERT {collection}/{doc_id}")
     else:
@@ -2685,8 +2696,8 @@ def main() -> None:
     args = parser.parse_args()
 
     project = get_project_id(args.project)
-    db = init_firebase(project)
     apply = bool(args.apply)
+    db = init_firebase(project) if apply else None
 
     plan: List[Tuple[str, str]] = [("modules", M1_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in M1_LESSONS] + [("sim_labs", doc_id) for doc_id, _ in M1_SIM_LABS]
     print(f"Project: {project}")
