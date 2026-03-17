@@ -826,7 +826,7 @@ M1_SPEC = json.loads(r'''
         ],
         "visual_assets": [
           {
-            "asset_id": "m1-l2-speed-time-v2.svg",
+            "asset_id": "m1-l2-speed-time.svg",
             "purpose": "Show flat, rising, and falling speed-time segments with separate labels for height and slope meaning.",
             "caption": "The speed-strip picture keeps current speed and rate of change distinct."
           }
