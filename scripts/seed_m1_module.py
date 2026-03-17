@@ -17,13 +17,15 @@ except ModuleNotFoundError:
 
 try:
     from scripts.lesson_authoring_contract import validate_nextgen_module
+    from scripts.module_asset_pipeline import default_asset_root, plan_module_assets, render_module_assets
     from scripts.nextgen_module_scaffold import build_nextgen_module_scaffold
 except ModuleNotFoundError:
     from lesson_authoring_contract import validate_nextgen_module
+    from module_asset_pipeline import default_asset_root, plan_module_assets, render_module_assets
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M1_MODULE_ID = "M1"
-M1_CONTENT_VERSION = "20260315_m1_quest_log_v3"
+M1_CONTENT_VERSION = "20260317_m1_graph_reasoning_v4"
 M1_ALLOWLIST = [
     "distance_time_story_confusion",
     "graph_shape_path_confusion",
@@ -2567,8 +2569,569 @@ def example(prompt: str, steps: List[str], final_answer: str, why: str) -> Dict[
     return {"prompt": prompt, "steps": steps, "final_answer": final_answer, "why_it_matters": why}
 
 
-def vis(asset_id: str, purpose: str, caption: str) -> Dict[str, Any]:
-    return {"asset_id": asset_id, "purpose": purpose, "caption": caption}
+def vis(
+    asset_id: str,
+    purpose: str,
+    caption: str,
+    *,
+    concept: str = "",
+    title: str = "",
+    phase_key: str = "analogical_grounding",
+) -> Dict[str, Any]:
+    return {
+        "asset_id": asset_id,
+        "purpose": purpose,
+        "caption": caption,
+        "concept": concept,
+        "title": title,
+        "phase_key": phase_key,
+    }
+
+
+def anim(
+    asset_id: str,
+    concept: str,
+    title: str,
+    description: str,
+    *,
+    phase_key: str = "analogical_grounding",
+    duration_sec: int = 8,
+) -> Dict[str, Any]:
+    return {
+        "asset_id": asset_id,
+        "concept": concept,
+        "title": title,
+        "description": description,
+        "phase_key": phase_key,
+        "duration_sec": duration_sec,
+    }
+
+
+def assessment_targets(diagnostic_pool_min: int, concept_gate_pool_min: int, mastery_pool_min: int) -> Dict[str, Any]:
+    return {
+        "diagnostic_pool_min": diagnostic_pool_min,
+        "concept_gate_pool_min": concept_gate_pool_min,
+        "mastery_pool_min": mastery_pool_min,
+        "fresh_attempt_policy": (
+            "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem."
+        ),
+    }
+
+
+def spec_mcq(qid: str, prompt: str, choices: List[str], answer_index: int, hint: str, tags: List[str]) -> Dict[str, Any]:
+    return {
+        "kind": "mcq",
+        "id": qid,
+        "prompt": prompt,
+        "choices": choices,
+        "answer_index": answer_index,
+        "hint": hint,
+        "tags": tags,
+    }
+
+
+def spec_short(qid: str, prompt: str, accepted_answers: List[str], hint: str, tags: List[str]) -> Dict[str, Any]:
+    return {
+        "kind": "short",
+        "id": qid,
+        "prompt": prompt,
+        "accepted_answers": accepted_answers,
+        "hint": hint,
+        "tags": tags,
+    }
+
+
+def apply_m1_enhancements() -> None:
+    M1_SPEC["module_description"] = (
+        "Module 1 lifts motion beyond Foundation 2 by treating kinematics as a representation system: "
+        "journeys, graphs, signed rates, constant-acceleration forecasts, gradient context, and area reasoning "
+        "must stay aligned without collapsing back into basic motion slogans."
+    )
+    M1_SPEC["mastery_outcomes"] = [
+        "Interpret distance-time and speed-time graphs as recorded motion stories rather than as pictures of the route.",
+        "Keep graph height, gradient, and area conceptually separate and justify each from the graph axes.",
+        "Interpret acceleration as a signed rate of velocity change and reason about sign without relying on everyday intuition alone.",
+        "Choose constant-acceleration equations from the knowns, the unknown, and the constant-acceleration condition.",
+        "Translate confidently between motion stories, graphs, equations, and quantitative calculations.",
+        "Use graph reasoning to compare different motion histories that can still share the same final distance, speed, or shaded area.",
+    ]
+
+    lessons = {str(lesson["id"]): lesson for lesson in M1_SPEC["lessons"]}
+    lesson_concepts = {
+        "M1_L1": "distance_time_story",
+        "M1_L2": "speed_time_change",
+        "M1_L3": "signed_acceleration",
+        "M1_L4": "constant_acceleration_forecast",
+        "M1_L5": "graph_gradient_context",
+        "M1_L6": "speed_time_area",
+    }
+    lesson_titles = {
+        "M1_L1": "Distance-Time Story Board",
+        "M1_L2": "Pace Log Reasoning Board",
+        "M1_L3": "Signed Velocity and Acceleration Board",
+        "M1_L4": "Constant-Acceleration Forecast Board",
+        "M1_L5": "Gradient Meaning Comparator",
+        "M1_L6": "Area-to-Distance Builder",
+    }
+    lesson_analogies = {
+        "M1_L1": (
+            "Quest-Log is a two-layer telemetry system: the lane is the physical run, while the mission log is the time-stamped score sheet. "
+            "Confusing the graph with the route is like mistaking a bank statement for the shopping trip that produced it."
+        ),
+        "M1_L2": (
+            "A pace log is like a dashboard gauge with a trend trace: the gauge reading tells the speed now, but the tilt of the trace tells how fast the gauge itself is changing."
+        ),
+        "M1_L3": (
+            "Think of velocity as a signed arrow on a control bar and acceleration as the instruction that rotates or stretches that arrow over time. "
+            "The sign of the instruction belongs to the chosen positive direction, not to a vague feeling of speeding up."
+        ),
+        "M1_L4": (
+            "The constant-acceleration board works like a flight computer calibrated for one steady thrust pattern. "
+            "It is powerful precisely because the pattern is restricted; if the thrust pattern changes, the compact forecast stops being trustworthy."
+        ),
+        "M1_L5": (
+            "Gradient is a rate-family idea, not a single named quantity. The same slanted geometry can mean dollars per item, metres per second, or metres per second squared depending on what the axes are comparing."
+        ),
+        "M1_L6": (
+            "Area under a pace log is like stacking thin distance receipts from each time beat. Each strip is a tiny bit of distance, and the whole shaded region is the accumulated journey."
+        ),
+    }
+    lesson_commitments = {
+        "M1_L1": "Before reading the graph, decide which features tell the motion story and which features only tell the recorded totals.",
+        "M1_L2": "Before answering, say aloud whether you are reading the graph height or the graph slope.",
+        "M1_L3": "Before choosing the sign, mark the positive direction and compare the initial and final velocity arrows.",
+        "M1_L4": "Before selecting an equation, list the knowns, name the unknown, and ask whether the acceleration is constant.",
+        "M1_L5": "Before naming a gradient, name the axes so the rate family is fixed first.",
+        "M1_L6": "Before using the shaded region, name the axes and decide why multiplying height by width gives distance here.",
+    }
+
+    for lesson_id, lesson in lessons.items():
+        lesson["analogy_text"] = lesson_analogies[lesson_id]
+        lesson["commitment_prompt"] = lesson_commitments[lesson_id]
+        contract = lesson["contract"]
+        contract["assessment_bank_targets"] = assessment_targets(7, 5, 10)
+        contract["visual_assets"] = [
+            {
+                "asset_id": f"{lesson_id.lower()}_diagram",
+                "concept": lesson_concepts[lesson_id],
+                "phase_key": "analogical_grounding",
+                "title": lesson_titles[lesson_id],
+                "purpose": f"Show the key representation distinction for {lesson['title']} with a clean graph-first physics diagram.",
+                "caption": f"{lesson['title']} visual summary",
+            }
+        ]
+        contract["animation_assets"] = [
+            {
+                "asset_id": f"{lesson_id.lower()}_animation",
+                "concept": lesson_concepts[lesson_id],
+                "phase_key": "analogical_grounding",
+                "title": f"{lesson['title']} animation",
+                "description": f"Animate the core representation change for {lesson['title']}.",
+                "duration_sec": 8,
+            }
+        ]
+        simulation_contract = dict(contract.get("simulation_contract") or {})
+        simulation_contract.update(
+            {
+                "asset_id": f"{lesson_id.lower()}_simulation",
+                "concept": lesson_concepts[lesson_id],
+                "engine": "p5",
+            }
+        )
+        contract["simulation_contract"] = simulation_contract
+
+    lessons["M1_L1"]["diagnostic"].extend(
+        [
+            spec_mcq(
+                "M1L1_D6",
+                "Two straight distance-time segments are parallel but one starts higher. What must be the same?",
+                ["the speed", "the starting point", "the total distance", "the pause time"],
+                0,
+                "Parallel straight segments on a distance-time graph have the same gradient.",
+                ["graph_height_vs_gradient_confusion"],
+            ),
+            spec_short(
+                "M1L1_D7",
+                "A distance-time segment rises 18 m in 3 s. What pace does that segment show?",
+                ["6", "6 m/s"],
+                "Use pace = change in distance / change in time.",
+                ["distance_time_story_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L1"]["capsule_checks"].extend(
+        [
+            spec_mcq(
+                "M1L1_C4",
+                "Why can a downward line not represent total distance traveled in this lesson?",
+                ["Because total distance cannot decrease", "Because time stops", "Because negative distance is impossible in all graphs", "Because direction is missing"],
+                0,
+                "A total-distance record cannot shrink once distance has been accumulated.",
+                ["graph_shape_path_confusion"],
+            ),
+            spec_short(
+                "M1L1_C5",
+                "Can the final point alone tell you whether there was a pause? Answer in a few words.",
+                ["no", "not by itself", "no it cannot", "the final point alone is not enough"],
+                "The final point gives the total by the end, not the full segment story.",
+                ["distance_time_story_confusion", "graph_shape_path_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L1"]["transfer"].extend(
+        [
+            spec_short(
+                "M1L1_T8",
+                "In a few words, what does slope mean on a distance-time graph?",
+                ["speed", "pace", "rate of distance change", "how quickly distance changes"],
+                "Name the motion rate read from the graph, not the total distance.",
+                ["graph_height_vs_gradient_confusion"],
+            ),
+            spec_mcq(
+                "M1L1_T9",
+                "Two mission logs both finish at 40 m after 10 s. One includes a 3 s pause. What must be true about its later moving section?",
+                ["It must be steeper to catch up", "It must end lower", "It must have the same slope throughout", "It must represent reverse motion"],
+                0,
+                "A paused run that still finishes on time must gain distance faster later.",
+                ["distance_time_story_confusion", "graph_height_vs_gradient_confusion"],
+            ),
+            spec_short(
+                "M1L1_T10",
+                "A graph rises from 12 m to 36 m between 4 s and 10 s. What speed does that segment show?",
+                ["4", "4 m/s"],
+                "Use the segment rise over the segment run.",
+                ["distance_time_story_confusion"],
+            ),
+        ]
+    )
+
+    lessons["M1_L2"]["diagnostic"].extend(
+        [
+            spec_mcq(
+                "M1L2_D6",
+                "A flat speed-time line at 8 m/s means the object is...",
+                ["moving at a constant 8 m/s", "stopped", "speeding up steadily", "reversing direction"],
+                0,
+                "Flat above zero means constant speed, not rest.",
+                ["speed_time_story_confusion"],
+            ),
+            spec_short(
+                "M1L2_D7",
+                "Speed changes from 4 m/s to 10 m/s in 3 s. What acceleration does that show?",
+                ["2", "2 m/s^2", "2 m/s/s"],
+                "Use acceleration = change in speed / time.",
+                ["acceleration_rate_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L2"]["capsule_checks"].extend(
+        [
+            spec_short(
+                "M1L2_C4",
+                "At a point where the graph height is 12 m/s and the slope is zero, what is happening?",
+                ["constant speed of 12 m/s", "moving at 12 m/s with zero acceleration", "speed is 12 m/s and acceleration is zero"],
+                "Read height as speed now and slope as acceleration.",
+                ["graph_height_vs_gradient_confusion", "speed_time_story_confusion"],
+            ),
+            spec_mcq(
+                "M1L2_C5",
+                "Why can two speed-time graphs show the same speed at one instant but different accelerations?",
+                ["Because equal height does not force equal slope", "Because speed and acceleration are the same", "Because time is missing", "Because acceleration depends only on distance"],
+                0,
+                "The graphs can meet at one height while tilting differently.",
+                ["graph_height_vs_gradient_confusion", "acceleration_rate_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L2"]["transfer"].extend(
+        [
+            spec_short(
+                "M1L2_T8",
+                "In a few words, what does slope mean on a speed-time graph?",
+                ["acceleration", "rate of speed change", "rate of velocity change"],
+                "Name the change-rate quantity read from the slope.",
+                ["graph_height_vs_gradient_confusion", "acceleration_rate_confusion"],
+            ),
+            spec_mcq(
+                "M1L2_T9",
+                "One speed-time line is high and flat. Another is lower but rises steeply. Which statement is correct?",
+                ["The first has the greater speed now, but the second has the greater acceleration", "The second must always be faster", "Both have the same acceleration because both are above zero", "The first must be stopped because its slope is zero"],
+                0,
+                "Keep graph height and graph slope doing different jobs.",
+                ["graph_height_vs_gradient_confusion", "acceleration_rate_confusion"],
+            ),
+            spec_short(
+                "M1L2_T10",
+                "Speed drops from 14 m/s to 6 m/s in 4 s. What acceleration does that show?",
+                ["-2", "-2 m/s^2", "-2 m/s/s"],
+                "Use the signed change in speed over time.",
+                ["acceleration_rate_confusion"],
+            ),
+        ]
+    )
+
+    lessons["M1_L3"]["diagnostic"].extend(
+        [
+            spec_mcq(
+                "M1L3_D6",
+                "Velocity is -6 m/s and acceleration is +2 m/s^2. What is happening initially?",
+                ["The object is moving in the negative direction and slowing down", "The object is moving in the negative direction and speeding up", "The object must be stationary", "The acceleration must also be negative"],
+                0,
+                "Positive acceleration can oppose a negative velocity and reduce the speed.",
+                ["acceleration_sign_reasoning_confusion"],
+            ),
+            spec_short(
+                "M1L3_D7",
+                "Velocity changes from -6 m/s to +2 m/s in 4 s. What acceleration does that show?",
+                ["2", "2 m/s^2", "2 m/s/s"],
+                "Use the signed change in velocity divided by time.",
+                ["acceleration_rate_confusion", "acceleration_sign_reasoning_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L3"]["capsule_checks"].extend(
+        [
+            spec_short(
+                "M1L3_C4",
+                "Can positive acceleration happen while the object is moving in the negative direction? Answer briefly.",
+                ["yes", "yes if the velocity is negative and becoming less negative", "yes if the positive acceleration opposes the negative velocity", "yes it can"],
+                "Acceleration sign and velocity sign do not have to match.",
+                ["acceleration_sign_reasoning_confusion"],
+            ),
+            spec_mcq(
+                "M1L3_C5",
+                "Zero acceleration with velocity -3 m/s means that the object is...",
+                ["moving at a constant -3 m/s", "stopped", "speeding up negatively", "changing direction every second"],
+                0,
+                "Zero acceleration means the velocity is staying fixed.",
+                ["acceleration_rate_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L3"]["transfer"].extend(
+        [
+            spec_short(
+                "M1L3_T8",
+                "In a few words, what does the sign of acceleration tell you?",
+                ["direction of the velocity change", "direction of acceleration relative to the chosen positive direction", "which direction the velocity is changing"],
+                "The sign belongs to the chosen direction convention.",
+                ["acceleration_sign_reasoning_confusion"],
+            ),
+            spec_mcq(
+                "M1L3_T9",
+                "Velocity is +12 m/s and acceleration is -3 m/s^2 for 2 s. Which statement is correct?",
+                ["The object is still moving in the positive direction but more slowly", "The object must already be moving in the negative direction", "The acceleration is zero because the speed stays positive", "The speed must increase because the velocity is positive"],
+                0,
+                "A negative acceleration can reduce a positive velocity without reversing it immediately.",
+                ["acceleration_sign_reasoning_confusion"],
+            ),
+            spec_short(
+                "M1L3_T10",
+                "Velocity changes from 8 m/s to 0 m/s in 2 s. What acceleration does that show?",
+                ["-4", "-4 m/s^2", "-4 m/s/s"],
+                "Use the signed velocity change over the time interval.",
+                ["acceleration_rate_confusion"],
+            ),
+        ]
+    )
+
+    lessons["M1_L4"]["diagnostic"].extend(
+        [
+            spec_mcq(
+                "M1L4_D6",
+                "Which condition must be checked before using a suvat equation in this lesson?",
+                ["The acceleration is constant", "The speed is zero", "The graph is curved", "The distance is negative"],
+                0,
+                "These equations summarize one steady acceleration pattern.",
+                ["constant_acceleration_condition_confusion"],
+            ),
+            spec_short(
+                "M1L4_D7",
+                "If u = 5 m/s, a = 2 m/s^2, and t = 4 s, what is v?",
+                ["13", "13 m/s"],
+                "Use v = u + at for the direct final-speed forecast.",
+                ["suvat_selection_confusion", "motion_formula_story_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L4"]["capsule_checks"].extend(
+        [
+            spec_short(
+                "M1L4_C4",
+                "In a few words, what does the 1/2at^2 part represent?",
+                ["extra distance from acceleration", "the triangle distance from acceleration", "distance added by the steady acceleration", "additional distance beyond ut"],
+                "Think about the extra triangular area added above the starting-speed rectangle.",
+                ["motion_formula_story_confusion"],
+            ),
+            spec_mcq(
+                "M1L4_C5",
+                "Why does s = (u + v) / 2 x t work only for constant acceleration here?",
+                ["Because the average velocity sits halfway between u and v only for uniform change", "Because distance never depends on time", "Because u and v must be zero", "Because the equation ignores acceleration completely"],
+                0,
+                "The midpoint average depends on the change being uniform.",
+                ["constant_acceleration_condition_confusion", "motion_formula_story_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L4"]["transfer"].extend(
+        [
+            spec_short(
+                "M1L4_T8",
+                "Why should you not trust suvat directly when acceleration changes during the motion?",
+                ["because suvat assumes constant acceleration", "because the equations only model constant acceleration", "because the acceleration is not constant", "because the steady-change condition is broken"],
+                "Name the condition the equations require.",
+                ["constant_acceleration_condition_confusion"],
+            ),
+            spec_mcq(
+                "M1L4_T9",
+                "You know u, a, and t and want v. Which equation is the direct choice?",
+                ["v = u + at", "s = ut + 1/2at^2", "v^2 = u^2 + 2as", "s = (u + v) / 2 x t"],
+                0,
+                "Choose the relation that reaches the unknown without introducing extra variables.",
+                ["suvat_selection_confusion"],
+            ),
+            spec_short(
+                "M1L4_T10",
+                "If u = 4 m/s, a = 3 m/s^2, and t = 2 s, what distance does s = ut + 1/2at^2 give?",
+                ["14", "14 m"],
+                "Combine the starting-speed rectangle with the acceleration triangle.",
+                ["motion_formula_story_confusion"],
+            ),
+        ]
+    )
+
+    lessons["M1_L5"]["diagnostic"].extend(
+        [
+            spec_mcq(
+                "M1L5_D6",
+                "On a distance-time graph, zero slope means that the object is...",
+                ["stopped", "speeding up steadily", "moving backward", "at the highest speed"],
+                0,
+                "Zero slope means no new distance is being added.",
+                ["graph_gradient_context_confusion"],
+            ),
+            spec_short(
+                "M1L5_D7",
+                "A distance-time line rises 24 m in 6 s. What speed does that slope show?",
+                ["4", "4 m/s"],
+                "Use distance change divided by time change.",
+                ["graph_gradient_context_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L5"]["capsule_checks"].extend(
+        [
+            spec_short(
+                "M1L5_C4",
+                "On a speed-time graph, what does zero slope mean?",
+                ["zero acceleration", "constant speed", "constant velocity", "no change in speed"],
+                "The height may stay above zero even when the slope is zero.",
+                ["graph_gradient_context_confusion"],
+            ),
+            spec_mcq(
+                "M1L5_C5",
+                "Why can the same-looking tilt mean different things on two motion graphs?",
+                ["Because the axes are different", "Because slope never has units", "Because graphs ignore time", "Because one graph must be wrong"],
+                0,
+                "The axes decide the rate family represented by the tilt.",
+                ["graph_gradient_context_confusion", "multi_representation_motion_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L5"]["transfer"].extend(
+        [
+            spec_short(
+                "M1L5_T8",
+                "Why must you name the axes before naming the slope?",
+                ["because the axes decide the meaning of the slope", "because the graph type decides whether slope means speed or acceleration", "because slope meaning comes from the axes", "because the same tilt can mean different rates on different graphs"],
+                "State why the graph context fixes the meaning first.",
+                ["graph_gradient_context_confusion", "multi_representation_motion_confusion"],
+            ),
+            spec_mcq(
+                "M1L5_T9",
+                "Which pair is matched correctly?",
+                ["distance-time slope -> speed; speed-time slope -> acceleration", "distance-time slope -> acceleration; speed-time slope -> speed", "distance-time slope -> distance; speed-time slope -> speed", "distance-time slope -> time; speed-time slope -> distance"],
+                0,
+                "Match each slope meaning to the graph axes.",
+                ["graph_gradient_context_confusion"],
+            ),
+            spec_short(
+                "M1L5_T10",
+                "A speed-time line rises from 2 m/s to 10 m/s in 4 s. What acceleration does the slope show?",
+                ["2", "2 m/s^2", "2 m/s/s"],
+                "Use change in speed divided by change in time.",
+                ["graph_gradient_context_confusion"],
+            ),
+        ]
+    )
+
+    lessons["M1_L6"]["diagnostic"].extend(
+        [
+            spec_mcq(
+                "M1L6_D6",
+                "What does the area under a speed-time graph represent in this module?",
+                ["total distance traveled", "acceleration", "final speed only", "time alone"],
+                0,
+                "On a speed-time graph, area accumulates distance.",
+                ["area_under_graph_confusion"],
+            ),
+            spec_short(
+                "M1L6_D7",
+                "An object moves at 5 m/s for 4 s. What distance does the rectangle area give?",
+                ["20", "20 m"],
+                "Use distance = speed x time for the rectangular area.",
+                ["area_under_graph_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L6"]["capsule_checks"].extend(
+        [
+            spec_short(
+                "M1L6_C4",
+                "Why does the area rule work on a speed-time graph?",
+                ["because speed multiplied by time gives distance", "because the axes are speed and time so area gives distance", "because each strip is speed x time", "because the area accumulates distance from speed and time"],
+                "Use the axes to justify the physical meaning of the area.",
+                ["area_under_graph_confusion", "multi_representation_motion_confusion"],
+            ),
+            spec_mcq(
+                "M1L6_C5",
+                "Two different speed-time graphs enclose the same total area over the same interval. What must be the same?",
+                ["the total distance", "the final speed", "the acceleration at every point", "the graph shape"],
+                0,
+                "Equal total area means equal accumulated distance.",
+                ["area_under_graph_confusion"],
+            ),
+        ]
+    )
+    lessons["M1_L6"]["transfer"].extend(
+        [
+            spec_short(
+                "M1L6_T8",
+                "In a few words, what does the area under a speed-time graph represent?",
+                ["total distance", "distance traveled", "accumulated distance", "distance covered"],
+                "Name the accumulated quantity, not the graph shape.",
+                ["area_under_graph_confusion"],
+            ),
+            spec_mcq(
+                "M1L6_T9",
+                "One speed-time graph is a tall narrow triangle and another is a lower wider trapezium. If their areas match, then...",
+                ["they represent the same total distance", "they must have the same final speed", "they must have the same acceleration", "they must be the same graph"],
+                0,
+                "Area, not shape alone, controls the total distance.",
+                ["area_under_graph_confusion", "multi_representation_motion_confusion"],
+            ),
+            spec_short(
+                "M1L6_T10",
+                "Speed increases steadily from 2 m/s to 10 m/s over 4 s. What distance is traveled?",
+                ["24", "24 m"],
+                "Use average speed x time or rectangle + triangle area.",
+                ["area_under_graph_confusion"],
+            ),
+        ]
+    )
+
+
+apply_m1_enhancements()
 
 
 RELEASE_CHECKS = [
@@ -2623,7 +3186,31 @@ def build_examples(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def build_visuals(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return [vis(str(item["asset_id"]), str(item["purpose"]), str(item["caption"])) for item in items]
+    return [
+        vis(
+            str(item["asset_id"]),
+            str(item.get("purpose") or item.get("caption") or item.get("title") or item["asset_id"]),
+            str(item.get("caption") or item.get("purpose") or item.get("title") or item["asset_id"]),
+            concept=str(item.get("concept") or ""),
+            title=str(item.get("title") or ""),
+            phase_key=str(item.get("phase_key") or "analogical_grounding"),
+        )
+        for item in items
+    ]
+
+
+def build_animations(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [
+        anim(
+            str(item["asset_id"]),
+            str(item.get("concept") or item["asset_id"]),
+            str(item.get("title") or item["asset_id"]),
+            str(item.get("description") or item.get("title") or item["asset_id"]),
+            phase_key=str(item.get("phase_key") or "analogical_grounding"),
+            duration_sec=int(item.get("duration_sec") or 8),
+        )
+        for item in items
+    ]
 
 
 def configure_sim(spec: Dict[str, Any]) -> None:
@@ -2674,6 +3261,9 @@ def configure_lesson(spec: Dict[str, Any]) -> None:
     contract["representations"] = build_representations(list(contract["representations"]))
     contract["worked_examples"] = build_examples(list(contract["worked_examples"]))
     contract["visual_assets"] = build_visuals(list(contract["visual_assets"]))
+    contract["animation_assets"] = build_animations(list(contract.get("animation_assets") or []))
+    contract["simulation_contract"] = dict(contract.get("simulation_contract") or {})
+    contract["assessment_bank_targets"] = dict(contract.get("assessment_bank_targets") or {})
     contract["release_checks"] = list(RELEASE_CHECKS)
     lesson["authoring_contract"] = contract
 
@@ -2687,27 +3277,40 @@ M1_LESSONS: List[Tuple[str, Dict[str, Any]]] = [(str(lesson["lesson_id"]), lesso
 M1_SIM_LABS: List[Tuple[str, Dict[str, Any]]] = [(str(sim["lab_id"]), sim) for sim in _SIMS]
 
 validate_nextgen_module(M1_MODULE_DOC, [payload for _, payload in M1_LESSONS], [payload for _, payload in M1_SIM_LABS], M1_ALLOWLIST)
+plan_module_assets(M1_LESSONS, M1_SIM_LABS, public_base="/lesson_assets")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed Module M1 into Firestore")
     parser.add_argument("--project", default=None)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--compile-assets", action="store_true")
+    parser.add_argument("--asset-root", default="")
+    parser.add_argument("--public-base", default="/lesson_assets")
     args = parser.parse_args()
 
     project = get_project_id(args.project)
     apply = bool(args.apply)
     db = init_firebase(project) if apply else None
 
-    plan: List[Tuple[str, str]] = [("modules", M1_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in M1_LESSONS] + [("sim_labs", doc_id) for doc_id, _ in M1_SIM_LABS]
+    lesson_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M1_LESSONS]
+    sim_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M1_SIM_LABS]
+    asset_root = args.asset_root or str(default_asset_root())
+    if args.compile_assets:
+        render_module_assets(lesson_pairs, sim_pairs, asset_root=asset_root, public_base=args.public_base)
+
+    plan: List[Tuple[str, str]] = [("modules", M1_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in lesson_pairs] + [("sim_labs", doc_id) for doc_id, _ in sim_pairs]
     print(f"Project: {project}")
     print(f"Mode: {'APPLY (writes enabled)' if apply else 'DRY RUN (no writes)'}")
+    if args.compile_assets:
+        print(f"Asset root: {asset_root}")
+        print(f"Public base: {args.public_base}")
     print_preview("Planned upserts", plan)
 
     upsert_doc(db, "modules", M1_MODULE_ID, M1_MODULE_DOC, apply)
-    for doc_id, payload in M1_LESSONS:
+    for doc_id, payload in lesson_pairs:
         upsert_doc(db, "lessons", doc_id, payload, apply)
-    for doc_id, payload in M1_SIM_LABS:
+    for doc_id, payload in sim_pairs:
         upsert_doc(db, "sim_labs", doc_id, payload, apply)
 
     print("DONE")

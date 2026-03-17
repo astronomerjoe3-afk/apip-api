@@ -776,6 +776,337 @@ def _generic_lab(title: str, description: str) -> str:
     return html.replace("__TITLE__", escape(title)).replace("__DESCRIPTION__", escape(description))
 
 
+def _m1_shell(title: str, description: str, controls: str, figure: str, readout: str, script: str) -> str:
+    html = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>__TITLE__</title>
+<style>
+  body { margin: 0; background: #0f172a; color: white; font-family: Arial, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .panel { border: 1px solid #334155; border-radius: 18px; padding: 18px; background: #111827; }
+  label { display: block; margin-top: 14px; color: #cbd5e1; }
+  input { width: 100%; margin-top: 8px; }
+  .chips { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-top: 16px; }
+  .chip { border-radius: 14px; padding: 12px; background: #0f172a; border: 1px solid #334155; }
+  svg { width: 100%; height: auto; display: block; }
+  .note { margin-top: 16px; padding: 14px; border-radius: 14px; background: #082f49; color: #e0f2fe; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>__TITLE__</h1>
+    <p>__DESCRIPTION__</p>
+    <div class="grid">
+      <div class="panel">
+        <h2>Controls</h2>
+        __CONTROLS__
+      </div>
+      <div class="panel">
+        <h2>Graph board</h2>
+        __FIGURE__
+        <div class="chips">__READOUT__</div>
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+  </div>
+<script>
+__SCRIPT__
+</script>
+</body>
+</html>
+"""
+    return (
+        html.replace("__TITLE__", escape(title))
+        .replace("__DESCRIPTION__", escape(description))
+        .replace("__CONTROLS__", controls)
+        .replace("__FIGURE__", figure)
+        .replace("__READOUT__", readout)
+        .replace("__SCRIPT__", script)
+    )
+
+
+def _distance_time_story_lab(title: str, description: str) -> str:
+    controls = """
+      <label>Opening pace (m/s)<input id="speedA" type="range" min="1" max="8" step="1" value="4" /></label>
+      <label>Pause time (s)<input id="pause" type="range" min="0" max="6" step="1" value="2" /></label>
+      <label>Closing pace (m/s)<input id="speedB" type="range" min="1" max="8" step="1" value="6" /></label>
+    """
+    figure = """
+      <svg viewBox="0 0 560 280" aria-label="Distance-time story graph">
+        <rect width="560" height="280" rx="18" fill="#020617" />
+        <line x1="70" y1="230" x2="510" y2="230" stroke="#94a3b8" stroke-width="3" />
+        <line x1="70" y1="230" x2="70" y2="40" stroke="#94a3b8" stroke-width="3" />
+        <polyline id="primaryLine" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+        <polyline id="comparisonLine" fill="none" stroke="#22c55e" stroke-width="6" stroke-dasharray="12 10" stroke-linecap="round" stroke-linejoin="round" />
+        <text x="140" y="258" fill="#cbd5e1" font-size="18">time</text>
+        <text x="18" y="110" fill="#cbd5e1" font-size="18" transform="rotate(-90 18 110)">distance</text>
+      </svg>
+    """
+    readout = """
+      <div class="chip"><strong>Final distance</strong><div id="finishDistance"></div></div>
+      <div class="chip"><strong>Catch-up pace</strong><div id="comparisonSpeed"></div></div>
+      <div class="chip"><strong>Main idea</strong><div>same finish, different story</div></div>
+    """
+    script = """
+      function linePoints(points, width, height, maxX, maxY) {
+        return points.map(([x, y]) => {
+          const px = 70 + (x / Math.max(maxX, 1)) * 440;
+          const py = 230 - (y / Math.max(maxY, 1)) * 170;
+          return `${px},${py}`;
+        }).join(' ');
+      }
+      function update() {
+        const speedA = Number(document.getElementById('speedA').value);
+        const pause = Number(document.getElementById('pause').value);
+        const speedB = Number(document.getElementById('speedB').value);
+        const totalTime = 8 + pause;
+        const finishDistance = speedA * 4 + speedB * 4;
+        const comparisonSpeed = finishDistance / totalTime;
+        const mainPoints = [[0, 0], [4, speedA * 4], [4 + pause, speedA * 4], [totalTime, finishDistance]];
+        const comparison = [[0, 0], [totalTime, finishDistance]];
+        document.getElementById('primaryLine').setAttribute('points', linePoints(mainPoints, 560, 280, totalTime, Math.max(finishDistance, 10)));
+        document.getElementById('comparisonLine').setAttribute('points', linePoints(comparison, 560, 280, totalTime, Math.max(finishDistance, 10)));
+        document.getElementById('finishDistance').innerText = `${finishDistance.toFixed(0)} m`;
+        document.getElementById('comparisonSpeed').innerText = `${comparisonSpeed.toFixed(2)} m/s`;
+        document.getElementById('note').innerText = 'The dashed line shows a different journey that reaches the same final distance. The graph records the story; it is not the route itself.';
+      }
+      document.querySelectorAll('input').forEach((input) => input.addEventListener('input', update));
+      update();
+    """
+    return _m1_shell(title, description, controls, figure, readout, script)
+
+
+def _speed_time_change_lab(title: str, description: str) -> str:
+    controls = """
+      <label>Start speed (m/s)<input id="startSpeed" type="range" min="0" max="14" step="1" value="4" /></label>
+      <label>End speed (m/s)<input id="endSpeed" type="range" min="0" max="14" step="1" value="10" /></label>
+      <label>Time interval (s)<input id="duration" type="range" min="1" max="8" step="1" value="3" /></label>
+    """
+    figure = """
+      <svg viewBox="0 0 560 280" aria-label="Speed-time graph">
+        <rect width="560" height="280" rx="18" fill="#020617" />
+        <line x1="70" y1="230" x2="510" y2="230" stroke="#94a3b8" stroke-width="3" />
+        <line x1="70" y1="230" x2="70" y2="40" stroke="#94a3b8" stroke-width="3" />
+        <polyline id="paceLine" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+        <circle id="midPoint" r="8" fill="#fbbf24" />
+        <text x="150" y="258" fill="#cbd5e1" font-size="18">time</text>
+        <text x="18" y="120" fill="#cbd5e1" font-size="18" transform="rotate(-90 18 120)">speed</text>
+      </svg>
+    """
+    readout = """
+      <div class="chip"><strong>Graph height now</strong><div id="midSpeed"></div></div>
+      <div class="chip"><strong>Slope</strong><div id="accel"></div></div>
+      <div class="chip"><strong>Flat above zero</strong><div>constant speed</div></div>
+    """
+    script = """
+      function update() {
+        const start = Number(document.getElementById('startSpeed').value);
+        const end = Number(document.getElementById('endSpeed').value);
+        const duration = Number(document.getElementById('duration').value);
+        const accel = (end - start) / duration;
+        const maxSpeed = Math.max(start, end, 2);
+        const p1 = `70,${230 - (start / maxSpeed) * 170}`;
+        const p2 = `510,${230 - (end / maxSpeed) * 170}`;
+        document.getElementById('paceLine').setAttribute('points', `${p1} ${p2}`);
+        document.getElementById('midPoint').setAttribute('cx', '290');
+        document.getElementById('midPoint').setAttribute('cy', String(230 - (((start + end) / 2) / maxSpeed) * 170));
+        document.getElementById('midSpeed').innerText = `${((start + end) / 2).toFixed(1)} m/s at the midpoint`;
+        document.getElementById('accel').innerText = `${accel.toFixed(2)} m/s^2`;
+        document.getElementById('note').innerText = 'Height answers the speed-now question. Slope answers the rate-of-change question. They are not interchangeable.';
+      }
+      document.querySelectorAll('input').forEach((input) => input.addEventListener('input', update));
+      update();
+    """
+    return _m1_shell(title, description, controls, figure, readout, script)
+
+
+def _signed_acceleration_lab(title: str, description: str) -> str:
+    controls = """
+      <label>Initial velocity (m/s)<input id="u" type="range" min="-10" max="10" step="1" value="-6" /></label>
+      <label>Final velocity (m/s)<input id="v" type="range" min="-10" max="10" step="1" value="2" /></label>
+      <label>Time interval (s)<input id="t" type="range" min="1" max="8" step="1" value="4" /></label>
+    """
+    figure = """
+      <svg viewBox="0 0 560 280" aria-label="Signed acceleration board">
+        <rect width="560" height="280" rx="18" fill="#020617" />
+        <line x1="80" y1="150" x2="480" y2="150" stroke="#94a3b8" stroke-width="3" />
+        <line x1="280" y1="110" x2="280" y2="190" stroke="#64748b" stroke-width="3" />
+        <line id="uArrow" x1="280" y1="120" x2="280" y2="120" stroke="#38bdf8" stroke-width="10" stroke-linecap="round" />
+        <polygon id="uHead" points="280,120 280,120 280,120" fill="#38bdf8" />
+        <line id="vArrow" x1="280" y1="190" x2="280" y2="190" stroke="#f59e0b" stroke-width="10" stroke-linecap="round" />
+        <polygon id="vHead" points="280,190 280,190 280,190" fill="#f59e0b" />
+      </svg>
+    """
+    readout = """
+      <div class="chip"><strong>Signed change</strong><div id="deltaV"></div></div>
+      <div class="chip"><strong>Acceleration</strong><div id="signedA"></div></div>
+      <div class="chip"><strong>Sign story</strong><div id="story"></div></div>
+    """
+    script = """
+      function arrow(lineId, headId, y, value, color) {
+        const scale = 18;
+        const endX = 280 + value * scale;
+        const line = document.getElementById(lineId);
+        line.setAttribute('x1', '280');
+        line.setAttribute('y1', String(y));
+        line.setAttribute('x2', String(endX));
+        line.setAttribute('y2', String(y));
+        const head = value >= 0
+          ? `${endX},${y} ${endX - 18},${y - 10} ${endX - 18},${y + 10}`
+          : `${endX},${y} ${endX + 18},${y - 10} ${endX + 18},${y + 10}`;
+        document.getElementById(headId).setAttribute('points', head);
+      }
+      function update() {
+        const u = Number(document.getElementById('u').value);
+        const v = Number(document.getElementById('v').value);
+        const t = Number(document.getElementById('t').value);
+        const a = (v - u) / t;
+        arrow('uArrow', 'uHead', 120, u, '#38bdf8');
+        arrow('vArrow', 'vHead', 190, v, '#f59e0b');
+        document.getElementById('deltaV').innerText = `${(v - u).toFixed(1)} m/s`;
+        document.getElementById('signedA').innerText = `${a.toFixed(2)} m/s^2`;
+        document.getElementById('story').innerText = a > 0 ? 'change points positive' : a < 0 ? 'change points negative' : 'no velocity change';
+        document.getElementById('note').innerText = 'The sign of acceleration comes from the signed velocity change over time. It does not automatically mean “speeding up” or “slowing down” without the velocity direction.';
+      }
+      document.querySelectorAll('input').forEach((input) => input.addEventListener('input', update));
+      update();
+    """
+    return _m1_shell(title, description, controls, figure, readout, script)
+
+
+def _constant_acceleration_forecast_lab(title: str, description: str) -> str:
+    controls = """
+      <label>Initial speed u (m/s)<input id="u" type="range" min="0" max="14" step="1" value="4" /></label>
+      <label>Acceleration a (m/s^2)<input id="a" type="range" min="-4" max="4" step="1" value="3" /></label>
+      <label>Time t (s)<input id="t" type="range" min="1" max="8" step="1" value="2" /></label>
+    """
+    figure = """
+      <svg viewBox="0 0 560 280" aria-label="Constant acceleration forecast board">
+        <rect width="560" height="280" rx="18" fill="#020617" />
+        <line x1="70" y1="230" x2="500" y2="230" stroke="#94a3b8" stroke-width="3" />
+        <line x1="70" y1="230" x2="70" y2="40" stroke="#94a3b8" stroke-width="3" />
+        <polygon id="areaShape" points="" fill="#38bdf8" fill-opacity="0.22" />
+        <polyline id="forecastLine" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    """
+    readout = """
+      <div class="chip"><strong>v = u + at</strong><div id="vOut"></div></div>
+      <div class="chip"><strong>s = ut + 1/2at^2</strong><div id="sOut"></div></div>
+      <div class="chip"><strong>Condition</strong><div>constant acceleration</div></div>
+    """
+    script = """
+      function update() {
+        const u = Number(document.getElementById('u').value);
+        const a = Number(document.getElementById('a').value);
+        const t = Number(document.getElementById('t').value);
+        const v = u + a * t;
+        const s = u * t + 0.5 * a * t * t;
+        const maxSpeed = Math.max(u, v, 2);
+        const p1 = [70, 230 - (u / maxSpeed) * 170];
+        const p2 = [500, 230 - (v / maxSpeed) * 170];
+        document.getElementById('forecastLine').setAttribute('points', `${p1[0]},${p1[1]} ${p2[0]},${p2[1]}`);
+        document.getElementById('areaShape').setAttribute('points', `70,230 70,${p1[1]} 500,${p2[1]} 500,230`);
+        document.getElementById('vOut').innerText = `${v.toFixed(1)} m/s`;
+        document.getElementById('sOut').innerText = `${s.toFixed(1)} m`;
+        document.getElementById('note').innerText = 'This board is safe only when acceleration stays constant. Then the graph, the algebra, and the area story all agree.';
+      }
+      document.querySelectorAll('input').forEach((input) => input.addEventListener('input', update));
+      update();
+    """
+    return _m1_shell(title, description, controls, figure, readout, script)
+
+
+def _graph_gradient_context_lab(title: str, description: str) -> str:
+    controls = """
+      <label>Shared tilt<input id="gradient" type="range" min="1" max="6" step="1" value="3" /></label>
+    """
+    figure = """
+      <svg viewBox="0 0 560 280" aria-label="Gradient context comparison">
+        <rect width="560" height="280" rx="18" fill="#020617" />
+        <rect x="30" y="30" width="230" height="220" rx="16" fill="#0f172a" stroke="#334155" />
+        <rect x="300" y="30" width="230" height="220" rx="16" fill="#0f172a" stroke="#334155" />
+        <line x1="70" y1="210" x2="220" y2="110" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" />
+        <line x1="340" y1="210" x2="490" y2="110" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" />
+        <text x="145" y="245" fill="#bfdbfe" text-anchor="middle" font-size="18">distance-time</text>
+        <text x="415" y="245" fill="#fdba74" text-anchor="middle" font-size="18">speed-time</text>
+      </svg>
+    """
+    readout = """
+      <div class="chip"><strong>On distance-time</strong><div id="speedMeaning"></div></div>
+      <div class="chip"><strong>On speed-time</strong><div id="accelMeaning"></div></div>
+      <div class="chip"><strong>Main idea</strong><div>axes decide the rate</div></div>
+    """
+    script = """
+      function update() {
+        const gradient = Number(document.getElementById('gradient').value);
+        document.getElementById('speedMeaning').innerText = `${gradient.toFixed(0)} m/s`;
+        document.getElementById('accelMeaning').innerText = `${gradient.toFixed(0)} m/s^2`;
+        document.getElementById('note').innerText = 'The same visual steepness can stand for different physical rates. Name the graph before naming the slope.';
+      }
+      document.getElementById('gradient').addEventListener('input', update);
+      update();
+    """
+    return _m1_shell(title, description, controls, figure, readout, script)
+
+
+def _speed_time_area_lab(title: str, description: str) -> str:
+    controls = """
+      <label>Initial speed u (m/s)<input id="u" type="range" min="0" max="10" step="1" value="2" /></label>
+      <label>Final speed v (m/s)<input id="v" type="range" min="0" max="14" step="1" value="10" /></label>
+      <label>Time t (s)<input id="t" type="range" min="1" max="8" step="1" value="4" /></label>
+    """
+    figure = """
+      <svg viewBox="0 0 560 280" aria-label="Area under speed-time graph">
+        <rect width="560" height="280" rx="18" fill="#020617" />
+        <line x1="70" y1="230" x2="500" y2="230" stroke="#94a3b8" stroke-width="3" />
+        <line x1="70" y1="230" x2="70" y2="40" stroke="#94a3b8" stroke-width="3" />
+        <rect id="rectArea" x="70" y="230" width="0" height="0" fill="#60a5fa" fill-opacity="0.32" />
+        <polygon id="triArea" points="" fill="#f59e0b" fill-opacity="0.45" />
+        <polyline id="areaLine" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    """
+    readout = """
+      <div class="chip"><strong>Rectangle</strong><div id="rectOut"></div></div>
+      <div class="chip"><strong>Triangle</strong><div id="triOut"></div></div>
+      <div class="chip"><strong>Total distance</strong><div id="distOut"></div></div>
+    """
+    script = """
+      function update() {
+        const u = Number(document.getElementById('u').value);
+        const v = Number(document.getElementById('v').value);
+        const t = Number(document.getElementById('t').value);
+        const rectangle = Math.min(u, v) * t;
+        const triangle = 0.5 * Math.abs(v - u) * t;
+        const distance = rectangle + triangle;
+        const maxSpeed = Math.max(u, v, 2);
+        const lineY1 = 230 - (u / maxSpeed) * 170;
+        const lineY2 = 230 - (v / maxSpeed) * 170;
+        document.getElementById('areaLine').setAttribute('points', `70,${lineY1} 500,${lineY2}`);
+        const rectTop = 230 - (Math.min(u, v) / maxSpeed) * 170;
+        document.getElementById('rectArea').setAttribute('x', '70');
+        document.getElementById('rectArea').setAttribute('y', String(rectTop));
+        document.getElementById('rectArea').setAttribute('width', '430');
+        document.getElementById('rectArea').setAttribute('height', String(230 - rectTop));
+        if (v >= u) {
+          document.getElementById('triArea').setAttribute('points', `70,${lineY1} 500,${lineY1} 500,${lineY2}`);
+        } else {
+          document.getElementById('triArea').setAttribute('points', `70,${lineY2} 70,${lineY1} 500,${lineY2}`);
+        }
+        document.getElementById('rectOut').innerText = `${rectangle.toFixed(1)} m`;
+        document.getElementById('triOut').innerText = `${triangle.toFixed(1)} m`;
+        document.getElementById('distOut').innerText = `${distance.toFixed(1)} m`;
+        document.getElementById('note').innerText = 'Each thin strip is a little piece of distance. Add every strip and you get the full journey distance from the shaded area.';
+      }
+      document.querySelectorAll('input').forEach((input) => input.addEventListener('input', update));
+      update();
+    """
+    return _m1_shell(title, description, controls, figure, readout, script)
+
+
 def generate_simulation(
     req: SimulationRequest,
     output_dir: str | Path,
@@ -810,6 +1141,18 @@ def generate_simulation(
         html = _series_parallel_lab(req.title or req.concept, req.description)
     elif req.concept == "power_safety":
         html = _power_safety_lab(req.title or req.concept, req.description)
+    elif req.concept == "distance_time_story":
+        html = _distance_time_story_lab(req.title or req.concept, req.description)
+    elif req.concept == "speed_time_change":
+        html = _speed_time_change_lab(req.title or req.concept, req.description)
+    elif req.concept == "signed_acceleration":
+        html = _signed_acceleration_lab(req.title or req.concept, req.description)
+    elif req.concept == "constant_acceleration_forecast":
+        html = _constant_acceleration_forecast_lab(req.title or req.concept, req.description)
+    elif req.concept == "graph_gradient_context":
+        html = _graph_gradient_context_lab(req.title or req.concept, req.description)
+    elif req.concept == "speed_time_area":
+        html = _speed_time_area_lab(req.title or req.concept, req.description)
     else:
         html = _generic_lab(req.title or req.concept, req.description)
 

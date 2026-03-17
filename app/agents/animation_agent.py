@@ -115,6 +115,56 @@ def _animation_graphic(concept: str) -> str:
           <div class="box low">Fuse trips<br/>unsafe current</div>
         </div>
         """
+    if concept == "distance_time_story":
+        return """
+        <div class="compare">
+          <div class="box low">quest lane<br/>motion</div>
+          <div class="vs">record</div>
+          <div class="box high pulse">mission log<br/>distance vs time</div>
+        </div>
+        """
+    if concept == "speed_time_change":
+        return """
+        <div class="compare">
+          <div class="box low">graph height<br/>speed now</div>
+          <div class="vs">slope</div>
+          <div class="box high pulse">rate of change<br/>acceleration</div>
+        </div>
+        """
+    if concept == "signed_acceleration":
+        return """
+        <div class="compare">
+          <div class="box low">u -> v<br/>signed change</div>
+          <div class="vs">over t</div>
+          <div class="box high pulse">a = (v-u)/t<br/>sign matters</div>
+        </div>
+        """
+    if concept == "constant_acceleration_forecast":
+        return """
+        <div class="ladder">
+          <div class="step top">knowns -> unknown</div>
+          <div class="connector"></div>
+          <div class="step middle">constant a?</div>
+          <div class="connector"></div>
+          <div class="step bottom pulse">choose the equation</div>
+        </div>
+        """
+    if concept == "graph_gradient_context":
+        return """
+        <div class="compare">
+          <div class="box low">same tilt<br/>distance-time = speed</div>
+          <div class="vs">axes</div>
+          <div class="box high pulse">same tilt<br/>speed-time = acceleration</div>
+        </div>
+        """
+    if concept == "speed_time_area":
+        return """
+        <div class="compare">
+          <div class="box low">rectangle<br/>base distance</div>
+          <div class="vs">plus</div>
+          <div class="box high pulse">triangle<br/>extra distance</div>
+        </div>
+        """
     return """
     <div class="card">
       <div class="big pulse">Concept animation</div>

@@ -314,6 +314,158 @@ def _power_safety_svg(req: DiagramRequest) -> str:
     )
 
 
+def _distance_time_story_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="90" y="180" width="430" height="360" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="305" y="232" fill="#f8fafc" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Quest lane</text>
+  <line x1="140" y1="360" x2="470" y2="360" stroke="#2563eb" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="170" cy="360" r="24" fill="#fb923c"/>
+  <circle cx="415" cy="360" r="24" fill="#10b981"/>
+  <rect x="260" y="334" width="88" height="52" rx="16" fill="#fde68a" stroke="#f59e0b" stroke-width="3"/>
+  <text x="304" y="366" fill="#92400e" text-anchor="middle" font-size="20" font-family="Arial" font-weight="bold">pause</text>
+  <text x="305" y="470" fill="#cbd5e1" text-anchor="middle" font-size="22" font-family="Arial">Lane story: move, wait, move faster</text>
+
+  <rect x="620" y="180" width="490" height="360" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="865" y="232" fill="#f8fafc" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Mission log</text>
+  <line x1="700" y1="470" x2="1040" y2="470" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="700" y1="470" x2="700" y2="270" stroke="#94a3b8" stroke-width="4"/>
+  <path d="M700 470 L790 390 L860 390 L1010 300" stroke="#38bdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M700 470 L1010 300" stroke="#22c55e" stroke-width="8" stroke-dasharray="14 12" stroke-linecap="round"/>
+  <text x="860" y="520" fill="#cbd5e1" text-anchor="middle" font-size="22" font-family="Arial">Height = distance, slope = pace</text>
+  <text x="865" y="565" fill="#93c5fd" text-anchor="middle" font-size="22" font-family="Arial">Same finish can hide different journey stories</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _speed_time_change_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="120" y="190" width="960" height="360" rx="28" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <line x1="220" y1="480" x2="940" y2="480" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="220" y1="480" x2="220" y2="260" stroke="#94a3b8" stroke-width="4"/>
+  <path d="M220 430 L470 430" stroke="#60a5fa" stroke-width="10" stroke-linecap="round"/>
+  <path d="M470 430 L760 330" stroke="#22c55e" stroke-width="10" stroke-linecap="round"/>
+  <path d="M760 330 L940 300" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
+  <text x="840" y="250" fill="#f8fafc" text-anchor="middle" font-size="28" font-family="Arial" font-weight="bold">Height asks “how fast now?”</text>
+  <text x="530" y="380" fill="#86efac" text-anchor="middle" font-size="24" font-family="Arial">Slope asks “how fast is the pace changing?”</text>
+  <text x="350" y="530" fill="#cbd5e1" text-anchor="middle" font-size="22" font-family="Arial">Flat above zero = constant speed</text>
+  <text x="820" y="530" fill="#fdba74" text-anchor="middle" font-size="22" font-family="Arial">Steeper rise = larger acceleration</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _signed_acceleration_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="130" y="210" width="430" height="300" rx="28" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="345" y="270" fill="#f8fafc" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Velocity bar</text>
+  <line x1="200" y1="360" x2="490" y2="360" stroke="#94a3b8" stroke-width="5"/>
+  <line x1="345" y1="320" x2="345" y2="400" stroke="#64748b" stroke-width="4"/>
+  <line x1="345" y1="360" x2="455" y2="360" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+  <polygon points="455,360 425,343 425,377" fill="#38bdf8"/>
+  <line x1="345" y1="410" x2="265" y2="410" stroke="#f59e0b" stroke-width="12" stroke-linecap="round"/>
+  <polygon points="265,410 295,393 295,427" fill="#f59e0b"/>
+  <text x="430" y="335" fill="#bfdbfe" text-anchor="middle" font-size="20" font-family="Arial">u</text>
+  <text x="285" y="445" fill="#fed7aa" text-anchor="middle" font-size="20" font-family="Arial">v</text>
+
+  <rect x="650" y="210" width="420" height="300" rx="28" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="860" y="270" fill="#f8fafc" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Acceleration sign</text>
+  <text x="860" y="345" fill="#86efac" text-anchor="middle" font-size="42" font-family="Arial" font-weight="bold">a = (v - u) / t</text>
+  <text x="860" y="410" fill="#cbd5e1" text-anchor="middle" font-size="24" font-family="Arial">The sign comes from the signed velocity change</text>
+  <text x="860" y="448" fill="#cbd5e1" text-anchor="middle" font-size="24" font-family="Arial">relative to the chosen positive direction.</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _constant_acceleration_forecast_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="110" y="200" width="300" height="320" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="260" y="255" fill="#f8fafc" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Knowns first</text>
+  <text x="180" y="325" fill="#cbd5e1" font-size="24" font-family="Arial">u = known</text>
+  <text x="180" y="370" fill="#cbd5e1" font-size="24" font-family="Arial">a = known</text>
+  <text x="180" y="415" fill="#cbd5e1" font-size="24" font-family="Arial">t = known</text>
+  <text x="180" y="465" fill="#86efac" font-size="28" font-family="Arial" font-weight="bold">Choose v = u + at</text>
+
+  <rect x="450" y="200" width="300" height="320" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="600" y="255" fill="#f8fafc" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Rectangle + triangle</text>
+  <rect x="515" y="390" width="120" height="70" fill="#60a5fa"/>
+  <polygon points="635,390 705,390 705,320" fill="#f59e0b"/>
+  <text x="600" y="490" fill="#cbd5e1" text-anchor="middle" font-size="22" font-family="Arial">s = ut + 1/2at^2</text>
+
+  <rect x="790" y="200" width="300" height="320" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="940" y="255" fill="#f8fafc" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Condition check</text>
+  <rect x="850" y="325" width="180" height="64" rx="20" fill="#dcfce7"/>
+  <text x="940" y="365" fill="#166534" text-anchor="middle" font-size="24" font-family="Arial" font-weight="bold">constant a?</text>
+  <text x="940" y="445" fill="#fca5a5" text-anchor="middle" font-size="22" font-family="Arial">If not, the compact forecast breaks.</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _graph_gradient_context_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="90" y="210" width="460" height="300" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="320" y="260" fill="#f8fafc" text-anchor="middle" font-size="28" font-family="Arial" font-weight="bold">Distance-time</text>
+  <line x1="170" y1="450" x2="480" y2="450" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="170" y1="450" x2="170" y2="290" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="200" y1="430" x2="440" y2="330" stroke="#38bdf8" stroke-width="10" stroke-linecap="round"/>
+  <text x="320" y="495" fill="#bfdbfe" text-anchor="middle" font-size="22" font-family="Arial">Slope = speed</text>
+
+  <rect x="650" y="210" width="460" height="300" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="880" y="260" fill="#f8fafc" text-anchor="middle" font-size="28" font-family="Arial" font-weight="bold">Speed-time</text>
+  <line x1="730" y1="450" x2="1040" y2="450" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="730" y1="450" x2="730" y2="290" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="760" y1="430" x2="1000" y2="330" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
+  <text x="880" y="495" fill="#fdba74" text-anchor="middle" font-size="22" font-family="Arial">Slope = acceleration</text>
+
+  <text x="600" y="580" fill="#e2e8f0" text-anchor="middle" font-size="24" font-family="Arial">Same tilt, different physics because the axes change the rate family.</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _speed_time_area_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="120" y="200" width="960" height="340" rx="28" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <line x1="220" y1="470" x2="980" y2="470" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="220" y1="470" x2="220" y2="270" stroke="#94a3b8" stroke-width="4"/>
+  <polygon points="220,470 220,390 620,390 620,310 980,310 980,470" fill="#1d4ed8" fill-opacity="0.18"/>
+  <rect x="220" y="390" width="400" height="80" fill="#60a5fa" fill-opacity="0.32"/>
+  <polygon points="620,390 980,390 980,310" fill="#f59e0b" fill-opacity="0.45"/>
+  <path d="M220 390 L620 390 L980 310" stroke="#38bdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="420" y="515" fill="#bfdbfe" text-anchor="middle" font-size="22" font-family="Arial">Rectangle = base distance</text>
+  <text x="820" y="515" fill="#fdba74" text-anchor="middle" font-size="22" font-family="Arial">Triangle = extra distance</text>
+  <text x="600" y="560" fill="#e2e8f0" text-anchor="middle" font-size="24" font-family="Arial">Whole shaded area = total distance over the interval</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
 def _generic_svg(req: DiagramRequest) -> str:
     return _wrap_svg(
         f"""
@@ -362,6 +514,18 @@ def generate_diagram(
         svg = _series_parallel_svg(req)
     elif req.concept == "power_safety":
         svg = _power_safety_svg(req)
+    elif req.concept == "distance_time_story":
+        svg = _distance_time_story_svg(req)
+    elif req.concept == "speed_time_change":
+        svg = _speed_time_change_svg(req)
+    elif req.concept == "signed_acceleration":
+        svg = _signed_acceleration_svg(req)
+    elif req.concept == "constant_acceleration_forecast":
+        svg = _constant_acceleration_forecast_svg(req)
+    elif req.concept == "graph_gradient_context":
+        svg = _graph_gradient_context_svg(req)
+    elif req.concept == "speed_time_area":
+        svg = _speed_time_area_svg(req)
     else:
         svg = _generic_svg(req)
 
