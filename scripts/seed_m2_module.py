@@ -7,15 +7,15 @@ from typing import Any, Dict, List, Tuple
 
 try:
     from scripts.lesson_authoring_contract import validate_nextgen_module
-    from scripts.module_asset_pipeline import default_asset_root, render_module_assets
+    from scripts.module_asset_pipeline import default_asset_root, plan_module_assets, render_module_assets
     from scripts.nextgen_module_scaffold import build_nextgen_module_scaffold
 except ModuleNotFoundError:
     from lesson_authoring_contract import validate_nextgen_module
-    from module_asset_pipeline import default_asset_root, render_module_assets
+    from module_asset_pipeline import default_asset_root, plan_module_assets, render_module_assets
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M2_MODULE_ID = "M2"
-M2_CONTENT_VERSION = "20260316_m2_thruster_deck_v1"
+M2_CONTENT_VERSION = "20260317_m2_force_systems_v2"
 M2_ALLOWLIST = [
     "motion_implies_force_confusion",
     "balanced_force_rest_confusion",
@@ -631,14 +631,274 @@ def configure_lesson(spec: Dict[str, Any]) -> None:
     contract["release_checks"] = list(RELEASE_CHECKS)
     lesson["authoring_contract"] = contract
 
+
+def spec_mcq(
+    qid: str,
+    prompt: str,
+    choices: List[str],
+    answer_index: int,
+    hint: str,
+    tags: List[str],
+) -> Dict[str, Any]:
+    return {
+        "kind": "mcq",
+        "id": qid,
+        "prompt": prompt,
+        "choices": choices,
+        "answer_index": answer_index,
+        "hint": hint,
+        "tags": tags,
+    }
+
+
+def spec_short(
+    qid: str,
+    prompt: str,
+    accepted_answers: List[str],
+    hint: str,
+    tags: List[str],
+) -> Dict[str, Any]:
+    return {
+        "kind": "short",
+        "id": qid,
+        "prompt": prompt,
+        "accepted_answers": accepted_answers,
+        "hint": hint,
+        "tags": tags,
+    }
+
+
+def assessment_targets(diagnostic_pool_min: int, concept_gate_pool_min: int, mastery_pool_min: int) -> Dict[str, Any]:
+    return {
+        "diagnostic_pool_min": diagnostic_pool_min,
+        "concept_gate_pool_min": concept_gate_pool_min,
+        "mastery_pool_min": mastery_pool_min,
+        "fresh_attempt_policy": (
+            "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem."
+        ),
+    }
+
+
+M2_LESSON_CONCEPTS = {
+    "M2_L1": "master_arrow",
+    "M2_L2": "load_rating",
+    "M2_L3": "dock_exchange",
+    "M2_L4": "spin_pull",
+    "M2_L5": "balance_core",
+    "M2_L6": "arrow_split",
+}
+
+M2_LESSON_VISUAL_TITLES = {
+    "M2_L1": "Master Arrow Systems Board",
+    "M2_L2": "Load Rating Response Board",
+    "M2_L3": "Dock Exchange Ledger Board",
+    "M2_L4": "Spin Pull Reach Board",
+    "M2_L5": "Balance Core Stability Board",
+    "M2_L6": "Arrow Split Bookkeeping Board",
+}
+
+M2_ANALOGY_UPDATES = {
+    "M2_L1": (
+        "Treat Thruster-Deck like a mission-control force ledger: many separate thruster entries can collapse into one net steering instruction. "
+        "The craft responds to that net instruction, not to the loudest single entry."
+    ),
+    "M2_L2": (
+        "Load Rating works like a response budget in a flight computer. The same steering command sent to two craft does not buy the same motion shift if one craft carries more inertia."
+    ),
+    "M2_L3": (
+        "Carry Score is like a signed docking ledger. Each moving craft brings momentum credit or debt, and a closed docking event must preserve the system total even while redistributing the share."
+    ),
+    "M2_L4": (
+        "Spin Pull is leverage accounting: a push buys turning effect only through its perpendicular reach from the pivot. The same force can buy very different rotation stories."
+    ),
+    "M2_L5": (
+        "Balance Core works like a support-permit rule. The weight line must land inside the allowed support zone, and widening the zone changes stability without changing the mass total."
+    ),
+    "M2_L6": (
+        "Arrow Split is vector bookkeeping for mission control. One diagonal command is rewritten into axis-aligned entries so several angled forces can be combined without losing the original meaning."
+    ),
+}
+
+M2_COMMITMENT_UPDATES = {
+    "M2_L1": "Before answering, decide whether the question is about one visible force entry or the net system instruction.",
+    "M2_L2": "Before answering, separate one-object response reasoning from two-object interaction-pair reasoning.",
+    "M2_L3": "Before answering, decide whether the question is about one craft's momentum or the closed-system total.",
+    "M2_L4": "Before answering, name the pivot and the perpendicular reach before you talk about turning.",
+    "M2_L5": "Before answering, trace where the Balance Core line lands relative to the Footprint Zone.",
+    "M2_L6": "Before answering, decide whether the clean route is to resolve by axis before rebuilding the final arrow.",
+}
+
+M2_EXTRA_DIAGNOSTIC = {
+    "M2_L1": [
+        spec_mcq("M2L1_D6", "A craft has 14 N east and 5 N west. What Master Arrow remains?", ["9 N east", "9 N west", "19 N east", "0 N"], 0, "Subtract opposite directions and keep the larger direction.", ["resultant_force_vector_confusion"]),
+        spec_mcq("M2L1_D7", "A craft is already moving west and the Master Arrow becomes zero. What happens next?", ["it keeps moving west at constant velocity", "it must stop at once", "it accelerates east", "all forces vanish because it is moving"], 0, "Zero Master Arrow means no acceleration, so the current velocity stays unchanged.", ["motion_implies_force_confusion", "newton_first_law_confusion"]),
+        spec_short("M2L1_D8", "In a few words, what does zero Master Arrow mean?", ["no motion change", "zero acceleration", "motion stays unchanged", "constant velocity if already moving"], "Zero Master Arrow tells you about acceleration, not about one special speed value.", ["newton_first_law_confusion", "balanced_force_rest_confusion"]),
+    ],
+    "M2_L2": [
+        spec_mcq("M2L2_D6", "A 18 N Master Arrow acts on a 3 kg craft. What Motion Shift occurs?", ["6 m/s^2", "9 m/s^2", "3 m/s^2", "54 m/s^2"], 0, "Use acceleration = net force / mass.", ["force_mass_acceleration_confusion"]),
+        spec_short("M2L2_D7", "In a few words, why can equal third-law forces still produce different accelerations?", ["the masses can differ", "different masses", "because the masses are different", "same force on different masses"], "Equal interaction forces do not force equal accelerations because mass still matters.", ["third_law_pair_confusion", "force_mass_acceleration_confusion"]),
+        spec_mcq("M2L2_D8", "If the mass stays fixed and the Master Arrow triples, the acceleration becomes...", ["three times as large", "one third as large", "unchanged", "zero"], 0, "For fixed mass, acceleration scales directly with net force.", ["force_mass_acceleration_confusion"]),
+    ],
+    "M2_L3": [
+        spec_short("M2L3_D6", "What two quantities set Carry Score?", ["mass and velocity", "mass and speed", "load and velocity", "mass times velocity"], "Momentum depends on both how much mass moves and how fast it moves.", ["momentum_force_confusion"]),
+        spec_mcq("M2L3_D7", "Which pair has the same Carry Score?", ["5 kg at 2 m/s and 2 kg at 5 m/s", "5 kg at 2 m/s and 5 kg at 5 m/s", "2 kg at 4 m/s and 1 kg at 8 m/s", "3 kg at 4 m/s and 2 kg at 4 m/s"], 0, "Compare mass times velocity in each case.", ["momentum_force_confusion"]),
+        spec_short("M2L3_D8", "A 6 kg craft moves at -2 m/s. What Carry Score does it have?", ["-12 kg m/s", "-12", "-12 Ns"], "Momentum keeps the sign of the velocity.", ["momentum_force_confusion"]),
+    ],
+    "M2_L4": [
+        spec_short("M2L4_D6", "What two things decide Spin Pull?", ["force and perpendicular reach", "force and distance from pivot", "force and moment arm", "force and reach"], "Turning effect depends on push size and perpendicular reach together.", ["torque_force_location_confusion"]),
+        spec_mcq("M2L4_D7", "Which pair gives the same Spin Pull?", ["4 N at 0.5 m and 2 N at 1.0 m", "4 N at 0.5 m and 4 N at 1.0 m", "8 N at 0.25 m and 8 N at 1.0 m", "6 N at 0.2 m and 2 N at 0.2 m"], 0, "Compare force x reach for each pair.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_D8", "A 10 N push acts 0.3 m from the pivot. What Spin Pull is produced?", ["3 N m", "3"], "Use torque = force x perpendicular reach.", ["torque_force_location_confusion"]),
+    ],
+    "M2_L5": [
+        spec_short("M2L5_D6", "If cargo is moved to the right, which way does the Balance Core shift?", ["right", "to the right"], "The center-of-mass position shifts toward the moved mass.", ["centre_of_mass_material_confusion"]),
+        spec_mcq("M2L5_D7", "If the Balance Core stays in the same place but the base becomes wider, stability usually...", ["increases", "decreases", "stays impossible to judge", "depends only on color"], 0, "A wider support zone gives more margin before tipping.", ["stability_weight_confusion"]),
+        spec_mcq("M2L5_D8", "Which event marks the tipping threshold most directly?", ["the weight line reaches or crosses the base edge", "the object becomes heavier", "the object starts moving fast", "the support area changes color"], 0, "Tipping begins when the center-of-mass line leaves the support region.", ["stability_weight_confusion", "centre_of_mass_material_confusion"]),
+    ],
+    "M2_L6": [
+        spec_short("M2L6_D6", "In a few words, what are components?", ["one force rewritten on chosen axes", "parts of one vector on axes", "one vector resolved on axes", "one force split into axis parts"], "Components are a cleaner description of one angled force.", ["vector_resolution_component_confusion"]),
+        spec_mcq("M2L6_D7", "A force has components 8 N east and 15 N north. What resultant magnitude does that give?", ["17 N", "7 N", "23 N", "15 N"], 0, "Use the 8-15-17 right triangle.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
+        spec_mcq("M2L6_D8", "A force already has 3 N east horizontally. If another 5 N east component is added, the new horizontal total is...", ["8 N east", "2 N east", "8 N west", "15 N east"], 0, "Same-direction components add on the same axis.", ["resultant_force_vector_confusion"]),
+    ],
+}
+
+M2_EXTRA_CONCEPT = {
+    "M2_L1": [
+        spec_mcq("M2L1_C5", "Which pair leaves the same Master Arrow?", ["11 N right with 3 N left, and 8 N right only", "7 N right with 7 N left, and 7 N right only", "6 N left with 2 N right, and 6 N right with 2 N left", "4 N right with 1 N left, and 1 N right with 4 N left"], 0, "Compare the net push in each case.", ["resultant_force_vector_confusion"]),
+        spec_short("M2L1_C6", "Why must you combine Drive Arrows before predicting motion?", ["because the resultant force decides the motion change", "because the Master Arrow decides acceleration", "motion depends on the net force", "the combined force predicts the change"], "Predict motion from the combined force, not from one isolated arrow.", ["resultant_force_vector_confusion", "motion_implies_force_confusion"]),
+    ],
+    "M2_L2": [
+        spec_short("M2L2_C5", "What real quantity is the lesson's Load Rating standing in for?", ["mass"], "Load Rating is the mass term in the model.", ["force_mass_acceleration_confusion"]),
+        spec_mcq("M2L2_C6", "The same 10 N interaction pair acts on a 2 kg craft and a 5 kg craft. Which has the smaller acceleration?", ["the 5 kg craft", "the 2 kg craft", "they match because the forces match", "the faster craft"], 0, "For the same force, the larger mass accelerates less.", ["force_mass_acceleration_confusion", "third_law_pair_confusion"]),
+    ],
+    "M2_L3": [
+        spec_mcq("M2L3_C5", "A closed system has 18 kg m/s total Carry Score before docking and a total mass of 6 kg after docking. What shared speed follows?", ["3 m/s", "6 m/s", "12 m/s", "18 m/s"], 0, "Shared speed = total momentum / combined mass.", ["momentum_conservation_system_confusion"]),
+        spec_short("M2L3_C6", "In a few words, what is conserved in a closed Dock Exchange?", ["total system carry score", "total momentum", "system momentum", "the total carry score of the system"], "The conserved quantity belongs to the whole closed system.", ["momentum_conservation_system_confusion"]),
+    ],
+    "M2_L4": [
+        spec_mcq("M2L4_C5", "If a force acts through the pivot and the force doubles, the Spin Pull becomes...", ["0 N m", "double", "half", "impossible to tell"], 0, "No perpendicular reach still means no torque.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_C6", "Why are door handles placed far from hinges?", ["to increase turning effect for the same force", "to increase torque for the same force", "to give a larger moment arm", "to give more Spin Pull"], "More perpendicular reach gives more turning effect for the same push.", ["torque_force_location_confusion"]),
+    ],
+    "M2_L5": [
+        spec_short("M2L5_C5", "In a few words, what decides whether tipping begins?", ["the weight line leaves the base", "the Balance Core line leaves the Footprint Zone", "the center of mass line goes outside the support area", "the line of action of weight reaches the edge"], "Tipping begins when the center-of-mass line no longer lands inside the support area.", ["stability_weight_confusion", "centre_of_mass_material_confusion"]),
+        spec_mcq("M2L5_C6", "If total mass stays the same but the load is raised higher, the craft is usually...", ["easier to tip", "more stable", "unchanged in stability", "impossible to compare"], 0, "A higher center of mass is less forgiving.", ["stability_weight_confusion"]),
+    ],
+    "M2_L6": [
+        spec_short("M2L6_C5", "Why combine components axis by axis?", ["to organize the vector sum", "to keep directions clear", "to combine one direction at a time", "to do the bookkeeping cleanly"], "Axis-by-axis work keeps multi-force vector sums readable.", ["vector_resolution_component_confusion"]),
+        spec_mcq("M2L6_C6", "If the vertical components are 7 N up and 9 N down, the net vertical component is...", ["2 N down", "2 N up", "16 N down", "16 N up"], 0, "Subtract opposite directions and keep the larger direction.", ["resultant_force_vector_confusion", "vector_resolution_component_confusion"]),
+    ],
+}
+
+M2_EXTRA_TRANSFER = {
+    "M2_L1": [
+        spec_mcq("M2L1_T4", "A craft has 4 N north, 4 N south, and 6 N east. What Master Arrow remains?", ["6 N east", "2 N east", "8 N east", "0 N"], 0, "Cancel the vertical pair first, then read the remaining horizontal push.", ["resultant_force_vector_confusion"]),
+        spec_mcq("M2L1_T5", "Which story gives the strongest evidence of zero Master Arrow rather than zero motion?", ["a craft already cruising steadily while the forces balance", "a craft that is stopped on the launch pad", "a craft with one forward thruster only", "a craft that keeps speeding up"], 0, "Zero Master Arrow fixes acceleration, not one special speed.", ["motion_implies_force_confusion", "balanced_force_rest_confusion"]),
+        spec_short("M2L1_T6", "A craft is speeding up west. Which direction is the Master Arrow?", ["west", "to the west"], "Acceleration points with the resultant force.", ["resultant_force_vector_confusion"]),
+        spec_short("M2L1_T7", "In a few words, what does the Master Arrow decide?", ["how motion changes", "acceleration", "the motion change", "which way acceleration points"], "The Master Arrow determines the acceleration story.", ["motion_implies_force_confusion", "newton_first_law_confusion"]),
+        spec_mcq("M2L1_T8", "Which pair shares the same Master Arrow?", ["9 N east with 2 N west, and 7 N east only", "9 N east with 2 N west, and 2 N east only", "5 N west with 5 N east, and 5 N west only", "10 N north with 4 N south, and 10 N south with 4 N north"], 0, "Compare the resultant in each case.", ["resultant_force_vector_confusion"]),
+    ],
+    "M2_L2": [
+        spec_mcq("M2L2_T4", "Which pair gives the same acceleration?", ["15 N on 3 kg and 30 N on 6 kg", "15 N on 3 kg and 15 N on 6 kg", "12 N on 2 kg and 18 N on 2 kg", "10 N on 5 kg and 20 N on 5 kg"], 0, "Compare F / m for each case.", ["force_mass_acceleration_confusion"]),
+        spec_short("M2L2_T5", "In a few words, what is Newton's first law in this lesson's language?", ["no Master Arrow means no motion change", "zero Master Arrow means zero acceleration", "no resultant means no velocity change", "zero net force means no acceleration"], "Say the zero-resultant rule directly.", ["newton_first_law_confusion", "motion_implies_force_confusion"]),
+        spec_mcq("M2L2_T6", "Why do third-law force pairs not cancel in one F = ma calculation?", ["because they act on different objects", "because one is always larger", "because only moving objects feel them", "because mass removes one of them"], 0, "Cancellation only applies to forces on the same object.", ["third_law_pair_confusion"]),
+        spec_short("M2L2_T7", "A 18 N Master Arrow acts on a 1.5 kg craft. What Motion Shift occurs?", ["12 m/s^2", "12", "12 m/s/s"], "Use acceleration = net force / mass.", ["force_mass_acceleration_confusion"]),
+        spec_mcq("M2L2_T8", "If the same craft's acceleration quadruples, the Master Arrow must have...", ["quadrupled", "halved", "stayed the same", "become zero"], 0, "For fixed mass, force and acceleration scale together.", ["force_mass_acceleration_confusion"]),
+    ],
+    "M2_L3": [
+        spec_mcq("M2L3_T4", "A 2 kg craft moving at 5 m/s sticks to a 3 kg craft at rest. What shared speed follows?", ["2 m/s", "5 m/s", "2.5 m/s", "1 m/s"], 0, "Conserve total momentum, then divide by combined mass.", ["momentum_conservation_system_confusion"]),
+        spec_short("M2L3_T5", "Why is force language alone not enough to solve the shared final speed?", ["because the conserved quantity is total momentum", "because system momentum is conserved", "because you need the total Carry Score", "because force is not the conserved quantity"], "The shared final speed comes from conserving system momentum.", ["momentum_force_confusion", "momentum_conservation_system_confusion"]),
+        spec_mcq("M2L3_T6", "Which statement can be true?", ["a heavier slower craft can match the momentum of a lighter faster craft", "the faster craft must always have more momentum", "momentum depends on speed only", "mass does not matter once objects move"], 0, "Momentum compares mass with velocity together.", ["momentum_force_confusion"]),
+        spec_short("M2L3_T7", "A 4 kg craft moves at 3 m/s and a 2 kg craft moves at -1 m/s. What total Carry Score do they have together?", ["10 kg m/s", "10"], "Add the signed momenta: 12 plus negative 2.", ["momentum_conservation_system_confusion", "momentum_force_confusion"]),
+        spec_mcq("M2L3_T8", "If the total system Carry Score before docking is zero, the shared final speed after they stick is...", ["0 m/s", "always 1 m/s", "equal to the larger incoming speed", "impossible to tell"], 0, "Zero total momentum means zero shared momentum after docking too.", ["momentum_conservation_system_confusion"]),
+    ],
+    "M2_L4": [
+        spec_mcq("M2L4_T4", "Which pair gives the same Spin Pull?", ["12 N at 0.25 m and 6 N at 0.5 m", "12 N at 0.25 m and 12 N at 0.5 m", "6 N at 0.5 m and 3 N at 0.25 m", "8 N at 0.4 m and 8 N at 0.2 m"], 0, "Compare force x reach.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_T5", "In a few words, what does perpendicular reach mean?", ["shortest distance from pivot to line of action", "distance from pivot to line of action", "moment arm", "perpendicular distance from the pivot"], "Reach is the perpendicular distance from the pivot to the force line.", ["torque_force_location_confusion"]),
+        spec_mcq("M2L4_T6", "If the same force is moved farther from the pivot, the turning effect...", ["increases", "decreases", "stays the same", "becomes zero"], 0, "A larger reach gives a larger torque for the same force.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_T7", "A 5 N push acts 0.8 m from the pivot. What Spin Pull is produced?", ["4 N m", "4"], "Multiply force by reach.", ["torque_force_location_confusion"]),
+        spec_mcq("M2L4_T8", "Which push can create both translation and rotation?", ["an off-center push whose line misses the pivot", "a push exactly through the pivot", "only a zero force", "no push can do both"], 0, "Missing the pivot line can create a turning effect while still pushing the object.", ["torque_force_location_confusion"]),
+    ],
+    "M2_L5": [
+        spec_mcq("M2L5_T4", "Two craft have the same total mass, but one has a much wider base. Which is usually more stable?", ["the wider-base craft", "the narrower-base craft", "they are equally stable because mass matches", "you can only compare if the color matches"], 0, "Base width changes the support margin.", ["stability_weight_confusion"]),
+        spec_short("M2L5_T5", "Why is 'heavier means more stable' a weak rule?", ["because stability depends on center of mass and support width", "because center of mass and base matter too", "because weight alone does not decide tipping", "because geometry matters as well as mass"], "Stability is a geometry-and-distribution question, not just a total-mass question.", ["stability_weight_confusion", "centre_of_mass_material_confusion"]),
+        spec_mcq("M2L5_T6", "Cargo is moved left until the Balance Core line crosses the support edge. What begins?", ["tipping", "perfect balance", "zero weight", "instant acceleration upward"], 0, "Crossing the support edge marks the tipping condition.", ["stability_weight_confusion"]),
+        spec_short("M2L5_T7", "What does the Footprint Zone stand for?", ["base of support", "support area", "support region", "the area under the object"], "The Footprint Zone is the base-of-support idea in the model.", ["stability_weight_confusion"]),
+        spec_mcq("M2L5_T8", "If the base stays the same but the load is lowered, the craft usually becomes...", ["more stable", "less stable", "unchanged", "impossible to compare"], 0, "A lower center of mass usually increases the tipping margin.", ["stability_weight_confusion"]),
+    ],
+    "M2_L6": [
+        spec_mcq("M2L6_T4", "A force has components 12 N east and 5 N north. What resultant magnitude does that give?", ["13 N", "7 N", "17 N", "12 N"], 0, "Use the 5-12-13 triangle.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
+        spec_short("M2L6_T5", "What stays the same after Arrow Split?", ["the original vector", "the same resultant", "the same overall force", "the same diagonal force"], "Resolving into components does not change the original force represented.", ["vector_resolution_component_confusion"]),
+        spec_mcq("M2L6_T6", "If the net horizontal component is zero, what remains of the resultant?", ["only the vertical component", "no force at all", "only the original diagonal arrow", "two extra forces"], 0, "With zero horizontal part, the resultant lies fully on the vertical axis.", ["resultant_force_vector_confusion"]),
+        spec_short("M2L6_T7", "Two horizontal components are 8 N east and 6 N west. What net horizontal component remains?", ["2 N east", "2 east", "2 N"], "Subtract opposite directions and keep the larger direction.", ["resultant_force_vector_confusion"]),
+        spec_mcq("M2L6_T8", "Why are components not extra forces?", ["they are one original force rewritten on chosen axes", "they replace the original force permanently", "they only exist after the object moves", "they remove the need for vector direction"], 0, "Resolution changes the description, not the physics interaction.", ["vector_resolution_component_confusion"]),
+    ],
+}
+
+
+def enrich_m2_lessons() -> None:
+    M2_MODULE_DOC["module_description"] = (
+        "Module 2 treats force ideas as a systems-control story: net force, inertia, momentum, torque, stability, and vector resolution are used to explain what changes, what stays invariant, and why."
+    )
+    M2_MODULE_DOC["identity_note"] = (
+        "M2 builds beyond F2, F3, and M1 by treating force and motion ideas as structured system models rather than as first-pass intuition."
+    )
+
+    for lesson_id, lesson in LESSON_BY_ID.items():
+        phases = lesson["phases"]
+        analogical = phases["analogical_grounding"]
+        analogical["analogy_text"] = M2_ANALOGY_UPDATES[lesson_id]
+        analogical["commitment_prompt"] = M2_COMMITMENT_UPDATES[lesson_id]
+
+        phases["diagnostic"]["items"].extend(build_question(item) for item in M2_EXTRA_DIAGNOSTIC[lesson_id])
+        phases["concept_reconstruction"]["capsules"][0]["checks"].extend(build_question(item) for item in M2_EXTRA_CONCEPT[lesson_id])
+        phases["transfer"]["items"].extend(build_question(item) for item in M2_EXTRA_TRANSFER[lesson_id])
+
+        contract = lesson["authoring_contract"]
+        contract["assessment_bank_targets"] = assessment_targets(6, 4, 8)
+        contract["visual_assets"] = [
+            {
+                "asset_id": f"{lesson_id.lower()}_diagram",
+                "concept": M2_LESSON_CONCEPTS[lesson_id],
+                "phase_key": "analogical_grounding",
+                "title": M2_LESSON_VISUAL_TITLES[lesson_id],
+                "purpose": f"Show the main system-model structure for {lesson['title']} with a clearer comparison diagram.",
+                "caption": f"{lesson['title']} visual summary",
+            }
+        ]
+        contract["animation_assets"] = [
+            {
+                "asset_id": f"{lesson_id.lower()}_animation",
+                "concept": M2_LESSON_CONCEPTS[lesson_id],
+                "phase_key": "analogical_grounding",
+                "title": f"{lesson['title']} animation",
+                "description": f"Animate the key comparison structure for {lesson['title']}.",
+                "duration_sec": 8,
+            }
+        ]
+        simulation_contract = dict(contract.get("simulation_contract") or {})
+        simulation_contract.update(
+            {
+                "asset_id": f"{lesson_id.lower()}_simulation",
+                "concept": M2_LESSON_CONCEPTS[lesson_id],
+                "engine": "p5",
+            }
+        )
+        contract["simulation_contract"] = simulation_contract
+
+        phases["concept_reconstruction"]["prompts"].append(
+            f"Explain how {lesson['title']} uses a system rule or bookkeeping move that goes beyond the earlier intuition-only foundation lessons."
+        )
+
 for lesson_spec in M2_SPEC["lessons"]:
     configure_sim(lesson_spec)
     configure_lesson(lesson_spec)
+
+enrich_m2_lessons()
 
 M2_LESSONS: List[Tuple[str, Dict[str, Any]]] = [(str(lesson["lesson_id"]), lesson) for lesson in _LESSONS]
 M2_SIM_LABS: List[Tuple[str, Dict[str, Any]]] = [(str(sim["lab_id"]), sim) for sim in _SIMS]
 
 validate_nextgen_module(M2_MODULE_DOC, [payload for _, payload in M2_LESSONS], [payload for _, payload in M2_SIM_LABS], M2_ALLOWLIST)
+plan_module_assets(M2_LESSONS, M2_SIM_LABS, public_base="/lesson_assets")
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed Module M2 into Firestore")

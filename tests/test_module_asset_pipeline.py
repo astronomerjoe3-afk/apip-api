@@ -5,6 +5,7 @@ import unittest
 from scripts.module_asset_pipeline import plan_lesson_assets
 from scripts.seed_f1_module import F1_LESSONS, F1_MODULE_DOC, F1_SIM_LABS
 from scripts.seed_m1_module import M1_LESSONS, M1_MODULE_DOC, M1_SIM_LABS
+from scripts.seed_m2_module import M2_LESSONS, M2_MODULE_DOC, M2_SIM_LABS
 from scripts.seed_m3_module import M3_LESSONS, M3_MODULE_DOC, M3_SIM_LABS
 
 
@@ -150,6 +151,49 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIn("area", mastery_text)
         self.assertNotIn("density", mastery_text)
         self.assertNotIn("series circuit", mastery_text)
+
+    def test_m2_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
+        self.assertEqual(M2_MODULE_DOC["id"], "M2")
+        self.assertEqual(M2_MODULE_DOC["title"], "Forces, Momentum, Spin & Stability")
+        self.assertEqual(len(M2_LESSONS), 6)
+        self.assertEqual(len(M2_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M2_LESSONS],
+            ["M2_L1", "M2_L2", "M2_L3", "M2_L4", "M2_L5", "M2_L6"],
+        )
+
+        for _, lesson in M2_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 8,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+
+    def test_m2_curriculum_scope_stays_on_forces_momentum_and_stability(self) -> None:
+        mastery_text = " ".join(M2_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        self.assertIn("resultant force", mastery_text)
+        self.assertIn("newton", mastery_text)
+        self.assertIn("momentum", mastery_text)
+        self.assertIn("stability", mastery_text)
+        self.assertIn("vector", mastery_text)
+        self.assertNotIn("density", mastery_text)
+        self.assertNotIn("specific heat", mastery_text)
 
 
 if __name__ == "__main__":
