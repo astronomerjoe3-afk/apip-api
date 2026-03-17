@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from scripts.module_asset_pipeline import plan_lesson_assets
+from scripts.seed_f1_module import F1_LESSONS, F1_MODULE_DOC, F1_SIM_LABS
 from scripts.seed_m3_module import M3_LESSONS, M3_MODULE_DOC, M3_SIM_LABS
 
 
@@ -75,6 +76,36 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("resistance", mastery_text)
         self.assertNotIn("circuit", mastery_text)
+
+    def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
+        self.assertEqual(F1_MODULE_DOC["id"], "F1")
+        self.assertEqual(F1_MODULE_DOC["title"], "Physical Quantities & Measurement")
+        self.assertEqual(len(F1_LESSONS), 6)
+        self.assertEqual(len(F1_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in F1_LESSONS],
+            ["F1_L1", "F1_L2", "F1_L3", "F1_L4", "F1_L5", "F1_L6"],
+        )
+
+        for _, lesson in F1_LESSONS:
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 5)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+
+    def test_f1_curriculum_scope_stays_on_measurement_foundations(self) -> None:
+        mastery_text = " ".join(F1_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        self.assertIn("si units", mastery_text)
+        self.assertIn("scalar and vector", mastery_text)
+        self.assertIn("density", mastery_text)
+        self.assertIn("uncertainty", mastery_text)
+        self.assertNotIn("current", mastery_text)
+        self.assertNotIn("series circuit", mastery_text)
 
 
 if __name__ == "__main__":

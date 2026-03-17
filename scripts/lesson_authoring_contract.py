@@ -32,6 +32,13 @@ def _text(value: Any) -> str:
     return str(value).strip() if value is not None else ""
 
 
+def _whole_number(value: Any) -> int | None:
+    if isinstance(value, int):
+        return value
+    raw = _text(value)
+    return int(raw) if raw.isdigit() else None
+
+
 def _require(condition: bool, message: str, errors: List[str]) -> None:
     if not condition:
         errors.append(message)
@@ -202,6 +209,44 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str]) ->
     _require(bool(_text(variation_plan.get("diagnostic"))), f"{lesson_id}: explain fresh-attempt diagnostic variation.", errors)
     _require(bool(_text(variation_plan.get("concept_gate"))), f"{lesson_id}: explain concept-gate retry variation.", errors)
     _require(bool(_text(variation_plan.get("mastery"))), f"{lesson_id}: explain mastery variation and no-repeat policy.", errors)
+
+    assessment_targets = _record(authoring.get("assessment_bank_targets"))
+    if assessment_targets:
+        diagnostic_pool_min = _whole_number(assessment_targets.get("diagnostic_pool_min"))
+        if diagnostic_pool_min is not None:
+            _require(
+                len(diagnostic_items) >= diagnostic_pool_min,
+                f"{lesson_id}: diagnostic pool must contain at least {diagnostic_pool_min} items when assessment_bank_targets.diagnostic_pool_min is declared.",
+                errors,
+            )
+        concept_gate_pool_min = _whole_number(assessment_targets.get("concept_gate_pool_min"))
+        concept_gate_count = sum(len(_items(capsule.get("checks"))) for capsule in capsules)
+        if concept_gate_pool_min is not None:
+            _require(
+                concept_gate_count >= concept_gate_pool_min,
+                f"{lesson_id}: concept gate pool must contain at least {concept_gate_pool_min} checks when assessment_bank_targets.concept_gate_pool_min is declared.",
+                errors,
+            )
+        mastery_pool_min = _whole_number(assessment_targets.get("mastery_pool_min"))
+        if mastery_pool_min is not None:
+            _require(
+                len(transfer_items) >= mastery_pool_min,
+                f"{lesson_id}: transfer pool must contain at least {mastery_pool_min} items when assessment_bank_targets.mastery_pool_min is declared.",
+                errors,
+            )
+        _require(
+            bool(_text(assessment_targets.get("fresh_attempt_policy"))),
+            f"{lesson_id}: assessment_bank_targets.fresh_attempt_policy is required when assessment_bank_targets is declared.",
+            errors,
+        )
+
+    visual_clarity_checks = [_text(item) for item in _items(authoring.get("visual_clarity_checks")) if _text(item)]
+    if authoring.get("visual_clarity_checks") is not None:
+        _require(
+            len(visual_clarity_checks) >= 3,
+            f"{lesson_id}: visual_clarity_checks should describe at least 3 concrete readability checks when present.",
+            errors,
+        )
 
     release_checks = [_text(item) for item in _items(authoring.get("release_checks")) if _text(item)]
     _require(len(release_checks) >= 4, f"{lesson_id}: authoring_contract.release_checks needs at least 4 release checks.", errors)

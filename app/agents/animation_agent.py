@@ -33,6 +33,38 @@ def _animation_graphic(concept: str) -> str:
           <div class="box high pulse">Caliper<br/>+/- 0.01 cm</div>
         </div>
         """
+    if concept == "scalar_vector":
+        return """
+        <div class="compare">
+          <div class="box low">6 m<br/>scalar</div>
+          <div class="vs">plus direction</div>
+          <div class="box high pulse">6 m east<br/>vector</div>
+        </div>
+        """
+    if concept == "significant_figures":
+        return """
+        <div class="card">
+          <div class="big">0.00450</div>
+          <div class="arrow">keep 3 sf</div>
+          <div class="big pulse">0.00450</div>
+        </div>
+        """
+    if concept == "density_packing":
+        return """
+        <div class="compare">
+          <div class="box low">same volume<br/>less mass</div>
+          <div class="vs">pack more</div>
+          <div class="box high pulse">same volume<br/>greater density</div>
+        </div>
+        """
+    if concept == "accuracy_precision":
+        return """
+        <div class="compare">
+          <div class="box low">tight but off target</div>
+          <div class="vs">vs</div>
+          <div class="box high pulse">spread around target</div>
+        </div>
+        """
     if concept == "energy_transfer":
         return """
         <div class="compare">

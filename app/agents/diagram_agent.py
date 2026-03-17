@@ -78,6 +78,97 @@ def _tool_trust_svg(req: DiagramRequest) -> str:
     )
 
 
+def _scalar_vector_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="120" y="220" width="420" height="270" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="330" y="280" fill="white" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Scalar</text>
+  <text x="330" y="345" fill="#93c5fd" text-anchor="middle" font-size="44" font-family="Arial" font-weight="bold">6 m</text>
+  <text x="330" y="410" fill="#cbd5e1" text-anchor="middle" font-size="22" font-family="Arial">Magnitude only</text>
+
+  <rect x="740" y="220" width="420" height="270" rx="26" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="950" y="280" fill="white" text-anchor="middle" font-size="30" font-family="Arial" font-weight="bold">Vector</text>
+  <line x1="820" y1="370" x2="1060" y2="300" stroke="#22c55e" stroke-width="14"/>
+  <polygon points="1060,300 1028,294 1044,328" fill="#22c55e"/>
+  <text x="950" y="420" fill="#86efac" text-anchor="middle" font-size="26" font-family="Arial">6 m east</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _significant_figures_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="120" y="220" width="1040" height="260" rx="28" fill="#111827" stroke="#334155" stroke-width="3"/>
+  <text x="320" y="300" fill="#64748b" text-anchor="middle" font-size="54" font-family="Arial">0.00</text>
+  <text x="520" y="300" fill="#f8fafc" text-anchor="middle" font-size="60" font-family="Arial" font-weight="bold">450</text>
+  <text x="730" y="300" fill="#fbbf24" text-anchor="middle" font-size="60" font-family="Arial" font-weight="bold">0</text>
+  <text x="640" y="385" fill="#93c5fd" text-anchor="middle" font-size="28" font-family="Arial">Leading zeros place the decimal; trailing decimal zeros can show precision.</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _density_packing_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <rect x="180" y="220" width="260" height="260" rx="24" fill="#1d4ed8"/>
+  <circle cx="250" cy="290" r="18" fill="#e0f2fe"/>
+  <circle cx="320" cy="290" r="18" fill="#e0f2fe"/>
+  <circle cx="390" cy="290" r="18" fill="#e0f2fe"/>
+  <text x="310" y="430" fill="white" text-anchor="middle" font-size="24" font-family="Arial">Less packed</text>
+
+  <rect x="820" y="220" width="260" height="260" rx="24" fill="#166534"/>
+  <circle cx="875" cy="275" r="18" fill="#dcfce7"/>
+  <circle cx="945" cy="275" r="18" fill="#dcfce7"/>
+  <circle cx="1015" cy="275" r="18" fill="#dcfce7"/>
+  <circle cx="875" cy="345" r="18" fill="#dcfce7"/>
+  <circle cx="945" cy="345" r="18" fill="#dcfce7"/>
+  <circle cx="1015" cy="345" r="18" fill="#dcfce7"/>
+  <text x="950" y="430" fill="white" text-anchor="middle" font-size="24" font-family="Arial">More packed</text>
+
+  <text x="640" y="550" fill="#f8fafc" text-anchor="middle" font-size="28" font-family="Arial">Same space, different mass packing</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
+def _accuracy_precision_svg(req: DiagramRequest) -> str:
+    return _wrap_svg(
+        f"""
+  {_heading(req)}
+
+  <circle cx="360" cy="350" r="130" fill="none" stroke="#64748b" stroke-width="4"/>
+  <circle cx="360" cy="350" r="70" fill="none" stroke="#94a3b8" stroke-width="4"/>
+  <circle cx="360" cy="350" r="16" fill="#fbbf24"/>
+  <circle cx="300" cy="305" r="10" fill="#38bdf8"/>
+  <circle cx="320" cy="335" r="10" fill="#38bdf8"/>
+  <circle cx="300" cy="360" r="10" fill="#38bdf8"/>
+  <text x="360" y="540" fill="#cbd5e1" text-anchor="middle" font-size="24" font-family="Arial">Precise but biased</text>
+
+  <circle cx="920" cy="350" r="130" fill="none" stroke="#64748b" stroke-width="4"/>
+  <circle cx="920" cy="350" r="70" fill="none" stroke="#94a3b8" stroke-width="4"/>
+  <circle cx="920" cy="350" r="16" fill="#fbbf24"/>
+  <circle cx="885" cy="330" r="10" fill="#22c55e"/>
+  <circle cx="930" cy="300" r="10" fill="#22c55e"/>
+  <circle cx="965" cy="360" r="10" fill="#22c55e"/>
+  <circle cx="920" cy="395" r="10" fill="#22c55e"/>
+  <text x="920" y="540" fill="#cbd5e1" text-anchor="middle" font-size="24" font-family="Arial">Accurate on average, less precise</text>
+""",
+        req.width,
+        req.height,
+    )
+
+
 def _energy_transfer_svg(req: DiagramRequest) -> str:
     return _wrap_svg(
         f"""
@@ -251,6 +342,14 @@ def generate_diagram(
         svg = _prefix_scale_svg(req)
     elif req.concept in {"measurement_precision", "tool_trust"}:
         svg = _tool_trust_svg(req)
+    elif req.concept == "scalar_vector":
+        svg = _scalar_vector_svg(req)
+    elif req.concept == "significant_figures":
+        svg = _significant_figures_svg(req)
+    elif req.concept == "density_packing":
+        svg = _density_packing_svg(req)
+    elif req.concept == "accuracy_precision":
+        svg = _accuracy_precision_svg(req)
     elif req.concept == "energy_transfer":
         svg = _energy_transfer_svg(req)
     elif req.concept == "energy_stores":

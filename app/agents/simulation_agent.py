@@ -263,6 +263,153 @@ def _measurement_precision_lab(title: str, description: str) -> str:
     )
 
 
+def _scalar_vector_lab(title: str, description: str) -> str:
+    return _interactive_lab(
+        title,
+        description,
+        """
+        <label>Magnitude<input id="magnitude" type="number" value="6" step="1" /></label>
+        <label>Direction
+          <select id="direction">
+            <option value="east">east</option>
+            <option value="north">north</option>
+            <option value="west">west</option>
+            <option value="south">south</option>
+          </select>
+        </label>
+        <label>Route out (m)<input id="outward" type="number" value="10" step="1" /></label>
+        <label>Route back (m)<input id="backward" type="number" value="4" step="1" /></label>
+        <label style="justify-content:end;"><button type="button" onclick="update()">Update story</button></label>
+        """,
+        """
+        <div class="panel-grid">
+          <div class="panel"><div>Vector description</div><div id="vector" class="value">6 m east</div></div>
+          <div class="panel"><div>Distance</div><div id="distance" class="value">14 m</div></div>
+          <div class="panel"><div>Displacement</div><div id="displacement" class="value">6 m east</div></div>
+        </div>
+        """,
+        """
+        function update() {
+          const magnitude = Number(document.getElementById("magnitude").value || 0);
+          const direction = document.getElementById("direction").value;
+          const outward = Number(document.getElementById("outward").value || 0);
+          const backward = Number(document.getElementById("backward").value || 0);
+          const net = outward - backward;
+          document.getElementById("vector").innerText = magnitude + " m " + direction;
+          document.getElementById("distance").innerText = (outward + backward) + " m";
+          document.getElementById("displacement").innerText = Math.abs(net) + " m " + (net >= 0 ? direction : "opposite");
+          document.getElementById("note").innerText = "Distance follows the whole route. Displacement follows the start-to-finish arrow with direction.";
+        }
+        update();
+        """,
+    )
+
+
+def _significant_figures_lab(title: str, description: str) -> str:
+    return _interactive_lab(
+        title,
+        description,
+        """
+        <label>Raw value<input id="rawValue" type="number" value="12.349" step="0.001" /></label>
+        <label>Sig figs<input id="sigFigs" type="number" value="3" min="1" max="6" step="1" /></label>
+        <label>Operation
+          <select id="operation">
+            <option value="multiply">Multiplication rule</option>
+            <option value="add">Addition rule</option>
+          </select>
+        </label>
+        <label style="justify-content:end;"><button type="button" onclick="update()">Apply rule</button></label>
+        """,
+        """
+        <div class="panel-grid">
+          <div class="panel"><div>Rounded value</div><div id="rounded" class="value">12.3</div></div>
+          <div class="panel"><div>Reporting focus</div><div id="focus" class="value" style="font-size:24px;">sig figs</div></div>
+        </div>
+        """,
+        """
+        function roundToSigFigs(value, sigFigs) {
+          if (!Number.isFinite(value) || value === 0) return "0";
+          return Number.parseFloat(value.toPrecision(sigFigs)).toString();
+        }
+        function update() {
+          const rawValue = Number(document.getElementById("rawValue").value || 0);
+          const sigFigs = Math.max(Number(document.getElementById("sigFigs").value || 1), 1);
+          const operation = document.getElementById("operation").value;
+          document.getElementById("rounded").innerText = roundToSigFigs(rawValue, sigFigs);
+          document.getElementById("focus").innerText = operation === "multiply" ? "least sig figs" : "least decimal places";
+          document.getElementById("note").innerText = operation === "multiply"
+            ? "For multiplication and division, the least significant figures rule controls the final report."
+            : "For addition and subtraction, the least decimal places rule controls the final report.";
+        }
+        update();
+        """,
+    )
+
+
+def _density_packing_lab(title: str, description: str) -> str:
+    return _interactive_lab(
+        title,
+        description,
+        """
+        <label>Mass (g)<input id="mass" type="number" value="40" step="5" /></label>
+        <label>Volume (cm^3)<input id="volume" type="number" value="20" step="1" /></label>
+        <label>Reference density<input id="reference" type="number" value="1.0" step="0.1" /></label>
+        <label style="justify-content:end;"><button type="button" onclick="update()">Update density</button></label>
+        """,
+        """
+        <div class="panel-grid">
+          <div class="panel"><div>Density</div><div id="density" class="value">2 g/cm^3</div></div>
+          <div class="panel"><div>Outcome</div><div id="outcome" class="value" style="font-size:24px;">Sink</div></div>
+        </div>
+        """,
+        """
+        function update() {
+          const mass = Number(document.getElementById("mass").value || 0);
+          const volume = Math.max(Number(document.getElementById("volume").value || 1), 0.1);
+          const reference = Number(document.getElementById("reference").value || 1);
+          const density = mass / volume;
+          document.getElementById("density").innerText = density.toFixed(2).replace(/\\.00$/, "") + " g/cm^3";
+          document.getElementById("outcome").innerText = density < reference ? "Float" : "Sink";
+          document.getElementById("note").innerText = "Keep mass and volume together. Float or sink depends on density comparison, not mass alone.";
+        }
+        update();
+        """,
+    )
+
+
+def _accuracy_precision_lab(title: str, description: str) -> str:
+    return _interactive_lab(
+        title,
+        description,
+        """
+        <label>True value<input id="trueValue" type="number" value="10.0" step="0.1" /></label>
+        <label>Mean reading<input id="meanValue" type="number" value="9.6" step="0.1" /></label>
+        <label>Spread<input id="spread" type="number" value="0.2" step="0.1" /></label>
+        <label style="justify-content:end;"><button type="button" onclick="update()">Classify set</button></label>
+        """,
+        """
+        <div class="panel-grid">
+          <div class="panel"><div>Accuracy</div><div id="accuracy" class="value" style="font-size:24px;">low</div></div>
+          <div class="panel"><div>Precision</div><div id="precision" class="value" style="font-size:24px;">high</div></div>
+          <div class="panel"><div>Uncertainty</div><div id="uncertainty" class="value">+/- 0.2</div></div>
+        </div>
+        """,
+        """
+        function update() {
+          const trueValue = Number(document.getElementById("trueValue").value || 0);
+          const meanValue = Number(document.getElementById("meanValue").value || 0);
+          const spread = Math.abs(Number(document.getElementById("spread").value || 0));
+          const bias = Math.abs(meanValue - trueValue);
+          document.getElementById("accuracy").innerText = bias <= spread ? "high" : "low";
+          document.getElementById("precision").innerText = spread <= 0.3 ? "high" : "low";
+          document.getElementById("uncertainty").innerText = "+/- " + spread.toFixed(1).replace(/\\.0$/, "");
+          document.getElementById("note").innerText = "Accuracy is about closeness to the true value. Precision is about the spread of the repeated readings.";
+        }
+        update();
+        """,
+    )
+
+
 def _interactive_lab(title: str, description: str, controls_html: str, result_html: str, script: str) -> str:
     html = """<!doctype html>
 <html lang="en">
@@ -641,6 +788,14 @@ def generate_simulation(
 
     if req.concept == "measurement_precision":
         html = _measurement_precision_lab(req.title or req.concept, req.description)
+    elif req.concept == "scalar_vector":
+        html = _scalar_vector_lab(req.title or req.concept, req.description)
+    elif req.concept == "significant_figures":
+        html = _significant_figures_lab(req.title or req.concept, req.description)
+    elif req.concept == "density_packing":
+        html = _density_packing_lab(req.title or req.concept, req.description)
+    elif req.concept == "accuracy_precision":
+        html = _accuracy_precision_lab(req.title or req.concept, req.description)
     elif req.concept in {"prefix_scale", "unit_conversion"}:
         html = _prefix_conversion_lab(req.title or req.concept, req.description)
     elif req.concept == "energy_transfer":
