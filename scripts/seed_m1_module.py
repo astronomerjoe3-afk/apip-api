@@ -407,14 +407,14 @@ M1_SPEC = json.loads(r'''
             "why_it_matters": "The graph becomes meaningful when each segment is read as part of a motion story."
           },
           {
-            "prompt": "A learner says the highest point on a distance-time graph must be the fastest part. Evaluate the claim.",
+            "prompt": "Segment A rises from 0 m to 12 m in 4 s. Segment B rises from 20 m to 32 m in 2 s. Which segment shows the greater speed?",
             "steps": [
-              "Separate graph height from graph steepness.",
-              "Height tells how much distance has been recorded by that time.",
-              "Steepness tells how quickly distance is changing, so speed depends on slope, not height."
+              "Find the gradient of Segment A: distance change = 12 m and time change = 4 s, so speed = 12 / 4 = 3 m/s.",
+              "Find the gradient of Segment B: distance change = 12 m and time change = 2 s, so speed = 12 / 2 = 6 m/s.",
+              "Compare the slopes: the steeper segment represents the greater speed."
             ],
-            "final_answer": "The claim is wrong.",
-            "why_it_matters": "This removes the common habit of reading speed from graph height."
+            "final_answer": "Segment B is faster: Segment A shows 3 m/s and Segment B shows 6 m/s.",
+            "why_it_matters": "This ties speed to slope instead of to the graph height."
           }
         ],
         "visual_assets": [
@@ -810,14 +810,14 @@ M1_SPEC = json.loads(r'''
             "why_it_matters": "Students need to see that graph height and graph slope answer different motion questions."
           },
           {
-            "prompt": "A learner says a downward speed-time line means the object is moving backwards. Evaluate the claim.",
+            "prompt": "A speed-time graph falls steadily from 12 m/s to 4 m/s in 4 s. What does that tell you about the motion?",
             "steps": [
-              "Recall that this graph shows speed, not direction.",
-              "A downward slope means the speed level is shrinking over time.",
-              "Conclude that the object is slowing down; reverse motion would require direction information from a different representation."
+              "Read the graph height first: the object starts at 12 m/s and ends at 4 m/s.",
+              "Read the downward slope next: the speed is decreasing, so the object is slowing down.",
+              "Use the slope for the average acceleration: (4 - 12) / 4 = -2 m/s^2."
             ],
-            "final_answer": "The claim is wrong.",
-            "why_it_matters": "This prevents students from importing direction into a graph that does not encode it."
+            "final_answer": "The object slows from 12 m/s to 4 m/s, with average acceleration -2 m/s^2.",
+            "why_it_matters": "This keeps direction separate from a graph that only records speed."
           }
         ],
         "visual_assets": [
@@ -1208,14 +1208,14 @@ M1_SPEC = json.loads(r'''
             "why_it_matters": "The sign belongs to the velocity change, not to a guess about whether motion feels faster or slower."
           },
           {
-            "prompt": "A learner says zero acceleration means zero velocity. Evaluate the claim.",
+            "prompt": "Take east as positive. A boat moves west at 5 m/s and keeps that same velocity for 6 s. What is the acceleration, and what does it mean?",
             "steps": [
-              "Separate the idea of velocity from the idea of velocity change.",
-              "Zero acceleration means the velocity is not changing.",
-              "Conclude that the object can still be moving steadily with a constant non-zero velocity."
+              "Write the velocity with sign: west is negative, so the boat starts at -5 m/s and ends at -5 m/s.",
+              "Find the change in velocity: -5 - (-5) = 0 m/s.",
+              "Divide by the time: 0 / 6 = 0 m/s^2, so the boat has no acceleration even though it is still moving."
             ],
-            "final_answer": "The claim is wrong.",
-            "why_it_matters": "This guards against one of the most persistent motion misconceptions."
+            "final_answer": "The acceleration is 0 m/s^2; the boat is moving west at a constant velocity of -5 m/s.",
+            "why_it_matters": "Zero acceleration means no change in velocity, not necessarily no motion."
           }
         ],
         "visual_assets": [
@@ -1624,14 +1624,14 @@ M1_SPEC = json.loads(r'''
             "why_it_matters": "Equation choice becomes easier when the motion story and missing variable are clear first."
           },
           {
-            "prompt": "A learner uses one SUVAT equation for a trip that speeds up, then coasts, then brakes. Evaluate the method.",
+            "prompt": "A runner speeds up uniformly from 4 m/s to 10 m/s in 3 s. How far does the runner travel?",
             "steps": [
-              "Check the hidden condition behind SUVAT: constant acceleration over the whole interval.",
-              "Notice that the story contains different acceleration stages.",
-              "Conclude that the journey must be split into intervals instead of forced into one constant-acceleration step."
+              "List the knowns and the unknown: u = 4 m/s, v = 10 m/s, t = 3 s, and the unknown is s.",
+              "Choose the direct relation that uses those values: s = (u + v)t / 2.",
+              "Substitute carefully: s = (4 + 10) x 3 / 2 = 14 x 3 / 2 = 21 m."
             ],
-            "final_answer": "The method is unsafe for the whole trip.",
-            "why_it_matters": "This prevents students from using a formula mechanically when the model assumptions are broken."
+            "final_answer": "The runner travels 21 m.",
+            "why_it_matters": "Good equation choice comes from the knowns, the unknown, and the constant-acceleration condition."
           }
         ],
         "visual_assets": [
@@ -2028,24 +2028,24 @@ M1_SPEC = json.loads(r'''
         },
         "worked_examples": [
           {
-            "prompt": "A distance-time graph and a speed-time graph each have a gradient of 2 over a chosen interval. What can you say?",
+            "prompt": "A distance-time graph rises from 4 m to 16 m in 6 s, while a speed-time graph rises from 3 m/s to 9 m/s in 3 s. What does each gradient mean?",
             "steps": [
-              "Read the first graph axes: change in distance over time gives speed.",
-              "Read the second graph axes: change in speed over time gives acceleration.",
-              "Conclude that the same numerical gradient can still describe different physical quantities because the axes differ."
+              "For the distance-time graph, calculate the gradient: (16 - 4) / 6 = 2 m/s, so that slope represents speed.",
+              "For the speed-time graph, calculate the gradient: (9 - 3) / 3 = 2 m/s^2, so that slope represents acceleration.",
+              "The number 2 appears in both calculations, but the axes change the physical meaning and the unit."
             ],
-            "final_answer": "One gradient is a speed and the other is an acceleration.",
-            "why_it_matters": "This is the core extended idea that moves students beyond memorizing graph rules by graph name alone."
+            "final_answer": "The first gradient is a speed of 2 m/s, and the second gradient is an acceleration of 2 m/s^2.",
+            "why_it_matters": "This makes students name the axes before naming the slope."
           },
           {
-            "prompt": "A learner says the steeper line must always mean the object is moving faster. Evaluate the claim.",
+            "prompt": "A distance-time segment rises 15 m in 5 s. A speed-time segment rises from 2 m/s to 8 m/s in 2 s. What does each slope tell you?",
             "steps": [
-              "Ask which graph is being discussed.",
-              "On a distance-time graph, steeper does mean faster, but on a speed-time graph it means greater acceleration.",
-              "Conclude that the claim is incomplete because graph type matters."
+              "On the distance-time graph, use slope = distance change / time change: 15 / 5 = 3 m/s.",
+              "On the speed-time graph, use slope = speed change / time change: (8 - 2) / 2 = 3 m/s^2.",
+              "The same numerical slope can name different quantities because the axes are different."
             ],
-            "final_answer": "The claim is only sometimes true.",
-            "why_it_matters": "This protects students from overgeneralizing one graph rule into every motion graph."
+            "final_answer": "The distance-time graph shows 3 m/s, while the speed-time graph shows 3 m/s^2.",
+            "why_it_matters": "This protects students from saying steeper always means faster without naming the graph."
           }
         ],
         "visual_assets": [
@@ -2448,14 +2448,14 @@ M1_SPEC = json.loads(r'''
             "why_it_matters": "Motion synthesis requires adding the distance built in each section instead of looking only at one graph feature."
           },
           {
-            "prompt": "A learner says the final speed on a speed-time graph is the total distance traveled. Evaluate the claim.",
+            "prompt": "Graph A is a rectangle at 8 m/s for 5 s. Graph B is a triangle that rises from 0 m/s to 16 m/s over the same 5 s. Which journey covers more distance?",
             "steps": [
-              "Separate graph height from graph area.",
-              "Height tells speed at one instant, while area accumulates speed over time.",
-              "Conclude that total distance depends on the whole area under the graph, not on the final height alone."
+              "Find the area of Graph A: rectangle area = 8 x 5 = 40 m.",
+              "Find the area of Graph B: triangle area = 1/2 x 5 x 16 = 40 m.",
+              "Equal areas under speed-time graphs mean equal distances traveled."
             ],
-            "final_answer": "The claim is wrong.",
-            "why_it_matters": "This closes the loop between graph reading and the meaning of accumulated motion."
+            "final_answer": "They cover the same distance: 40 m each.",
+            "why_it_matters": "Different graph shapes can represent the same total distance if the areas match."
           }
         ],
         "visual_assets": [
