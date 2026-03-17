@@ -348,10 +348,7 @@ M1_SPEC = json.loads(r'''
           "Read a distance-time graph as a running record of motion rather than a picture of a path.",
           "Use gradient to compare speeds between distance-time segments."
         ],
-        "prerequisite_lessons": [
-          "F2_L1",
-          "F2_L3"
-        ],
+        "prerequisite_lessons": [],
         "misconception_focus": [
           "distance_time_story_confusion",
           "graph_shape_path_confusion",
@@ -478,12 +475,12 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of speed-time graph stories explained using both height and slope correctly"
       },
-      "analogy_text": "The Quest-Log pace log records the avatar's pace meter beat by beat. Its height tells the speed now, while its slope tells whether the pace is being held, boosted, or reduced.",
+      "analogy_text": "The Quest-Log pace log records the avatar's pace meter beat by beat. The graph height at any chosen beat tells the speed at that beat, while the slope tells whether the pace is being held, boosted, or reduced.",
       "commitment_prompt": "Before you interpret the graph, decide whether you are reading the speed level or the way the speed level is changing.",
       "micro_prompts": [
         {
           "prompt": "Compare pace-log height with pace-log slope before you describe the motion story.",
-          "hint": "Height tells current speed; slope tells how speed is changing."
+          "hint": "Height at a chosen time tells the speed at that time; slope tells how speed is changing."
         },
         {
           "prompt": "Compare a downward sloping speed-time line with reverse travel.",
@@ -502,7 +499,7 @@ M1_SPEC = json.loads(r'''
             "the total acceleration over the journey"
           ],
           "answer_index": 0,
-          "hint": "Graph height on a speed-time graph tells current speed.",
+          "hint": "Read the graph height at one chosen time as the speed at that time.",
           "tags": [
             "speed_time_story_confusion",
             "graph_height_vs_gradient_confusion"
@@ -753,8 +750,7 @@ M1_SPEC = json.loads(r'''
           "Use slope to compare rates of speed change without confusing slope with graph height."
         ],
         "prerequisite_lessons": [
-          "M1_L1",
-          "F2_L4"
+          "M1_L1"
         ],
         "misconception_focus": [
           "speed_time_story_confusion",
@@ -796,7 +792,7 @@ M1_SPEC = json.loads(r'''
         "analogy_map": {
           "comparison": "The pace log in Quest-Log stands for a speed-time graph.",
           "mapping": [
-            "The height of the strip stands for the current speed.",
+            "The height of the strip at a chosen beat stands for the speed at that beat.",
             "The tilt of the strip stands for how quickly the speed is changing."
           ],
           "limit": "The graph does not show direction automatically, so a downward slope means slowing down, not reverse travel by itself.",
@@ -1152,7 +1148,6 @@ M1_SPEC = json.loads(r'''
           "Use signed velocity changes and sign conventions to reason about acceleration correctly."
         ],
         "prerequisite_lessons": [
-          "F2_L2",
           "M1_L2"
         ],
         "misconception_focus": [
@@ -1552,8 +1547,8 @@ M1_SPEC = json.loads(r'''
           "Treat SUVAT equations as story-specific relationships rather than as interchangeable formulas."
         ],
         "prerequisite_lessons": [
-          "M1_L3",
-          "F2_L6"
+          "M1_L2",
+          "M1_L3"
         ],
         "misconception_focus": [
           "suvat_selection_confusion",
@@ -2643,9 +2638,9 @@ def spec_short(qid: str, prompt: str, accepted_answers: List[str], hint: str, ta
 
 def apply_m1_enhancements() -> None:
     M1_SPEC["module_description"] = (
-        "Module 1 lifts motion beyond Foundation 2 by treating kinematics as a representation system: "
-        "journeys, graphs, signed rates, constant-acceleration forecasts, gradient context, and area reasoning "
-        "must stay aligned without collapsing back into basic motion slogans."
+        "Module 1 treats kinematics as a representation system: journeys, graphs, signed rates, "
+        "constant-acceleration forecasts, gradient context, and area reasoning must stay aligned "
+        "without collapsing into basic motion slogans."
     )
     M1_SPEC["mastery_outcomes"] = [
         "Interpret distance-time and speed-time graphs as recorded motion stories rather than as pictures of the route.",
