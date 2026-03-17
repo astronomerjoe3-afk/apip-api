@@ -708,11 +708,11 @@ F1_SPEC["lessons"].append(
         ),
         "commitment_prompt": "Before reading a tool, decide whether its smallest division is fine enough for the object you want to measure.",
         "micro_prompts": [
-            prompt_block("Compare measuring a desk length with a ruler and with a caliper.", "A desk does not need the finest tool, even if the caliper is more precise."),
+            prompt_block("Compare measuring a desk length with a metre rule and the thickness of a sheet of card with a micrometer screw gauge.", "The best tool depends on the size of the detail you need to resolve, not on using one tool for every job."),
             prompt_block("Compare reading a scale with 1 cm divisions and one with 0.1 cm divisions.", "The finer scale supports a smaller uncertainty because it shows smaller changes."),
         ],
         "diagnostic": [
-            mcq("F1L3_D1", "Which tool is most suitable for measuring the thickness of a sheet of card?", ["metre rule", "kitchen scale", "caliper", "stopwatch"], 2, "A very small thickness needs a fine-resolution length tool.", ["instrument_choice_confusion"]),
+            mcq("F1L3_D1", "Which tool is most suitable for measuring the thickness of a sheet of card?", ["metre rule", "kitchen scale", "caliper", "micrometer screw gauge"], 3, "A very small thickness needs the finest suitable length tool.", ["instrument_choice_confusion"]),
             mcq("F1L3_D2", "What does instrument resolution tell you?", ["How heavy the tool is", "The smallest change the tool can show", "The color of the scale", "The true value of the object"], 1, "Resolution is the smallest step the instrument can show.", ["resolution_uncertainty_confusion"]),
             mcq("F1L3_D3", "A ruler has 1 mm divisions. A reasonable reading uncertainty is closest to...", ["+/- 5 mm", "+/- 0.5 mm", "+/- 10 mm", "+/- 1 cm"], 1, "A common estimate is about half the smallest division.", ["resolution_uncertainty_confusion"]),
             mcq("F1L3_D4", "A balance reads 0.20 g too high every time because of zero error. This is mainly...", ["random scatter", "systematic error", "improved precision", "unit conversion"], 1, "A repeated offset in one direction is systematic.", ["resolution_uncertainty_confusion", "random_systematic_error_confusion"]),
@@ -729,7 +729,7 @@ F1_SPEC["lessons"].append(
         ],
         "capsule_prompt": "Good measurement starts with a sensible tool choice and an honest uncertainty.",
         "capsule_checks": [
-            mcq("F1L3_C1", "Why is a caliper preferred over a ruler for a small wire diameter?", ["It is always cheaper", "It gives a finer resolution for tiny lengths", "It changes the wire size", "It removes all uncertainty"], 1, "The finer tool matches the smaller scale of the object.", ["instrument_choice_confusion"]),
+            mcq("F1L3_C1", "Why is a micrometer screw gauge preferred over a ruler for the thickness of a sheet of card?", ["It is always cheaper", "It gives a finer resolution for tiny lengths", "It changes the card thickness", "It removes all uncertainty"], 1, "The finer tool matches the smaller scale of the object.", ["instrument_choice_confusion"]),
             mcq("F1L3_C2", "A reading that shifts every time by the same amount suggests...", ["random error", "systematic error", "better accuracy", "a unit mistake"], 1, "The clue is the repeated same-direction shift.", ["random_systematic_error_confusion"]),
             short("F1L3_C3", "A thermometer scale has 2 C divisions. Give a reasonable uncertainty.", ["1 C", "+/- 1 C"], "Use about half the smallest division.", ["uncertainty_estimation_error"]),
             mcq("F1L3_C4", "Which statement about repeated readings is best?", ["One reading is always enough", "Closely agreeing repeated readings usually show better precision", "Precision means the reading must equal the textbook answer", "Repeated readings remove all systematic error"], 1, "Small scatter supports better precision.", ["resolution_uncertainty_confusion"]),
@@ -775,13 +775,13 @@ F1_SPEC["lessons"].append(
                 vis("f1-l3-tool-trust", "measurement_precision", "Tool trust comparison", "Show how fine divisions improve resolution and shrink uncertainty.", "Better resolution supports smaller uncertainty when the measurement is done carefully."),
             ],
             "animation_assets": [
-                anim("f1-l3-tool-trust-anim", "measurement_precision", "Tool resolution animation", "Animate the same object being measured with a coarse ruler and a fine caliper."),
+                anim("f1-l3-tool-trust-anim", "measurement_precision", "Tool resolution animation", "Animate the same object being measured with a coarse ruler, a caliper, and a micrometer screw gauge."),
             ],
             "simulation_contract": {
                 "asset_id": "f1_l3_measurement_precision_lab",
                 "concept": "measurement_precision",
-                "baseline_case": "Start with a ruler and then compare the same object with a caliper.",
-                "comparison_tasks": ["Compare the smallest division on the two tools.", "Introduce a zero error and explain how it shifts every reading."],
+                "baseline_case": "Start with a ruler and then compare the same object with a caliper and a micrometer screw gauge.",
+                "comparison_tasks": ["Compare the smallest division on each tool.", "Introduce a zero error and explain how it shifts every reading."],
                 "watch_for": "Students should separate precision, uncertainty, and zero-error bias instead of mixing them into one vague idea of 'wrong'.",
                 "takeaway": "Good measurement needs a sensible tool, a careful reading, and an uncertainty that matches the tool.",
             },
