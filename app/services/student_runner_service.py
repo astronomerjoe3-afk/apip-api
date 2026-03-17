@@ -91,6 +91,68 @@ def _has_transfer(lesson: Dict[str, Any]) -> bool:
     return len(items) > 0
 
 
+def _text_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(item).strip().lower() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip().lower()]
+    return []
+
+
+def _authoring_contract(lesson: Dict[str, Any]) -> Dict[str, Any]:
+    authoring = lesson.get("authoring_contract") or {}
+    return authoring if isinstance(authoring, dict) else {}
+
+
+def _unique_text(values: List[str]) -> List[str]:
+    seen = set()
+    result: List[str] = []
+    for value in values:
+        normalized = str(value or "").strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        result.append(normalized)
+    return result
+
+
+def _lesson_weak_concepts(lesson: Dict[str, Any]) -> List[str]:
+    authoring = _authoring_contract(lesson)
+    concepts = _unique_text(_text_list(authoring.get("misconception_focus")))
+    if concepts:
+        return concepts[:4]
+
+    collected: List[str] = []
+    for item in (_phases(lesson).get("diagnostic") or {}).get("items") or []:
+        if isinstance(item, dict):
+            collected.extend(_text_list(item.get("misconception_tags")))
+
+    reconstruction = _phases(lesson).get("concept_reconstruction") or {}
+    for capsule in reconstruction.get("capsules") or []:
+        if not isinstance(capsule, dict):
+            continue
+        for check in capsule.get("checks") or []:
+            if isinstance(check, dict):
+                collected.extend(_text_list(check.get("misconception_tags")))
+
+    for item in (_phases(lesson).get("transfer") or {}).get("items") or []:
+        if isinstance(item, dict):
+            collected.extend(_text_list(item.get("misconception_tags")))
+
+    return _unique_text(collected)[:4]
+
+
+def _recommended_review_refs(lesson: Dict[str, Any]) -> List[str]:
+    weak_concepts = _lesson_weak_concepts(lesson)
+    if weak_concepts:
+        return [f"concept_{concept}" for concept in weak_concepts]
+    return [
+        "concept_precision_accuracy",
+        "concept_unit_conversion",
+        "concept_prefix_scaling",
+    ]
+
+
 def _question_count(lesson: Dict[str, Any], phase_key: str) -> int:
     phase = _phases(lesson).get(phase_key) or {}
     items = phase.get("items") or []
@@ -110,15 +172,7 @@ def _capsule_check_count(lesson: Dict[str, Any]) -> int:
 
 def _estimated_mastery_bank_size(lesson: Dict[str, Any]) -> int:
     base_count = _question_count(lesson, "transfer") + _capsule_check_count(lesson)
-    if base_count <= 0:
-        return 0
-
-    phases = _phases(lesson)
-    analogical = phases.get("analogical_grounding") or {}
-    reconstruction = phases.get("concept_reconstruction") or {}
-    support_count = len(analogical.get("micro_prompts") or []) + len(reconstruction.get("prompts") or [])
-    estimated = base_count + support_count + 4
-    return max(base_count, min(MASTERY_MAX_QUESTIONS, estimated))
+    return max(0, base_count)
 
 def _target_diagnostic_question_count(latest_score: float | None) -> int:
     score = 0.0 if latest_score is None else max(0.0, min(1.0, float(latest_score)))
@@ -261,6 +315,75 @@ def _derive_current_stage(
     return "done"
 
 
+def _derive_instructional_stage(
+    instructional_status: str,
+    mastery_achieved: bool,
+    has_diag: bool,
+    has_teaching: bool,
+    has_concept_gate: bool,
+    has_lab: bool,
+    lab_used: bool,
+    has_transfer: bool,
+) -> str:
+    if mastery_achieved:
+        return "done"
+
+    if instructional_status == "not_started":
+        if has_diag:
+            return "diagnostic"
+        if has_teaching:
+            return "scaffolded_teaching"
+        if has_concept_gate:
+            return "concept_gate"
+        if has_lab and not lab_used:
+            return "simulation"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if instructional_status == "diagnostic_completed":
+        if has_teaching:
+            return "scaffolded_teaching"
+        if has_concept_gate:
+            return "concept_gate"
+        if has_lab and not lab_used:
+            return "simulation"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if instructional_status == "teaching_completed":
+        if has_concept_gate:
+            return "concept_gate"
+        if has_lab and not lab_used:
+            return "simulation"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if instructional_status == "concept_gate_completed":
+        if has_lab and not lab_used:
+            return "simulation"
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if instructional_status == "attempted_not_completed":
+        if has_transfer:
+            return "mastery_check"
+        return "done"
+
+    if has_teaching:
+        return "scaffolded_teaching"
+    if has_concept_gate:
+        return "concept_gate"
+    if has_lab and not lab_used:
+        return "simulation"
+    if has_transfer:
+        return "mastery_check"
+    return "done"
+
+
 def _stage_row(
     key: str,
     label: str,
@@ -308,11 +431,8 @@ def _mastery_contract(lesson: Dict[str, Any], lesson_progress: Dict[str, Any]) -
     recommended_review_refs: List[str] = []
 
     if best_score < MASTERY_THRESHOLD and attempt_count >= 1:
-        recommended_review_refs = [
-            "concept_precision_accuracy",
-            "concept_unit_conversion",
-            "concept_prefix_scaling",
-        ]
+        weak_concepts = _lesson_weak_concepts(lesson)
+        recommended_review_refs = _recommended_review_refs(lesson)
 
     return {
         "min_questions": MASTERY_MIN_QUESTIONS,
@@ -352,8 +472,11 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
                 "mastery_threshold": MASTERY_THRESHOLD,
                 "mastery_achieved": False,
                 "can_advance": False,
+                "instructional_can_advance": False,
                 "lesson_status": "not_found",
+                "instructional_status": "not_found",
                 "active_stage": "diagnostic",
+                "instructional_active_stage": "diagnostic",
                 "next_recommended_action": "lesson_not_found",
                 "diagnostic": {
                     "min_questions": DIAGNOSTIC_MIN_QUESTIONS,
@@ -379,6 +502,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
                     "recommended_review_refs": [],
                 },
                 "stages": [],
+                "instructional_stages": [],
             },
         }
 
@@ -389,6 +513,7 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
     lab_used = bool(lesson_progress.get("lab_used"))
     reflection_completed = bool(lesson_progress.get("reflection_completed"))
     lesson_status = str(lesson_progress.get("status") or "not_started")
+    instructional_status = str(lesson_progress.get("instructional_status") or lesson_status)
 
     has_diag = _has_diagnostic(lesson)
     has_teaching = _has_teaching(lesson)
@@ -408,6 +533,16 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         lab_used=lab_used,
         has_reflection=has_reflection,
         reflection_completed=reflection_completed,
+        has_transfer=has_transfer,
+    )
+    instructional_stage = _derive_instructional_stage(
+        instructional_status=instructional_status,
+        mastery_achieved=mastery_achieved,
+        has_diag=has_diag,
+        has_teaching=has_teaching,
+        has_concept_gate=has_concept_gate,
+        has_lab=has_lab,
+        lab_used=lab_used,
         has_transfer=has_transfer,
     )
 
@@ -447,6 +582,25 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
         "completed",
     )
     mastery_check_completed = mastery_achieved
+    instructional_diagnostic_completed = has_diag and instructional_status in (
+        "diagnostic_completed",
+        "teaching_completed",
+        "concept_gate_completed",
+        "attempted_not_completed",
+        "completed",
+    )
+    instructional_teaching_completed = has_teaching and instructional_status in (
+        "teaching_completed",
+        "concept_gate_completed",
+        "attempted_not_completed",
+        "completed",
+    )
+    instructional_concept_gate_completed = has_concept_gate and instructional_status in (
+        "concept_gate_completed",
+        "attempted_not_completed",
+        "completed",
+    )
+    instructional_simulation_completed = has_lab and lab_used
 
     stages: List[Dict[str, Any]] = [
         _stage_row(
@@ -492,6 +646,43 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
             active_key=current_stage,
         ),
     ]
+    instructional_stages: List[Dict[str, Any]] = [
+        _stage_row(
+            key="diagnostic",
+            label="Initial diagnostic",
+            available=has_diag,
+            completed=instructional_diagnostic_completed,
+            active_key=instructional_stage,
+        ),
+        _stage_row(
+            key="scaffolded_teaching",
+            label="Guided lesson",
+            available=has_teaching,
+            completed=instructional_teaching_completed,
+            active_key=instructional_stage,
+        ),
+        _stage_row(
+            key="concept_gate",
+            label="Concept check",
+            available=has_concept_gate,
+            completed=instructional_concept_gate_completed,
+            active_key=instructional_stage,
+        ),
+        _stage_row(
+            key="simulation",
+            label="Try it out",
+            available=has_lab,
+            completed=instructional_simulation_completed,
+            active_key=instructional_stage if has_lab else "",
+        ),
+        _stage_row(
+            key="mastery_check",
+            label="Mastery check",
+            available=has_transfer,
+            completed=mastery_check_completed,
+            active_key=instructional_stage,
+        ),
+    ]
 
     if mastery_achieved:
         next_action = "advance_to_next_sub_unit"
@@ -521,11 +712,15 @@ def build_student_runner_contract(uid: str, module_id: str, lesson_id: str) -> D
             "mastery_threshold": MASTERY_THRESHOLD,
             "mastery_achieved": mastery_achieved,
             "can_advance": mastery_achieved or bool(lesson_progress.get("can_advance")),
+            "instructional_can_advance": mastery_achieved,
             "lesson_status": lesson_status,
+            "instructional_status": instructional_status,
             "active_stage": current_stage,
+            "instructional_active_stage": instructional_stage,
             "next_recommended_action": next_action,
             "diagnostic": _diagnostic_contract(lesson, lesson_progress),
             "mastery_check": _mastery_contract(lesson, lesson_progress),
             "stages": stages,
+            "instructional_stages": instructional_stages,
         },
     }

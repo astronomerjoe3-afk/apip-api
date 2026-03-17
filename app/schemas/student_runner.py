@@ -47,12 +47,16 @@ class StudentRunnerLessonOut(BaseModel):
     mastery_threshold: float = 0.8
     mastery_achieved: bool = False
     can_advance: bool = False
+    instructional_can_advance: bool = False
     lesson_status: str = "not_started"
+    instructional_status: Optional[str] = "not_started"
     active_stage: str = "diagnostic"
+    instructional_active_stage: Optional[str] = "diagnostic"
     next_recommended_action: str = "start_diagnostic"
     diagnostic: StudentRunnerDiagnosticOut = Field(default_factory=StudentRunnerDiagnosticOut)
     mastery_check: StudentRunnerMasteryCheckOut = Field(default_factory=StudentRunnerMasteryCheckOut)
     stages: List[StudentRunnerStageOut] = Field(default_factory=list)
+    instructional_stages: List[StudentRunnerStageOut] = Field(default_factory=list)
 
 
 class StudentRunnerModuleOut(BaseModel):

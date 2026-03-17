@@ -22,6 +22,7 @@ TEACHING_RECONSTRUCTION_SOURCES = {
 CONCEPT_GATE_SOURCES = {
     "student_runner_concept_gate",
 }
+TEACHING_EVENT_SOURCES = TEACHING_VIEW_SOURCES | TEACHING_RECONSTRUCTION_SOURCES
 
 
 def _safe_score(v: Any) -> float:
@@ -60,6 +61,54 @@ def _lesson_has_lab(lesson: Dict[str, Any]) -> bool:
     return bool(sim.get("lab_id"))
 
 
+def _derive_instructional_status(
+    *,
+    diagnostic_count: int,
+    teaching_completed: bool,
+    concept_gate_completed: bool,
+    mastery_attempt_count: int,
+    completed: bool,
+) -> str:
+    if completed:
+        return "completed"
+    if mastery_attempt_count >= 1:
+        return "attempted_not_completed"
+    if concept_gate_completed:
+        return "concept_gate_completed"
+    if teaching_completed:
+        return "teaching_completed"
+    if diagnostic_count >= 1:
+        return "diagnostic_completed"
+    return "not_started"
+
+
+def _derive_legacy_status(
+    *,
+    diagnostic_count: int,
+    teaching_completed: bool,
+    concept_gate_completed: bool,
+    simulation_completed: bool,
+    reflection_completed: bool,
+    mastery_attempt_count: int,
+    completed: bool,
+) -> str:
+    if completed:
+        return "completed"
+    if mastery_attempt_count >= 1:
+        return "attempted_not_completed"
+    if reflection_completed:
+        return "reflection_completed"
+    if simulation_completed:
+        return "simulation_completed"
+    if concept_gate_completed:
+        return "concept_gate_completed"
+    if teaching_completed:
+        return "teaching_completed"
+    if diagnostic_count >= 1:
+        return "diagnostic_completed"
+    return "not_started"
+
+
 def _build_lesson_progress(
     lesson: Dict[str, Any],
     lesson_events: List[Dict[str, Any]],
@@ -69,7 +118,7 @@ def _build_lesson_progress(
     sequence = lesson.get("sequence")
 
     mastery_scores: List[float] = []
-    attempt_count = 0
+    mastery_attempt_count = 0
     diagnostic_count = 0
     diagnostic_latest_score = None
     diagnostic_asked_count = 0
@@ -77,6 +126,7 @@ def _build_lesson_progress(
     last_mastery_check_utc = None
     latest_mastery_score = None
 
+    teaching_event_count = 0
     teaching_view_count = 0
     teaching_reconstruction_count = 0
     concept_gate_count = 0
@@ -92,10 +142,8 @@ def _build_lesson_progress(
             details = ev.get("details") if isinstance(ev.get("details"), dict) else {}
             diagnostic_asked_count = int(details.get("asked_count") or 0)
 
-        if et in ("attempt", "transfer"):
-            attempt_count += 1
-
         if et in MASTERY_EVENT_TYPES:
+            mastery_attempt_count += 1
             score = _safe_score(ev.get("score"))
             mastery_scores.append(score)
             ev_utc = ev.get("utc")
@@ -109,41 +157,42 @@ def _build_lesson_progress(
         if et == "reflection":
             if source in TEACHING_VIEW_SOURCES:
                 teaching_view_count += 1
-            elif source in TEACHING_RECONSTRUCTION_SOURCES:
+            if source in TEACHING_RECONSTRUCTION_SOURCES:
                 teaching_reconstruction_count += 1
-            elif source in CONCEPT_GATE_SOURCES:
+            if source in TEACHING_EVENT_SOURCES:
+                teaching_event_count += 1
+            if source in CONCEPT_GATE_SOURCES:
                 concept_gate_count += 1
                 concept_gate_best_score = max(concept_gate_best_score, _safe_score(ev.get("score")))
 
     best_score = max(mastery_scores) if mastery_scores else 0.0
     completed = best_score >= COMPLETION_THRESHOLD
 
-    teaching_engaged = (teaching_view_count + teaching_reconstruction_count) >= 1
-    teaching_completed = teaching_view_count >= 1
-    concept_gate_completed = concept_gate_best_score >= COMPLETION_THRESHOLD
-    simulation_completed = lab_used
-    reflection_completed = teaching_reconstruction_count >= 1
+    teaching_engaged = teaching_event_count >= 1
+    teaching_completed = teaching_event_count >= 1
+    concept_gate_completed = concept_gate_count >= 1
+    simulation_completed = concept_gate_completed and lab_used
+    reflection_completed = simulation_completed and teaching_reconstruction_count >= 1
 
-    can_advance = completed or len(mastery_scores) >= 1
-
-    if completed:
-        status = "completed"
-    elif len(mastery_scores) >= 1:
-        status = "attempted_not_completed"
-    elif reflection_completed:
-        status = "reflection_completed"
-    elif simulation_completed:
-        status = "simulation_completed"
-    elif concept_gate_completed:
-        status = "concept_gate_completed"
-    elif teaching_completed:
-        status = "teaching_completed"
-    elif diagnostic_count >= 1:
-        status = "diagnostic_completed"
-    else:
-        status = "not_started"
+    instructional_status = _derive_instructional_status(
+        diagnostic_count=diagnostic_count,
+        teaching_completed=teaching_completed,
+        concept_gate_completed=concept_gate_completed,
+        mastery_attempt_count=mastery_attempt_count,
+        completed=completed,
+    )
+    status = _derive_legacy_status(
+        diagnostic_count=diagnostic_count,
+        teaching_completed=teaching_completed,
+        concept_gate_completed=concept_gate_completed,
+        simulation_completed=simulation_completed,
+        reflection_completed=reflection_completed,
+        mastery_attempt_count=mastery_attempt_count,
+        completed=completed,
+    )
 
     has_lab = _lesson_has_lab(lesson)
+    can_advance = completed or mastery_attempt_count >= 1
 
     return {
         "lesson_id": lesson_id,
@@ -151,15 +200,18 @@ def _build_lesson_progress(
         "sequence": sequence,
         "best_score": round(best_score, 4),
         "latest_score": round(latest_mastery_score, 4) if latest_mastery_score is not None else None,
-        "attempt_count": attempt_count,
+        "attempt_count": mastery_attempt_count,
         "completed": completed,
         "can_advance": can_advance,
+        "instructional_can_advance": completed,
         "lab_available": has_lab and (not lab_used),
         "lab_used": lab_used,
         "status": status,
+        "instructional_status": instructional_status,
         "diagnostic_count": diagnostic_count,
         "diagnostic_latest_score": round(diagnostic_latest_score, 4) if diagnostic_latest_score is not None else None,
         "diagnostic_asked_count": diagnostic_asked_count,
+        "teaching_event_count": teaching_event_count,
         "teaching_view_count": teaching_view_count,
         "teaching_reconstruction_count": teaching_reconstruction_count,
         "teaching_engaged": teaching_engaged,
@@ -169,7 +221,7 @@ def _build_lesson_progress(
         "concept_gate_best_score": round(concept_gate_best_score, 4),
         "simulation_completed": simulation_completed,
         "reflection_completed": reflection_completed,
-        "mastery_check_count": len(mastery_scores),
+        "mastery_check_count": mastery_attempt_count,
         "last_mastery_check_utc": last_mastery_check_utc,
     }
 
@@ -242,12 +294,15 @@ def get_student_lesson_progress(uid: str, module_id: str, lesson_id: str) -> Dic
             "attempt_count": 0,
             "completed": False,
             "can_advance": False,
+            "instructional_can_advance": False,
             "lab_available": False,
             "lab_used": False,
             "status": "not_found",
+            "instructional_status": "not_found",
             "diagnostic_count": 0,
             "diagnostic_latest_score": None,
             "diagnostic_asked_count": 0,
+            "teaching_event_count": 0,
             "teaching_view_count": 0,
             "teaching_reconstruction_count": 0,
             "teaching_engaged": False,

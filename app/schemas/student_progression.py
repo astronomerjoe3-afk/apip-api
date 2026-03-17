@@ -14,9 +14,11 @@ class StudentLessonProgressOut(BaseModel):
     attempt_count: int = 0
     completed: bool = False
     can_advance: bool = False
+    instructional_can_advance: bool = False
     lab_available: bool = False
     lab_used: bool = False
     status: str = "not_started"
+    instructional_status: Optional[str] = "not_started"
 
 
 class StudentModuleProgressOut(BaseModel):
