@@ -475,12 +475,12 @@ M1_SPEC = json.loads(r'''
         ],
         "depth": "number of speed-time graph stories explained using both height and slope correctly"
       },
-      "analogy_text": "The Quest-Log pace log records the avatar's pace meter beat by beat. The graph height at any chosen beat tells the speed at that beat, while the slope tells whether the pace is being held, boosted, or reduced.",
+      "analogy_text": "The Quest-Log pace log records the avatar's pace meter beat by beat. The graph height at any chosen beat tells the speed at that beat, while the slope over a chosen interval tells how quickly the pace is changing during that interval.",
       "commitment_prompt": "Before you interpret the graph, decide whether you are reading the speed level or the way the speed level is changing.",
       "micro_prompts": [
         {
           "prompt": "Compare pace-log height with pace-log slope before you describe the motion story.",
-          "hint": "Height at a chosen time tells the speed at that time; slope tells how speed is changing."
+          "hint": "Height at a chosen time tells the speed at that time; slope over a chosen interval tells how quickly the speed is changing during that interval."
         },
         {
           "prompt": "Compare a downward sloping speed-time line with reverse travel.",
