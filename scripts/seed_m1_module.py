@@ -2176,7 +2176,7 @@ M1_SPEC = json.loads(r'''
             "20 m",
             "20"
           ],
-          "hint": "Use the triangle area: 0.5 x 4 x 10.",
+          "hint": "Use the triangle area rule: 0.5 x base x height, with time as the base and speed as the height.",
           "tags": [
             "area_under_graph_confusion"
           ]
