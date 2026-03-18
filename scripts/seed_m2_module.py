@@ -732,7 +732,7 @@ M2_EXTRA_DIAGNOSTIC = {
     "M2_L1": [
         spec_mcq("M2L1_D6", "A craft has 14 N east and 5 N west. What Master Arrow remains?", ["9 N east", "9 N west", "19 N east", "0 N"], 0, "Subtract opposite directions and keep the larger direction.", ["resultant_force_vector_confusion"]),
         spec_mcq("M2L1_D7", "A craft is already moving west and the Master Arrow becomes zero. What happens next?", ["it keeps moving west at constant velocity", "it must stop at once", "it accelerates east", "all forces vanish because it is moving"], 0, "Zero Master Arrow means no acceleration, so the current velocity stays unchanged.", ["motion_implies_force_confusion", "newton_first_law_confusion"]),
-        spec_short("M2L1_D8", "In a few words, what does zero Master Arrow mean?", ["no motion change", "zero acceleration", "motion stays unchanged", "constant velocity if already moving"], "Zero Master Arrow tells you about acceleration, not about one special speed value.", ["newton_first_law_confusion", "balanced_force_rest_confusion"]),
+        spec_short("M2L1_D8", "In a few words, what does zero Master Arrow mean?", ["no motion change", "zero acceleration", "no acceleration", "motion stays unchanged", "constant velocity if already moving", "no resultant force", "zero resultant force", "no net force", "zero net force"], "Zero Master Arrow tells you about acceleration, not about one special speed value.", ["newton_first_law_confusion", "balanced_force_rest_confusion"]),
     ],
     "M2_L2": [
         spec_mcq("M2L2_D6", "A 18 N Master Arrow acts on a 3 kg craft. What Motion Shift occurs?", ["6 m/s^2", "9 m/s^2", "3 m/s^2", "54 m/s^2"], 0, "Use acceleration = net force / mass.", ["force_mass_acceleration_confusion"]),
