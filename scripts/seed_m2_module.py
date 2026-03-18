@@ -864,7 +864,7 @@ M2_EXTRA_DIAGNOSTIC = {
 M2_EXTRA_CONCEPT = {
     "M2_L1": [
         spec_mcq("M2L1_C5", "Which pair leaves the same Master Arrow?", ["11 N right with 3 N left, and 8 N right only", "7 N right with 7 N left, and 7 N right only", "6 N left with 2 N right, and 6 N right with 2 N left", "4 N right with 1 N left, and 1 N right with 4 N left"], 0, "Compare the net push in each case.", ["resultant_force_vector_confusion"]),
-        spec_short("M2L1_C6", "Why must you combine Drive Arrows before predicting motion?", ["because the resultant force decides the motion change", "because the Master Arrow decides acceleration", "motion depends on the net force", "the combined force predicts the change"], "Predict motion from the combined force, not from one isolated arrow.", ["resultant_force_vector_confusion", "motion_implies_force_confusion"]),
+        spec_short("M2L1_C6", "Why must you combine Drive Arrows before predicting motion?", ["because the resultant force decides the motion change", "because the Master Arrow decides acceleration", "motion depends on the net force", "the combined force predicts the change", "because the net force determines the acceleration", "because only the combined force tells how the motion changes", "because some arrows can cancel and only the resultant is left to predict the motion change"], "Predict motion from the combined force, not from one isolated arrow.", ["resultant_force_vector_confusion", "motion_implies_force_confusion"]),
     ],
     "M2_L2": [
         spec_short("M2L2_C5", "What real quantity is the lesson's Load Rating standing in for?", ["mass"], "Load Rating is the mass term in the model.", ["force_mass_acceleration_confusion"]),
