@@ -364,24 +364,24 @@ M2_SPEC = json.loads(r'''
     },
     {
       "id": "M2_L4",
-      "title": "Spin Pull and Turning Effect",
+      "title": "Spin Pull, Torque, and Turning Effect",
       "sim": {
         "lab_id": "m2_spin_pull_lab",
-        "title": "Spin pull explorer",
-        "description": "Use off-centre pushes and reach distance to make torque a location-sensitive idea instead of another word for force.",
+        "title": "Spin pull / torque explorer",
+        "description": "Use off-centre pushes and reach distance to make torque, the moment of a force, a location-sensitive idea instead of another word for force.",
         "instructions": ["Push through the center line and then off-center.", "Keep force size fixed while changing the perpendicular reach.", "Compare strong-small-reach with weak-large-reach cases."],
         "outcomes": ["torque_force_location_confusion"],
         "fields": ["push_size", "perpendicular_reach", "spin_pull", "translation_vs_rotation"],
         "depth": "number of turning cases explained with both force size and line of action"
       },
-      "analogy_text": "Spin Pull depends on how hard you push and how far the push line sits from the pivot. The same force can make a very different turning effect when the reach changes.",
-      "commitment_prompt": "Before you answer, decide whether the question is about push size only or about push size plus perpendicular reach.",
+      "analogy_text": "Spin Pull is torque, also called the moment of a force, so it depends on how hard you push and how far the push line sits from the pivot. The same force can make a very different turning effect when the reach changes.",
+      "commitment_prompt": "Before you answer, decide whether the question is about push size only or about push size plus perpendicular reach in the torque, or moment of a force.",
       "micro_prompts": [
-        {"prompt": "Compare the same force through the center with the same force at the edge.", "hint": "Where the force acts matters because torque needs a turning reach."},
+        {"prompt": "Compare the same force through the center with the same force at the edge.", "hint": "Where the force acts matters because torque, the moment of a force, needs a turning reach."},
         {"prompt": "Keep force fixed and slide the push point farther from the pivot.", "hint": "The turning effect grows when the perpendicular reach grows."}
       ],
       "diagnostic": [
-        {"kind": "mcq", "id": "M2L4_D1", "prompt": "Which change makes a larger Spin Pull when the push stays the same?", "choices": ["increase the perpendicular reach", "decrease the reach", "move the push through the pivot", "remove the direction"], "answer_index": 0, "hint": "Torque depends on force and perpendicular distance.", "tags": ["torque_force_location_confusion"]},
+        {"kind": "mcq", "id": "M2L4_D1", "prompt": "Which change makes a larger Spin Pull when the push stays the same?", "choices": ["increase the perpendicular reach", "decrease the reach", "move the push through the pivot", "remove the direction"], "answer_index": 0, "hint": "Torque, the moment of a force, depends on force and perpendicular distance.", "tags": ["torque_force_location_confusion"]},
         {"kind": "mcq", "id": "M2L4_D2", "prompt": "A push through the pivot gives what turning effect?", "choices": ["zero", "maximum", "equal to the force", "equal to the speed"], "answer_index": 0, "hint": "No perpendicular reach means no turning effect.", "tags": ["torque_force_location_confusion"]},
         {"kind": "short", "id": "M2L4_D3", "prompt": "A 6 N push acts 0.5 m from the pivot. What Spin Pull is produced?", "accepted_answers": ["3 N m", "3"], "hint": "Multiply force by perpendicular reach.", "tags": ["torque_force_location_confusion"]}
       ],
@@ -389,23 +389,23 @@ M2_SPEC = json.loads(r'''
         {"prompt": "Compare one centred push and one off-centre push with the same force.", "hint": "The off-centre push can rotate the craft because it has turning reach."},
         {"prompt": "Build two different force-reach pairs that give the same Spin Pull.", "hint": "A smaller force can match a larger one if the reach changes."}
       ],
-      "recon_prompts": ["Explain why torque is not the same thing as force.", "Explain why the line of action matters when you predict rotation."],
+      "recon_prompts": ["Explain why torque, or moment of a force, is not the same thing as force.", "Explain why the line of action matters when you predict rotation."],
       "capsule_prompt": "Ask how hard the push is and how far its line of action sits from the pivot.",
       "capsule_checks": [
-        {"kind": "mcq", "id": "M2L4_C1", "prompt": "If force stays fixed and the perpendicular reach doubles, the Spin Pull...", "choices": ["doubles", "halves", "stays the same", "becomes zero"], "answer_index": 0, "hint": "Torque scales with perpendicular distance.", "tags": ["torque_force_location_confusion"]},
+        {"kind": "mcq", "id": "M2L4_C1", "prompt": "If force stays fixed and the perpendicular reach doubles, the Spin Pull...", "choices": ["doubles", "halves", "stays the same", "becomes zero"], "answer_index": 0, "hint": "Torque, the moment of a force, scales with perpendicular distance.", "tags": ["torque_force_location_confusion"]},
         {"kind": "mcq", "id": "M2L4_C2", "prompt": "Why can two equal pushes create different turning results?", "choices": ["they can act at different reaches", "one of the pushes is not real", "mass alone sets torque", "rotation ignores force direction"], "answer_index": 0, "hint": "Location matters, not just size.", "tags": ["torque_force_location_confusion"]}
       ],
       "transfer": [
-        {"kind": "mcq", "id": "M2L4_T1", "prompt": "Why is a door handle placed far from the hinges?", "choices": ["to increase turning effect for the same force", "to decrease torque", "to remove the need for force", "to reduce the door mass"], "answer_index": 0, "hint": "Greater reach gives more turning effect.", "tags": ["torque_force_location_confusion"]},
+        {"kind": "mcq", "id": "M2L4_T1", "prompt": "Why is a door handle placed far from the hinges?", "choices": ["to increase turning effect for the same force", "to decrease torque", "to remove the need for force", "to reduce the door mass"], "answer_index": 0, "hint": "Greater reach gives more torque, the same as a larger moment of a force.", "tags": ["torque_force_location_confusion"]},
         {"kind": "mcq", "id": "M2L4_T2", "prompt": "A centered push can translate a craft without rotating it because...", "choices": ["the turning reach is zero", "the force has no direction", "torque equals mass", "the craft becomes weightless"], "answer_index": 0, "hint": "A force through the pivot line gives no turning moment.", "tags": ["torque_force_location_confusion"]},
         {"kind": "short", "id": "M2L4_T3", "prompt": "A 4 N push acts 0.3 m from the pivot. What Spin Pull is produced?", "accepted_answers": ["1.2 N m", "1.2"], "hint": "Multiply force by perpendicular reach.", "tags": ["torque_force_location_confusion"]}
       ],
       "contract": {
-        "concept_targets": ["Treat torque as force times perpendicular reach.", "Use line-of-action reasoning to separate translation from rotation."],
+        "concept_targets": ["Treat torque, the moment of a force, as force times perpendicular reach.", "Use line-of-action reasoning to separate translation from rotation."],
         "prerequisite_lessons": ["M2_L1", "M2_L2"],
         "misconception_focus": ["torque_force_location_confusion"],
         "formulas": [
-          {"equation": "torque = force x perpendicular reach", "meaning": "Turning effect depends on both how hard you push and how far the push acts from the pivot line.", "units": ["N m"], "conditions": "Use the perpendicular distance from pivot to line of action."}
+          {"equation": "torque (moment of a force) = force x perpendicular reach", "meaning": "Turning effect depends on both how hard you push and how far the push acts from the pivot line.", "units": ["N m"], "conditions": "Use the perpendicular distance from pivot to line of action."}
         ],
         "representations": [
           {"kind": "words", "purpose": "State what changes when the push point moves."},
@@ -413,7 +413,7 @@ M2_SPEC = json.loads(r'''
           {"kind": "formula", "purpose": "Summarize turning effect numerically."}
         ],
         "analogy_map": {
-          "comparison": "Spin Pull maps to torque and the reach from pivot makes the turning effect visible.",
+          "comparison": "Spin Pull maps to torque, also called the moment of a force, and the reach from pivot makes the turning effect visible.",
           "mapping": ["A farther push point creates more turning for the same force.", "A centered push can translate without rotating because the reach is zero."],
           "limit": "Real bodies can deform, but the model still captures the core dependence on force and perpendicular distance.",
           "prediction_prompt": "What happens to Spin Pull if the reach grows while the force stays the same?"
@@ -422,12 +422,12 @@ M2_SPEC = json.loads(r'''
           {
             "prompt": "Compare two door pushes: 6 N applied 0.5 m from the hinge and 3 N applied 1.0 m from the hinge. Which gives the larger Spin Pull?",
             "steps": [
-              "Use Spin Pull = force x perpendicular reach for each case, because torque depends on both quantities together.",
+              "Use Spin Pull = torque (moment of a force) = force x perpendicular reach for each case, because the turning effect depends on both quantities together.",
               "First push: 6 x 0.5 = 3 N m.",
               "Second push: 3 x 1.0 = 3 N m.",
               "The Spin Pull values match, so neither push is larger; different force-reach combinations can give the same turning effect."
             ],
-            "final_answer": "Both pushes give the same Spin Pull of 3 N m, because torque depends on the product of force and perpendicular reach, not on force size alone.",
+            "final_answer": "Both pushes give the same Spin Pull of 3 N m, because torque, the moment of a force, depends on the product of force and perpendicular reach, not on force size alone.",
             "why_it_matters": "This stops students from assuming the biggest force automatically gives the biggest turning effect."
           },
           {
@@ -443,16 +443,16 @@ M2_SPEC = json.loads(r'''
           }
         ],
         "visual_assets": [
-          {"asset_id": "m2-l4-spin-pull.svg", "purpose": "Show centred and off-centre pushes with the same force and compare their torque.", "caption": "The diagram labels the perpendicular reach so the turning effect can be read directly."}
+          {"asset_id": "m2-l4-spin-pull.svg", "purpose": "Show centred and off-centre pushes with the same force and compare their torque, or moment of a force.", "caption": "The diagram labels the perpendicular reach and names torque as the moment of a force so the turning effect can be read directly."}
         ],
         "simulation_contract": {
           "baseline_case": "Start with the same 6 N push first through the center line and then 0.5 m away.",
           "comparison_tasks": ["Keep force fixed and vary reach.", "Keep torque fixed and compare different force-reach combinations."],
-          "watch_for": "Students should mention reach or line of action before naming the torque.",
-          "takeaway": "Turning effect depends on both the push and where it acts."
+          "watch_for": "Students should mention reach or line of action before naming the torque, or moment of a force.",
+          "takeaway": "Turning effect depends on both the push and where it acts, because torque and moment of a force are the same idea."
         },
         "reflection_prompts": ["Explain why the same force can give different turning outcomes on the same object."],
-        "mastery_skills": ["Calculate torque from force and distance.", "Predict how changing reach changes turning effect.", "Recognize zero torque cases.", "Separate force from torque.", "Use everyday hinge examples accurately."],
+        "mastery_skills": ["Calculate torque, the moment of a force, from force and distance.", "Predict how changing reach changes turning effect.", "Recognize zero torque cases.", "Separate force from torque.", "Use everyday hinge examples accurately."],
         "variation_plan": {
           "diagnostic": "Rotate between centered-force stories, reach comparisons, and direct torque calculations.",
           "concept_gate": "Swap between conceptual line-of-action judgments and simple torque calculations on retries.",
@@ -793,7 +793,7 @@ M2_LESSON_VISUAL_TITLES = {
     "M2_L1": "Master Arrow Systems Board",
     "M2_L2": "Load Rating Response Board",
     "M2_L3": "Dock Exchange Ledger Board",
-    "M2_L4": "Spin Pull Reach Board",
+    "M2_L4": "Spin Pull Torque Board",
     "M2_L5": "Balance Core Stability Board",
     "M2_L6": "Arrow Split Bookkeeping Board",
 }
@@ -810,7 +810,7 @@ M2_ANALOGY_UPDATES = {
         "Carry Score is like a signed docking ledger. Each moving craft brings momentum credit or debt, and a closed docking event must preserve the system total even while redistributing the share."
     ),
     "M2_L4": (
-        "Spin Pull is leverage accounting: a push buys turning effect only through its perpendicular reach from the pivot. The same force can buy very different rotation stories."
+        "Spin Pull is torque, also called the moment of a force: a push buys turning effect only through its perpendicular reach from the pivot. The same force can buy very different rotation stories."
     ),
     "M2_L5": (
         "Balance Core works like a support-permit rule. The weight line must land inside the allowed support zone, and widening the zone changes stability without changing the mass total."
@@ -824,7 +824,7 @@ M2_COMMITMENT_UPDATES = {
     "M2_L1": "Before answering, decide whether the question is about one visible force entry or the net system instruction.",
     "M2_L2": "Before answering, separate one-object response reasoning from two-object interaction-pair reasoning.",
     "M2_L3": "Before answering, decide whether the question is about one craft's momentum or the closed-system total.",
-    "M2_L4": "Before answering, name the pivot and the perpendicular reach before you talk about turning.",
+    "M2_L4": "Before answering, name the pivot and the perpendicular reach before you name the torque, or moment of a force.",
     "M2_L5": "Before answering, trace where the Balance Core line lands relative to the Footprint Zone.",
     "M2_L6": "Before answering, decide whether the clean route is to resolve by axis before rebuilding the final arrow.",
 }
@@ -846,9 +846,9 @@ M2_EXTRA_DIAGNOSTIC = {
         spec_short("M2L3_D8", "A 6 kg craft moves at -2 m/s. What Carry Score does it have?", ["-12 kg m/s", "-12", "-12 Ns"], "Momentum keeps the sign of the velocity.", ["momentum_force_confusion"]),
     ],
     "M2_L4": [
-        spec_short("M2L4_D6", "What two things decide Spin Pull?", ["force and perpendicular reach", "force and distance from pivot", "force and moment arm", "force and reach"], "Turning effect depends on push size and perpendicular reach together.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_D6", "What two things decide Spin Pull?", ["force and perpendicular reach", "force and distance from pivot", "force and moment arm", "force and reach"], "Turning effect depends on push size and perpendicular reach together because Spin Pull is torque, the moment of a force.", ["torque_force_location_confusion"]),
         spec_mcq("M2L4_D7", "Which pair gives the same Spin Pull?", ["4 N at 0.5 m and 2 N at 1.0 m", "4 N at 0.5 m and 4 N at 1.0 m", "8 N at 0.25 m and 8 N at 1.0 m", "6 N at 0.2 m and 2 N at 0.2 m"], 0, "Compare force x reach for each pair.", ["torque_force_location_confusion"]),
-        spec_short("M2L4_D8", "A 10 N push acts 0.3 m from the pivot. What Spin Pull is produced?", ["3 N m", "3"], "Use torque = force x perpendicular reach.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_D8", "A 10 N push acts 0.3 m from the pivot. What Spin Pull is produced?", ["3 N m", "3"], "Use torque, or moment of a force, = force x perpendicular reach.", ["torque_force_location_confusion"]),
     ],
     "M2_L5": [
         spec_short("M2L5_D6", "If cargo is moved to the right, which way does the Balance Core shift?", ["right", "to the right"], "The center-of-mass position shifts toward the moved mass.", ["centre_of_mass_material_confusion"]),
@@ -877,7 +877,7 @@ M2_EXTRA_CONCEPT = {
     ],
     "M2_L4": [
         spec_mcq("M2L4_C5", "If a force acts through the pivot and the force doubles, the Spin Pull becomes...", ["0 N m", "double", "half", "impossible to tell"], 0, "No perpendicular reach still means no torque.", ["torque_force_location_confusion"]),
-        spec_short("M2L4_C6", "Why are door handles placed far from hinges?", ["to increase turning effect for the same force", "to increase torque for the same force", "to give a larger moment arm", "to give more Spin Pull"], "More perpendicular reach gives more turning effect for the same push.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_C6", "Why are door handles placed far from hinges?", ["to increase turning effect for the same force", "to increase torque for the same force", "to increase the moment of a force for the same force", "to give more Spin Pull"], "More perpendicular reach gives more turning effect for the same push because it increases the torque, or moment of a force.", ["torque_force_location_confusion"]),
     ],
     "M2_L5": [
         spec_short("M2L5_C5", "In a few words, what decides whether tipping begins?", ["the weight line leaves the base", "the Balance Core line leaves the Footprint Zone", "the center of mass line goes outside the support area", "the line of action of weight reaches the edge"], "Tipping begins when the center-of-mass line no longer lands inside the support area.", ["stability_weight_confusion", "centre_of_mass_material_confusion"]),
@@ -913,9 +913,9 @@ M2_EXTRA_TRANSFER = {
     ],
     "M2_L4": [
         spec_mcq("M2L4_T4", "Which pair gives the same Spin Pull?", ["12 N at 0.25 m and 6 N at 0.5 m", "12 N at 0.25 m and 12 N at 0.5 m", "6 N at 0.5 m and 3 N at 0.25 m", "8 N at 0.4 m and 8 N at 0.2 m"], 0, "Compare force x reach.", ["torque_force_location_confusion"]),
-        spec_short("M2L4_T5", "In a few words, what does perpendicular reach mean?", ["shortest distance from pivot to line of action", "distance from pivot to line of action", "moment arm", "perpendicular distance from the pivot"], "Reach is the perpendicular distance from the pivot to the force line.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_T5", "In a few words, what does perpendicular reach mean?", ["shortest distance from pivot to line of action", "distance from pivot to line of action", "moment arm", "perpendicular distance from the pivot"], "Reach is the perpendicular distance from the pivot to the force line, the distance used in torque or moment-of-a-force calculations.", ["torque_force_location_confusion"]),
         spec_mcq("M2L4_T6", "If the same force is moved farther from the pivot, the turning effect...", ["increases", "decreases", "stays the same", "becomes zero"], 0, "A larger reach gives a larger torque for the same force.", ["torque_force_location_confusion"]),
-        spec_short("M2L4_T7", "A 5 N push acts 0.8 m from the pivot. What Spin Pull is produced?", ["4 N m", "4"], "Multiply force by reach.", ["torque_force_location_confusion"]),
+        spec_short("M2L4_T7", "A 5 N push acts 0.8 m from the pivot. What Spin Pull is produced?", ["4 N m", "4"], "Multiply force by reach to get the torque, or moment of a force.", ["torque_force_location_confusion"]),
         spec_mcq("M2L4_T8", "Which push can create both translation and rotation?", ["an off-center push whose line misses the pivot", "a push exactly through the pivot", "only a zero force", "no push can do both"], 0, "Missing the pivot line can create a turning effect while still pushing the object.", ["torque_force_location_confusion"]),
     ],
     "M2_L5": [
