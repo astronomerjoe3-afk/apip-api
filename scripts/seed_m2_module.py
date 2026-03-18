@@ -123,26 +123,26 @@ M2_SPEC = json.loads(r'''
         },
         "worked_examples": [
           {
-            "prompt": "A craft has 10 N forward and 6 N backward. Find the Master Arrow and predict the motion change.",
+            "prompt": "A craft is moving west at 3 m/s while 14 N east and 9 N west act on it. Find the Master Arrow and predict the immediate motion change.",
             "steps": [
-              "Compare the opposite forces first because they act on the same line.",
-              "Subtract the smaller from the larger: 10 - 6 = 4 N.",
-              "Keep the direction of the larger side, so the Master Arrow is 4 N forward.",
-              "A non-zero Master Arrow means the craft accelerates forward."
+              "Combine the opposite Drive Arrows first because they act along the same line: 14 N east and 9 N west leave 5 N east.",
+              "That leftover 5 N east is the Master Arrow, so the acceleration points east because the resultant force sets the motion change.",
+              "Keep the current velocity separate from the new acceleration: the craft is still moving west at this moment.",
+              "An eastward acceleration acting on a westward-moving craft makes it slow down first rather than instantly reverse direction."
             ],
-            "final_answer": "Master Arrow = 4 N forward, so the craft accelerates forward.",
-            "why_it_matters": "Students must combine forces before they talk about motion."
+            "final_answer": "Master Arrow = 5 N east, so the craft accelerates east; because it was moving west, it immediately slows down while still traveling west.",
+            "why_it_matters": "This forces students to separate current motion from the new motion change caused by the resultant force."
           },
           {
-            "prompt": "A learner says a moving craft must still have a forward Master Arrow. Evaluate the claim.",
+            "prompt": "A craft cruises east at 5 m/s with 7 N forward and 7 N backward. Evaluate the claim that it must stop because the Master Arrow is zero.",
             "steps": [
-              "Start with Newton's first-law idea from Thruster-Deck.",
-              "Zero Master Arrow means zero motion change, not zero motion.",
-              "A craft can already be cruising and keep cruising even while the Master Arrow is zero.",
-              "So motion alone is not evidence of a continuing resultant force."
+              "Equal opposite forces give a zero Master Arrow because 7 N forward cancels 7 N backward.",
+              "Zero Master Arrow means zero acceleration, so the velocity does not change.",
+              "The craft already has a velocity of 5 m/s east, and with zero acceleration that existing motion can continue unchanged.",
+              "So no resultant force does not demand rest; it only means there is no motion change."
             ],
-            "final_answer": "The claim is wrong.",
-            "why_it_matters": "This directly blocks the classic motion-implies-force misconception."
+            "final_answer": "The claim is wrong: zero Master Arrow means zero acceleration, so the craft can keep cruising east at 5 m/s because its motion is not changing.",
+            "why_it_matters": "This directly blocks the classic motion-implies-force misconception with a concrete cruising example."
           }
         ],
         "visual_assets": [
@@ -221,8 +221,28 @@ M2_SPEC = json.loads(r'''
           "prediction_prompt": "If the same Master Arrow acts on a lighter and a heavier craft, which one changes motion more and why?"
         },
         "worked_examples": [
-          {"prompt": "A 12 N Master Arrow acts on a 3 kg craft. Predict the Motion Shift.", "steps": ["Use the Master Arrow, not one isolated force.", "Identify the Load Rating as 3 kg.", "Divide 12 N by 3 kg to get 4 m/s^2.", "State that the acceleration points with the Master Arrow."], "final_answer": "Motion Shift = 4 m/s^2 in the direction of the Master Arrow.", "why_it_matters": "This keeps force, mass, and acceleration tied together rather than memorized apart."},
-          {"prompt": "A student says the heavier craft pushes back harder in a collision. Evaluate the claim.", "steps": ["Use the third-law idea of matched interaction arrows.", "State that the forces are equal and opposite on different objects.", "Explain that the masses can still give different accelerations.", "Separate force-pair equality from motion-change equality."], "final_answer": "The claim is wrong because the force pair is equal and opposite even when the accelerations differ.", "why_it_matters": "Students often mix up third-law forces with second-law acceleration outcomes."}
+          {
+            "prompt": "The same 18 N Master Arrow acts east on a 3 kg scout and a 6 kg freighter. Find each Motion Shift and explain the difference.",
+            "steps": [
+              "Use the one-object rule a = F_net / m for each craft because the question is about response to the same Master Arrow.",
+              "For the 3 kg scout, a = 18 / 3 = 6 m/s^2 east.",
+              "For the 6 kg freighter, a = 18 / 6 = 3 m/s^2 east.",
+              "The scout accelerates more because the same net force is shared across less mass, so the Motion Shift is larger."
+            ],
+            "final_answer": "Scout: 6 m/s^2 east; freighter: 3 m/s^2 east, because the same Master Arrow produces a bigger Motion Shift when less mass resists the change.",
+            "why_it_matters": "This keeps force, mass, and acceleration tied together in one comparison rather than as isolated facts."
+          },
+          {
+            "prompt": "During a collision, a sensor shows an 8 N force on a 2 kg pod and an 8 N opposite force on a 4 kg pod. Evaluate the claim that the heavier pod pushes back harder.",
+            "steps": [
+              "Use Newton's third law first: the interaction forces on the two objects must be equal in size and opposite in direction.",
+              "So neither object pushes harder here; both forces are 8 N.",
+              "Now compare the responses with a = F / m: the 2 kg pod gets 8 / 2 = 4 m/s^2, while the 4 kg pod gets 8 / 4 = 2 m/s^2.",
+              "The heavier pod accelerates less because it has more mass, not because it pushes back harder."
+            ],
+            "final_answer": "The claim is wrong: the force pair is 8 N on each object, but the 2 kg pod accelerates at 4 m/s^2 and the 4 kg pod at 2 m/s^2 because equal forces on different masses give different accelerations.",
+            "why_it_matters": "This cleanly separates third-law force equality from second-law acceleration differences."
+          }
         ],
         "visual_assets": [
           {"asset_id": "m2-l2-load-rating.svg", "purpose": "Compare the same Master Arrow on a light and heavy craft and place the matched third-law pair on two objects.", "caption": "The diagram keeps mass, acceleration, and interaction-pair reasoning visible together."}
@@ -300,8 +320,28 @@ M2_SPEC = json.loads(r'''
           "prediction_prompt": "If the total system Carry Score is 12 before docking, what must be true after docking in a closed bay?"
         },
         "worked_examples": [
-          {"prompt": "Compare a 5 kg craft at 2 m/s with a 2 kg craft at 5 m/s.", "steps": ["Calculate the first Carry Score as 10 kg m/s.", "Calculate the second Carry Score as 10 kg m/s.", "State that equal momentum can come from different mass-speed combinations.", "Reject the idea that speed alone decides momentum."], "final_answer": "They have the same Carry Score of 10 kg m/s.", "why_it_matters": "This blocks the speed-only misconception."},
-          {"prompt": "Two 2 kg craft dock. One moves at 4 m/s and the other is at rest. Find the final speed.", "steps": ["Find total momentum before docking: 8 kg m/s.", "Add the masses to get 4 kg after docking.", "Divide total momentum by total mass.", "State the common speed as 2 m/s."], "final_answer": "Final shared speed = 2 m/s.", "why_it_matters": "This makes conservation a system calculation instead of a memorized slogan."}
+          {
+            "prompt": "Take east as positive. A 3 kg craft moves east at 4 m/s and docks with a 1 kg craft moving west at 2 m/s. Find the shared final velocity.",
+            "steps": [
+              "Calculate each signed Carry Score first: the 3 kg craft has +12 kg m/s and the 1 kg craft has -2 kg m/s.",
+              "Add them to get the closed-system total before docking: +10 kg m/s.",
+              "Because the craft stick together, the combined mass after docking is 4 kg and that same total momentum must still be shared by the whole system.",
+              "Solve v = total momentum / combined mass = 10 / 4 = 2.5 m/s, and keep the positive sign to show the final motion is east."
+            ],
+            "final_answer": "The shared final velocity is 2.5 m/s east, because the closed system keeps its total +10 kg m/s Carry Score and that total is shared across 4 kg after docking.",
+            "why_it_matters": "This makes students keep the system total and the sign of momentum visible all the way through the collision."
+          },
+          {
+            "prompt": "Compare a 5 kg cargo craft moving east at 2 m/s with a 2 kg scout moving east at 5 m/s. Which has the larger Carry Score?",
+            "steps": [
+              "Calculate the cargo craft's Carry Score: 5 x 2 = 10 kg m/s east.",
+              "Calculate the scout's Carry Score: 2 x 5 = 10 kg m/s east.",
+              "The totals match even though one craft is heavier and the other is faster.",
+              "So speed alone does not decide Carry Score; mass and velocity must be considered together."
+            ],
+            "final_answer": "They have the same Carry Score of 10 kg m/s east, because momentum depends on mass and velocity together rather than on speed alone.",
+            "why_it_matters": "This directly blocks the idea that the faster object must always carry more momentum."
+          }
         ],
         "visual_assets": [
           {"asset_id": "m2-l3-dock-exchange.svg", "purpose": "Show single-object Carry Score and total system momentum across a closed docking event.", "caption": "The diagram separates force talk from momentum redistribution."}
@@ -378,8 +418,28 @@ M2_SPEC = json.loads(r'''
           "prediction_prompt": "What happens to Spin Pull if the reach grows while the force stays the same?"
         },
         "worked_examples": [
-          {"prompt": "A 5 N push acts 0.4 m from a pivot. Find the Spin Pull.", "steps": ["Read the force as 5 N.", "Read the perpendicular reach as 0.4 m.", "Multiply to get 2 N m.", "State that this is a turning effect, not a force."], "final_answer": "Spin Pull = 2 N m.", "why_it_matters": "This prevents students from renaming force as torque without using the reach."},
-          {"prompt": "Compare opening a door near the hinges and at the handle.", "steps": ["Keep the force idea the same in both cases.", "Notice that the handle is farther from the pivot.", "Infer that the same force creates a larger turning effect there.", "Connect that to everyday design."], "final_answer": "The handle gives the larger turning effect because the reach is larger.", "why_it_matters": "The everyday door story makes off-centre force reasoning stick."}
+          {
+            "prompt": "Compare two door pushes: 6 N applied 0.5 m from the hinge and 3 N applied 1.0 m from the hinge. Which gives the larger Spin Pull?",
+            "steps": [
+              "Use Spin Pull = force x perpendicular reach for each case, because torque depends on both quantities together.",
+              "First push: 6 x 0.5 = 3 N m.",
+              "Second push: 3 x 1.0 = 3 N m.",
+              "The Spin Pull values match, so neither push is larger; different force-reach combinations can give the same turning effect."
+            ],
+            "final_answer": "Both pushes give the same Spin Pull of 3 N m, because torque depends on the product of force and perpendicular reach, not on force size alone.",
+            "why_it_matters": "This stops students from assuming the biggest force automatically gives the biggest turning effect."
+          },
+          {
+            "prompt": "A 4 N push is applied once through the hinge line and once 0.8 m from the hinge. Explain which case turns the door.",
+            "steps": [
+              "A force through the hinge line has zero perpendicular reach, so its Spin Pull is 4 x 0 = 0 N m.",
+              "The off-centre push has Spin Pull = 4 x 0.8 = 3.2 N m.",
+              "The force still exists in both cases, but only the off-centre case has a turning reach.",
+              "So only the second push creates rotation."
+            ],
+            "final_answer": "Only the 0.8 m case turns the door, giving 3.2 N m, because a force through the pivot has zero perpendicular reach and therefore zero Spin Pull.",
+            "why_it_matters": "This links zero-torque cases directly to line-of-action reasoning."
+          }
         ],
         "visual_assets": [
           {"asset_id": "m2-l4-spin-pull.svg", "purpose": "Show centred and off-centre pushes with the same force and compare their torque.", "caption": "The diagram labels the perpendicular reach so the turning effect can be read directly."}
@@ -457,8 +517,28 @@ M2_SPEC = json.loads(r'''
           "prediction_prompt": "What changes first when cargo is moved toward one edge: the total mass or the Balance Core position?"
         },
         "worked_examples": [
-          {"prompt": "A crate is moved to the right side of a deck. Predict the Balance Core shift.", "steps": ["Keep the total mass in mind.", "Notice that the mass distribution moved right.", "Shift the Balance Core toward the moved mass.", "Use that shift to judge the new stability."], "final_answer": "The Balance Core shifts right.", "why_it_matters": "This makes centre of mass a balance idea, not just a name."},
-          {"prompt": "Compare a narrow base and a wide base with the same Balance Core location.", "steps": ["Hold the centre of mass fixed.", "Compare how close the weight line is to the base edge in each case.", "See that the wider base gives more safety margin.", "Conclude that support width affects stability."], "final_answer": "The wider base is more stable.", "why_it_matters": "This blocks the idea that weight alone decides stability."}
+          {
+            "prompt": "A stack's Balance Core line lands 0.05 m inside the right edge of a narrow base. On a wider platform with the same load position, the line lands 0.30 m inside the edge. Which setup is more stable and why?",
+            "steps": [
+              "Stability depends on whether the Balance Core line stays inside the Footprint Zone and how much safety margin remains before it reaches the edge.",
+              "The narrow base leaves only 0.05 m of margin, so a small extra shift could push the line outside the base and start tipping.",
+              "The wider base leaves 0.30 m of margin with the same load position, so the weight line is much farther from the tipping threshold.",
+              "Therefore the wider platform is more stable because it gives more support width under the same Balance Core line."
+            ],
+            "final_answer": "The wider platform is more stable, because the Balance Core line stays much farther inside the Footprint Zone and leaves a larger safety margin before tipping begins.",
+            "why_it_matters": "This keeps stability tied to support geometry instead of to weight language alone."
+          },
+          {
+            "prompt": "A crate is moved from the centre of the deck to the left side while total mass stays the same. Predict the Balance Core shift and the tipping risk.",
+            "steps": [
+              "The total mass has not changed, so the key change is the mass distribution across the deck.",
+              "Because the crate moves left, the Balance Core shifts left toward the moved mass.",
+              "That leftward shift moves the weight line closer to the left edge of the Footprint Zone.",
+              "So tipping risk increases if that line gets too close to, or crosses, the base edge."
+            ],
+            "final_answer": "The Balance Core shifts left, and tipping risk rises if that line moves close to or beyond the left edge, because stability depends on where the mass is located, not only on how much mass there is.",
+            "why_it_matters": "This prevents students from treating centre of mass as just a label instead of a predictive stability tool."
+          }
         ],
         "visual_assets": [
           {"asset_id": "m2-l5-balance-core.svg", "purpose": "Show how moving cargo and changing base width affect centre of mass and tipping.", "caption": "The diagram labels Balance Core and Footprint Zone on the same craft."}
@@ -536,8 +616,28 @@ M2_SPEC = json.loads(r'''
         "prediction_prompt": "Why is it easier to combine several angled pushes after you resolve them onto common axes?"
       },
       "worked_examples": [
-        {"prompt": "Resolve a 10 N force into 6 N east and 8 N north components and rebuild the resultant.", "steps": ["Treat the 6 N and 8 N as perpendicular parts.", "Combine them with the right-triangle relation.", "Recover a 10 N resultant.", "State that the components rebuild the same original force."], "final_answer": "The components rebuild a 10 N resultant.", "why_it_matters": "This keeps component reasoning tied to the original vector."},
-        {"prompt": "Two horizontal components are 9 N east and 5 N west. Combine them.", "steps": ["Work on one axis only first.", "Subtract the smaller from the larger.", "Keep the larger direction, east.", "Carry that net horizontal part into the final resultant."], "final_answer": "Net horizontal component = 4 N east.", "why_it_matters": "This connects vector resolution back to the same resultant-force reasoning used earlier."}
+        {
+          "prompt": "A diagonal force is resolved into 8 N east and 6 N north. Another 3 N west force acts at the same time. Find the net horizontal component, the net vertical component, and the resultant magnitude.",
+          "steps": [
+            "Combine one axis at a time: horizontally, 8 N east and 3 N west leave 5 N east.",
+            "The vertical axis has only 6 N north, so the net vertical component stays 6 N north.",
+            "Now rebuild the resultant from the perpendicular components using Pythagoras: magnitude = sqrt(5^2 + 6^2) = sqrt(61) ≈ 7.8 N.",
+            "The final arrow points northeast because both net components are positive on their chosen axes."
+          ],
+          "final_answer": "Net components = 5 N east and 6 N north, so the resultant is about 7.8 N northeast, because components must be combined axis by axis before rebuilding the final arrow.",
+          "why_it_matters": "This ties component bookkeeping directly to the rebuilt 2D resultant."
+        },
+        {
+          "prompt": "A learner says resolving a 10 N diagonal arrow into 6 N east and 8 N north creates two new extra forces. Evaluate the claim.",
+          "steps": [
+            "Start with the meaning of components: they are a different description of one original vector on chosen axes.",
+            "Check the numbers: 6 N east and 8 N north recombine to the same 10 N diagonal because sqrt(6^2 + 8^2) = 10.",
+            "Since the components rebuild the original arrow, they are not extra pushes acting in addition to it.",
+            "So resolution changes the bookkeeping, not the physics."
+          ],
+          "final_answer": "The claim is wrong: 6 N east and 8 N north are component descriptions of the same 10 N arrow, because they recombine to the original vector rather than adding extra physical forces.",
+          "why_it_matters": "This blocks the common mistake of treating components as new forces instead of as a structured redescription."
+        }
       ],
       "visual_assets": [
         {"asset_id": "m2-l6-arrow-split.svg", "purpose": "Show one diagonal arrow, its components, and the rebuilt resultant.", "caption": "The diagram turns vector resolution into visible arrow bookkeeping."}
