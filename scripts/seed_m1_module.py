@@ -3084,7 +3084,15 @@ def apply_m1_enhancements() -> None:
             spec_short(
                 "M1L6_C4",
                 "Why does the area rule work on a speed-time graph?",
-                ["because speed multiplied by time gives distance", "because the axes are speed and time so area gives distance", "because each strip is speed x time", "because the area accumulates distance from speed and time"],
+                [
+                    "because speed multiplied by time gives distance",
+                    "because the axes are speed and time so area gives distance",
+                    "because each strip is speed x time",
+                    "because the area accumulates distance from speed and time",
+                    "because the x axis is time and the y axis is speed so the area has units of distance",
+                    "because m/s times s gives m",
+                    "because each strip is speed times time and the strips add to total distance",
+                ],
                 "Use the axes to justify the physical meaning of the area.",
                 ["area_under_graph_confusion", "multi_representation_motion_confusion"],
             ),
