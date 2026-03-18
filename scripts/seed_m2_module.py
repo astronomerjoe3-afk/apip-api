@@ -67,7 +67,7 @@ M2_SPEC = json.loads(r'''
         ],
         "depth": "number of arrow combinations explained correctly in terms of Master Arrow and cruise-state reasoning"
       },
-      "analogy_text": "Drive Arrows are the pushes acting now, but the craft responds to their combined Master Arrow. The Master Arrow is what decides whether motion changes.",
+      "analogy_text": "Newton's first law states that an object remains at rest or moves with constant velocity unless acted on by a non-zero resultant force. In Thruster-Deck, Drive Arrows are the pushes acting now, but the craft responds to their combined Master Arrow, which is the resultant force that decides whether motion changes.",
       "commitment_prompt": "Before you answer, decide whether the question is about individual Drive Arrows or the combined Master Arrow.",
       "micro_prompts": [
         { "prompt": "Compare a craft with two equal opposite thrusters to one craft with no thrusters firing at all.", "hint": "Both can have zero Master Arrow, but only one case still contains forces." },
@@ -86,7 +86,7 @@ M2_SPEC = json.loads(r'''
         "Explain why the Master Arrow matters more than any one Drive Arrow when you predict motion change.",
         "Explain why zero Master Arrow can describe both rest and steady cruising."
       ],
-      "capsule_prompt": "Combine the arrows first, then decide whether the craft changes its motion.",
+      "capsule_prompt": "Newton's first law: an object remains at rest or moves with constant velocity unless acted on by a non-zero resultant force. Combine the arrows first, then decide whether the craft changes its motion.",
       "capsule_checks": [
         { "kind": "mcq", "id": "M2L1_C1", "prompt": "If the Master Arrow is zero, the acceleration is...", "choices": ["zero", "always forward", "always backward", "equal to the speed"], "answer_index": 0, "hint": "Zero resultant force means zero acceleration.", "tags": ["newton_first_law_confusion", "balanced_force_rest_confusion"] },
         { "kind": "short", "id": "M2L1_C2", "prompt": "A craft has 12 N left and 3 N right. What Master Arrow remains?", "accepted_answers": ["9 N left", "9 left", "9 N"], "hint": "Subtract opposite sides and keep the direction of the larger side.", "tags": ["resultant_force_vector_confusion"] }
@@ -98,6 +98,7 @@ M2_SPEC = json.loads(r'''
       ],
       "contract": {
         "concept_targets": [
+          "State Newton's first law formally and connect it to the zero-Master-Arrow case.",
           "Treat resultant force as the vector sum of all Drive Arrows.",
           "Use Newton's first-law reasoning to separate zero net force from zero motion."
         ],
@@ -175,7 +176,7 @@ M2_SPEC = json.loads(r'''
         "fields": ["master_arrow", "load_rating", "motion_shift", "interaction_pair_explanations"],
         "depth": "number of cases explained correctly using Master Arrow divided by Load Rating plus interaction-pair reasoning"
       },
-      "analogy_text": "Load Rating tells how stubborn the craft is, while Motion Shift tells how quickly its motion changes. The same Master Arrow gives a smaller Motion Shift when the Load Rating is larger.",
+      "analogy_text": "Newton's first law says zero resultant force means no acceleration, Newton's second law says the resultant force on an object equals mass x acceleration, and Newton's third law says interacting objects exert equal and opposite forces on each other. In this lesson, Load Rating tells how stubborn the craft is, Motion Shift tells how quickly its motion changes, and the same Master Arrow gives a smaller Motion Shift when the Load Rating is larger.",
       "commitment_prompt": "Before you answer, decide whether the question is about one craft responding to a Master Arrow or about two objects exerting an interaction pair.",
       "micro_prompts": [
         {"prompt": "Compare two craft with different Load Ratings under the same Master Arrow.", "hint": "The lighter craft changes motion more because the same push is shared across less mass."},
@@ -191,7 +192,7 @@ M2_SPEC = json.loads(r'''
         {"prompt": "Compare one interaction pair on two craft with different masses.", "hint": "Equal force pair can still produce different acceleration outcomes."}
       ],
       "recon_prompts": ["Explain why force changes motion rather than causing motion to exist.", "Explain why equal third-law forces do not guarantee equal acceleration."],
-      "capsule_prompt": "Combine forces into the Master Arrow, then compare that push with the Load Rating.",
+      "capsule_prompt": "Newton's laws here are formal tools: first law for zero resultant cases, second law for Fnet = ma, and third law for equal-and-opposite interaction pairs on different objects. Combine forces into the Master Arrow, then compare that push with the Load Rating.",
       "capsule_checks": [
         {"kind": "mcq", "id": "M2L2_C1", "prompt": "For the same Master Arrow, increasing the Load Rating makes the Motion Shift...", "choices": ["smaller", "larger", "unchanged", "equal to the speed"], "answer_index": 0, "hint": "Mass resists motion change.", "tags": ["force_mass_acceleration_confusion"]},
         {"kind": "mcq", "id": "M2L2_C2", "prompt": "Third-law force pairs are equal and opposite, but they act on...", "choices": ["different objects", "the same object", "only moving objects", "only equal masses"], "answer_index": 0, "hint": "Matched force pairs act across an interaction.", "tags": ["third_law_pair_confusion"]}
@@ -202,7 +203,7 @@ M2_SPEC = json.loads(r'''
         {"kind": "short", "id": "M2L2_T3", "prompt": "A 20 N Master Arrow acts on a 4 kg craft. What Motion Shift occurs?", "accepted_answers": ["5 m/s^2", "5", "5 m/s/s"], "hint": "Acceleration is net force divided by mass.", "tags": ["force_mass_acceleration_confusion"]}
       ],
       "contract": {
-        "concept_targets": ["Use the same Master Arrow with different Load Ratings to reason about acceleration.", "Treat third-law forces as matched interaction arrows on different objects."],
+        "concept_targets": ["State Newton's first, second, and third laws formally in the lesson model.", "Use the same Master Arrow with different Load Ratings to reason about acceleration.", "Treat third-law forces as matched interaction arrows on different objects."],
         "prerequisite_lessons": ["F2_L6", "M2_L1"],
         "misconception_focus": ["force_mass_acceleration_confusion", "third_law_pair_confusion", "motion_implies_force_confusion"],
         "formulas": [
