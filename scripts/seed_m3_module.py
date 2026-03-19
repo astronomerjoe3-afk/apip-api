@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
-from typing import List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 try:
     from scripts.module_asset_pipeline import default_asset_root, render_module_assets
@@ -18,754 +18,1941 @@ except ModuleNotFoundError:
 
 
 M3_MODULE_ID = "M3"
-M3_CONTENT_VERSION = "20260317_m3_energy_work_power_v2"
+M3_CONTENT_VERSION = "20260319_m3_lift_launch_v1"
+M3_MODULE_TITLE = "Energy Stores, Hand-offs & Ledger Reasoning"
 M3_ALLOWLIST = [
-    "work_energy_transfer_confusion",
-    "kinetic_energy_relationship_error",
-    "gravitational_potential_energy_error",
-    "power_rate_confusion",
-    "efficiency_calculation_error",
-    "energy_transfer_calculation_error",
+    "energy_force_confusion",
+    "energy_used_up_confusion",
+    "height_store_variable_confusion",
+    "motion_store_speed_squared_confusion",
+    "work_hand_off_confusion",
+    "power_energy_rate_confusion",
+    "efficiency_power_distinction_confusion",
+    "ledger_balance_confusion",
+    "energy_equation_choice_confusion",
 ]
+
+
+def safe_tags(tags: Sequence[str]) -> List[str]:
+    allowed = set(M3_ALLOWLIST)
+    return [str(tag) for tag in tags if str(tag) in allowed]
+
+
+def mcq(
+    qid: str,
+    prompt: str,
+    choices: Sequence[str],
+    answer_index: int,
+    hint: str,
+    tags: Sequence[str],
+    *,
+    skill_tags: Sequence[str] | None = None,
+) -> Dict[str, Any]:
+    item = {
+        "id": qid,
+        "question_id": qid,
+        "type": "mcq",
+        "prompt": prompt,
+        "choices": list(choices),
+        "answer_index": answer_index,
+        "hint": hint,
+        "feedback": [hint for _ in choices],
+        "misconception_tags": safe_tags(tags),
+    }
+    if skill_tags:
+        item["skill_tags"] = [str(tag) for tag in skill_tags]
+    return item
+
+
+def short(
+    qid: str,
+    prompt: str,
+    accepted_answers: Sequence[str],
+    hint: str,
+    tags: Sequence[str],
+    *,
+    acceptance_rules: Dict[str, Any] | None = None,
+    skill_tags: Sequence[str] | None = None,
+) -> Dict[str, Any]:
+    item = {
+        "id": qid,
+        "question_id": qid,
+        "type": "short",
+        "prompt": prompt,
+        "accepted_answers": list(accepted_answers),
+        "hint": hint,
+        "feedback": [hint],
+        "misconception_tags": safe_tags(tags),
+    }
+    if acceptance_rules:
+        item["acceptance_rules"] = deepcopy(acceptance_rules)
+    if skill_tags:
+        item["skill_tags"] = [str(tag) for tag in skill_tags]
+    return item
+
+
+def acceptance_groups(*groups: Sequence[str]) -> Dict[str, Any]:
+    return {"phrase_groups": [list(group) for group in groups]}
+
+
+def prompt_block(prompt: str, hint: str) -> Dict[str, str]:
+    return {"prompt": prompt, "hint": hint}
+
+
+def formula(equation: str, meaning: str, units: Sequence[str], conditions: str) -> Dict[str, Any]:
+    return {
+        "equation": equation,
+        "meaning": meaning,
+        "units": list(units),
+        "conditions": conditions,
+    }
+
+
+def representation(kind: str, purpose: str) -> Dict[str, str]:
+    return {"kind": kind, "purpose": purpose}
+
+
+def worked(
+    prompt: str,
+    steps: Sequence[str],
+    final_answer: str,
+    answer_reason: str,
+    why_it_matters: str,
+) -> Dict[str, Any]:
+    return {
+        "prompt": prompt,
+        "steps": list(steps),
+        "final_answer": final_answer,
+        "answer_reason": answer_reason,
+        "why_it_matters": why_it_matters,
+    }
+
+
+def visual(
+    asset_id: str,
+    concept: str,
+    title: str,
+    purpose: str,
+    caption: str,
+    *,
+    phase_key: str = "analogical_grounding",
+) -> Dict[str, Any]:
+    return {
+        "asset_id": asset_id,
+        "concept": concept,
+        "phase_key": phase_key,
+        "title": title,
+        "purpose": purpose,
+        "caption": caption,
+    }
+
+
+def animation(
+    asset_id: str,
+    concept: str,
+    title: str,
+    description: str,
+    *,
+    phase_key: str = "analogical_grounding",
+    duration_sec: int = 8,
+) -> Dict[str, Any]:
+    return {
+        "asset_id": asset_id,
+        "concept": concept,
+        "phase_key": phase_key,
+        "title": title,
+        "description": description,
+        "duration_sec": duration_sec,
+    }
+
+
+def extra_section(heading: str, body: str) -> Dict[str, str]:
+    return {"heading": heading, "body": body}
+
+
+def scaffold(
+    core_idea: str,
+    reasoning: str,
+    check_for_understanding: str,
+    common_trap: str,
+    analogy_body: str,
+    analogy_check: str,
+    *,
+    extra_sections: Sequence[Dict[str, str]] | None = None,
+) -> Dict[str, Any]:
+    return {
+        "core_idea": core_idea,
+        "reasoning": reasoning,
+        "check_for_understanding": check_for_understanding,
+        "common_trap": common_trap,
+        "analogy_bridge": {
+            "body": analogy_body,
+            "check_for_understanding": analogy_check,
+        },
+        "extra_sections": list(extra_sections or []),
+    }
+
+
+def contract(
+    *,
+    concept_targets: Sequence[str],
+    prerequisite_lessons: Sequence[str],
+    misconception_focus: Sequence[str],
+    formulas: Sequence[Dict[str, Any]],
+    representations: Sequence[Dict[str, Any]],
+    analogy_map: Dict[str, Any],
+    worked_examples: Sequence[Dict[str, Any]],
+    visual_assets: Sequence[Dict[str, Any]],
+    animation_assets: Sequence[Dict[str, Any]],
+    simulation_contract: Dict[str, Any],
+    reflection_prompts: Sequence[str],
+    mastery_skills: Sequence[str],
+    variation_plan: Dict[str, str],
+    scaffold_support: Dict[str, Any],
+) -> Dict[str, Any]:
+    return {
+        "concept_targets": list(concept_targets),
+        "prerequisite_lessons": list(prerequisite_lessons),
+        "misconception_focus": safe_tags(misconception_focus),
+        "formulas": [deepcopy(item) for item in formulas],
+        "representations": [deepcopy(item) for item in representations],
+        "analogy_map": deepcopy(analogy_map),
+        "worked_examples": [deepcopy(item) for item in worked_examples],
+        "visual_assets": [deepcopy(item) for item in visual_assets],
+        "animation_assets": [deepcopy(item) for item in animation_assets],
+        "simulation_contract": deepcopy(simulation_contract),
+        "reflection_prompts": list(reflection_prompts),
+        "mastery_skills": list(mastery_skills),
+        "variation_plan": deepcopy(variation_plan),
+        "scaffold_support": deepcopy(scaffold_support),
+    }
+
+
+def lesson_l1() -> Dict[str, Any]:
+    return {
+        "id": "M3_L1",
+        "title": "Lift-Launch World and the Energy Ledger",
+        "sim": {
+            "lab_id": "m3_lift_launch_ledger_lab",
+            "title": "Lift-Launch ledger explorer",
+            "description": "Track how input energy becomes store gain or leak trail inside one mission world.",
+            "instructions": [
+                "Raise the pod without launching it and decide which store changes.",
+                "Compare a clean transfer with a leaky one while keeping the input fixed.",
+                "Explain every mission step with a balanced energy ledger statement.",
+            ],
+            "outcomes": [
+                "energy_force_confusion",
+                "energy_used_up_confusion",
+                "ledger_balance_confusion",
+            ],
+            "fields": [
+                "deck_level",
+                "motion_pace",
+                "machine_input",
+                "useful_store_gain",
+                "leak_trail",
+                "ledger_balance",
+            ],
+            "depth": "number of mission steps explained as balanced store-and-transfer stories instead of loose formula recall",
+        },
+        "analogy_text": (
+            "In the Lift-Launch arena, the mission pod can hold energy in a Height Store or Motion Store. "
+            "Lifts and launchers hand energy into those stores, the Leak Trail shows wasted spread into heat, sound, "
+            "or vibration, and the Energy Ledger must balance every step."
+        ),
+        "commitment_prompt": "Before you calculate anything, decide whether the story is about a store, a hand-off, or a leak trail.",
+        "micro_prompts": [
+            prompt_block(
+                "Compare a raised pod that is still with a low pod that is moving fast.",
+                "Both can hold energy, but they hold it in different stores.",
+            ),
+            prompt_block(
+                "Compare 120 J input becoming 120 J useful with 120 J input becoming 90 J useful and 30 J leak.",
+                "The ledger has to balance in both stories.",
+            ),
+            prompt_block(
+                "A learner says the missing energy is gone. Challenge that claim using the Leak Trail.",
+                "If it is not in a useful store, it must appear elsewhere in the ledger.",
+            ),
+        ],
+        "diagnostic": [
+            mcq(
+                "M3L1_D1",
+                "Which statement best fits the Lift-Launch model of energy?",
+                [
+                    "Energy sits in stores, moves by hand-offs, and is tracked across the mission.",
+                    "Energy is just another name for the pushing force.",
+                    "Energy only exists when the pod is moving.",
+                    "Energy vanishes as soon as a task is finished.",
+                ],
+                0,
+                "This module treats energy as stored, transferred, and accounted for.",
+                ["energy_force_confusion", "energy_used_up_confusion"],
+            ),
+            mcq(
+                "M3L1_D2",
+                "A pod is lifted to a higher deck and held still. Which store has increased?",
+                [
+                    "Height Store",
+                    "Motion Store",
+                    "No store because the pod is not moving",
+                    "Only Leak Trail",
+                ],
+                0,
+                "Height can store energy even when the pod is not moving.",
+                ["energy_force_confusion", "energy_used_up_confusion"],
+            ),
+            short(
+                "M3L1_D3",
+                "A machine inputs 120 J. The pod gains 90 J of useful store energy. How much goes into the Leak Trail?",
+                ["30 J", "30"],
+                "Use the ledger: input = useful gain + leak trail.",
+                ["ledger_balance_confusion"],
+            ),
+            mcq(
+                "M3L1_D4",
+                "If students say energy was 'used up', which response best repairs the idea?",
+                [
+                    "It must be found in a store gain or in the Leak Trail.",
+                    "It really disappears once the machine stops.",
+                    "It turns into force, which replaces it.",
+                    "It stays nowhere until a new formula is chosen.",
+                ],
+                0,
+                "Energy is accounted for; it does not simply vanish.",
+                ["energy_used_up_confusion", "ledger_balance_confusion"],
+            ),
+        ],
+        "inquiry": [
+            prompt_block(
+                "Build one mission where the input all becomes useful store gain and one where part of it leaks away.",
+                "The totals can match even when the useful share changes.",
+            ),
+            prompt_block(
+                "Keep the machine input fixed while changing the leak trail.",
+                "The useful store gain must shrink if the same input now leaks more.",
+            ),
+            prompt_block(
+                "Explain a full mission step using a ledger sentence before using any formal equation.",
+                "Name where the energy starts, where it goes, and what leaks away.",
+            ),
+        ],
+        "recon_prompts": [
+            "Explain why energy is not the same thing as force in the Lift-Launch world.",
+            "Explain why 'missing energy' is really an accounting problem, not evidence that energy vanished.",
+        ],
+        "capsule_prompt": (
+            "Energy lives in stores, moves by hand-offs, and the ledger must balance: input energy equals useful gain plus leak trail."
+        ),
+        "capsule_checks": [
+            mcq(
+                "M3L1_C1",
+                "If the pod is high but not moving, what can still be true?",
+                [
+                    "It still holds energy in a store.",
+                    "It cannot have energy because speed is zero.",
+                    "Only a force store can exist.",
+                    "Its energy must all be lost.",
+                ],
+                0,
+                "Stillness does not erase stored energy.",
+                ["energy_force_confusion", "energy_used_up_confusion"],
+            ),
+            short(
+                "M3L1_C2",
+                "A launcher inputs 200 J and 140 J becomes useful Motion Store. What is the leak trail?",
+                ["60 J", "60"],
+                "Subtract useful gain from total input.",
+                ["ledger_balance_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L1_T1",
+                "A pod loses 150 J from Height Store and gains 118 J in Motion Store. How much leaks away during the descent?",
+                ["32 J", "32"],
+                "Use the ledger again: store lost = store gained + leak.",
+                ["ledger_balance_confusion"],
+            ),
+            short(
+                "M3L1_T2",
+                "Why must the Energy Ledger balance in every mission step?",
+                [
+                    "Because energy is tracked across stores and leaks rather than disappearing.",
+                    "Because energy is accounted for in stores or leak trail.",
+                ],
+                "Answer in terms of energy being stored, transferred, or spread out rather than destroyed.",
+                ["energy_used_up_confusion", "ledger_balance_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("store", "stored", "stores"),
+                    ("leak", "trail", "waste", "spread"),
+                    ("not destroyed", "does not disappear", "accounted for", "balanced"),
+                ),
+                skill_tags=["concept_explanation", "energy_accounting"],
+            ),
+            mcq(
+                "M3L1_T3",
+                "Which mission statement stays faithful to the Lift-Launch world?",
+                [
+                    "If no useful store rises, the input must show up somewhere else in the ledger.",
+                    "If no store rises, the input energy no longer needs tracking.",
+                    "Leak Trail means the machine did no transfer at all.",
+                    "Stores only matter after the equations are memorized.",
+                ],
+                0,
+                "The ledger keeps every joule visible somewhere.",
+                ["ledger_balance_confusion", "energy_used_up_confusion"],
+            ),
+        ],
+        "contract": contract(
+            concept_targets=[
+                "Treat energy as a store-and-transfer system rather than as a force label.",
+                "Track useful gains and leak trail with a balanced ledger statement.",
+                "Name Height Store and Motion Store before formal equations appear.",
+            ],
+            prerequisite_lessons=[],
+            misconception_focus=[
+                "energy_force_confusion",
+                "energy_used_up_confusion",
+                "ledger_balance_confusion",
+            ],
+            formulas=[
+                formula(
+                    "input energy = useful gain + wasted spread",
+                    "Every machine input must show up as useful store gain, useful output, or leak trail.",
+                    ["J"],
+                    "Use for one mission step when you are accounting for where the transferred energy went.",
+                ),
+                formula(
+                    "store lost from one place = store gained elsewhere + leak trail",
+                    "When energy leaves one store, it must reappear in another place or as spread-out waste.",
+                    ["J"],
+                    "Use when one store empties into another during a mission sequence.",
+                ),
+            ],
+            representations=[
+                representation("words", "Describe the mission in terms of stores, hand-offs, and leak trail."),
+                representation("table", "Use a ledger table to track input, useful gain, and wasted spread."),
+                representation("model", "Use the Lift-Launch arena as the conceptual world before the formal names appear."),
+                representation("formula", "Summarize the ledger balance with an accounting equation."),
+            ],
+            analogy_map={
+                "comparison": "The Lift-Launch arena stands for an energy system where stores, transfers, and leaks can all be tracked.",
+                "mapping": [
+                    "The mission pod stands for the object whose energy stores are changing.",
+                    "The Height Store and Motion Store stand for gravitational potential energy and kinetic energy.",
+                    "The Leak Trail stands for dissipated energy spreading into heat, sound, or vibration.",
+                ],
+                "limit": "Real energy systems do not contain literal glowing stores or a visible ledger board; those are teaching devices.",
+                "prediction_prompt": "If the useful store gain gets smaller while the same input stays fixed, what must happen somewhere else in the ledger?",
+            },
+            worked_examples=[
+                worked(
+                    "A lift inputs 400 J to raise a pod. After the lift, the Height Store has increased by 320 J. Find the leak trail.",
+                    [
+                        "Name the ledger story first: machine input must equal useful store gain plus leak trail.",
+                        "Write 400 J = 320 J + leak trail.",
+                        "Subtract 320 J from 400 J to find the missing part.",
+                    ],
+                    "Leak Trail = 80 J.",
+                    "The ledger has to balance, so the 80 J that did not become Height Store must be the spread-out leak.",
+                    "This makes 'missing energy' into an accounting step instead of a mystery.",
+                ),
+                worked(
+                    "A pod drops and loses 150 J from Height Store. Its Motion Store rises by 118 J before it reaches the lower deck. Find the leak trail during the drop.",
+                    [
+                        "Treat the drop as energy leaving one store and entering another plus leaks.",
+                        "Write 150 J = 118 J + leak trail.",
+                        "Subtract 118 J from 150 J to find what spread into the Leak Trail.",
+                    ],
+                    "Leak Trail = 32 J.",
+                    "Because the Height Store loss must reappear somewhere, the 32 J difference is the leaked part of the transfer.",
+                    "This is the first step toward full ledger-style energy transfer calculations.",
+                ),
+            ],
+            visual_assets=[
+                visual(
+                    "m3-l1-energy-ledger",
+                    "energy_ledger",
+                    "Lift-Launch energy ledger",
+                    "Show the pod, stores, machine input, and leak trail in one accounting picture.",
+                    "The world introduces energy as stores, hand-offs, and balanced accounting.",
+                )
+            ],
+            animation_assets=[
+                animation(
+                    "m3-l1-energy-ledger-flow",
+                    "energy_ledger",
+                    "Ledger flow comparison",
+                    "Animate clean and leaky transfers so the useful gain and leak trail can be compared.",
+                )
+            ],
+            simulation_contract={
+                "asset_id": "m3_l1_lift_launch_ledger_lab",
+                "concept": "energy_ledger",
+                "baseline_case": "Start with a 120 J machine input that raises a pod and leaks 20 J.",
+                "comparison_tasks": [
+                    "Hold the input fixed while increasing the leak trail.",
+                    "Hold the leak fixed while increasing the useful store gain.",
+                    "Compare a pure Height Store mission with a pure Motion Store mission.",
+                ],
+                "watch_for": "Students should name the store change first and then justify the ledger balance.",
+                "takeaway": "Energy is stored, transferred, and accounted for across the whole mission.",
+            },
+            reflection_prompts=[
+                "Explain why the Lift-Launch model makes energy easier to track than a disconnected list of formulas."
+            ],
+            mastery_skills=[
+                "Identify Height Store and Motion Store in a mission story.",
+                "Use a ledger statement to calculate leak trail or useful gain.",
+                "Reject the idea that energy is a force.",
+                "Reject the idea that energy simply disappears.",
+                "Explain energy bookkeeping in words before formal equations.",
+            ],
+            variation_plan={
+                "diagnostic": "Rotate between store-identification, leak-trail subtraction, and energy-not-force misconception prompts.",
+                "concept_gate": "Switch between ledger-balance calculations and store-versus-leak explanation checks.",
+                "mastery": "Use new mission stories with different store changes and leak values so no retry reuses the same accounting frame.",
+            },
+            scaffold_support=scaffold(
+                "Energy sits in stores, moves by hand-offs, and the ledger must balance every mission step.",
+                "Name the store story before you touch a number. Then decide whether the question is asking for useful gain, leak trail, or a store change, and write the balance in words before you calculate it.",
+                "If a mission step has 200 J input and only 150 J useful gain, what must you look for next?",
+                "Do not call energy a force, and do not call the untracked part 'gone.' The job is to find where it went.",
+                "The Lift-Launch analogy helps because it makes stores, hand-offs, and leaks visible. The point is not the game art; the point is the accounting structure.",
+                "In the analogy, what does the Leak Trail teach you that the store readouts alone cannot?",
+                extra_sections=[
+                    extra_section(
+                        "Formal names arrive later",
+                        "This lesson builds the bookkeeping world first so later equations summarize patterns students already trust.",
+                    )
+                ],
+            ),
+        ),
+    }
+
+
+def lesson_l2() -> Dict[str, Any]:
+    return {
+        "id": "M3_L2",
+        "title": "Height Store and Gravitational Potential Energy",
+        "sim": {
+            "lab_id": "m3_height_store_lab",
+            "title": "Height Store explorer",
+            "description": "Vary load, deck level, and world grip to see how Height Store grows.",
+            "instructions": [
+                "Raise the same pod to several deck levels while keeping load fixed.",
+                "Compare light and heavy pods reaching the same deck.",
+                "Change the world grip and explain what happens to the same lift mission.",
+            ],
+            "outcomes": [
+                "height_store_variable_confusion",
+                "energy_equation_choice_confusion",
+            ],
+            "fields": [
+                "load_rating",
+                "deck_level",
+                "world_grip",
+                "height_store",
+                "comparison_reasoning",
+            ],
+            "depth": "number of height-store comparisons justified with mass, height, and world-grip reasoning",
+        },
+        "analogy_text": (
+            "The Height Store grows when the pod is lifted because it now has room to fall. In Lift-Launch terms, "
+            "that store depends on three things at once: Load Rating, Deck Level, and World Grip."
+        ),
+        "commitment_prompt": "Before choosing any relationship, ask which of load, deck level, and world grip changed in the mission.",
+        "micro_prompts": [
+            prompt_block(
+                "Compare a 2 kg pod and a 6 kg pod raised to the same deck in the same world.",
+                "The heavier pod gains more Height Store at the same height.",
+            ),
+            prompt_block(
+                "Compare the same pod lifted 3 m and 9 m in the same world.",
+                "More deck height gives more Height Store directly.",
+            ),
+            prompt_block(
+                "Compare the same lift mission in a weak-grip world and a strong-grip world.",
+                "A stronger world pull makes the height store larger for the same mass and height.",
+            ),
+        ],
+        "diagnostic": [
+            mcq(
+                "M3L2_D1",
+                "Which set of variables determines Height Store in the Lift-Launch model?",
+                [
+                    "Load Rating, World Grip, and Deck Level",
+                    "Speed, time, and color",
+                    "Power, current, and resistance",
+                    "Only Deck Level",
+                ],
+                0,
+                "Height Store depends on the load, the field, and the height.",
+                ["height_store_variable_confusion"],
+            ),
+            mcq(
+                "M3L2_D2",
+                "If the same pod is lifted twice as high in the same world, its Height Store becomes...",
+                ["twice as large", "four times as large", "half as large", "unchanged"],
+                0,
+                "Height enters directly into mgh.",
+                ["height_store_variable_confusion"],
+            ),
+            short(
+                "M3L2_D3",
+                "A 4 kg pod is lifted 5 m in a world where g = 10 N/kg. What Height Store does it gain?",
+                ["200 J", "200"],
+                "Use Height Store = mgh.",
+                ["height_store_variable_confusion"],
+            ),
+            mcq(
+                "M3L2_D4",
+                "What does increasing World Grip do to the Height Store for the same pod and deck level?",
+                [
+                    "It increases the store directly.",
+                    "It leaves the store unchanged.",
+                    "It only affects Motion Store.",
+                    "It removes the role of mass.",
+                ],
+                0,
+                "A stronger gravitational field gives a larger mgh value.",
+                ["height_store_variable_confusion"],
+            ),
+        ],
+        "inquiry": [
+            prompt_block(
+                "Hold Load Rating and World Grip fixed while you change only the Deck Level.",
+                "The store should scale directly with height.",
+            ),
+            prompt_block(
+                "Hold Deck Level fixed while you compare a light pod and a heavy pod.",
+                "Heavier pods gain more Height Store at the same height.",
+            ),
+            prompt_block(
+                "Explain why the same height gain is not the same energy gain in every world.",
+                "World Grip has to stay visible in the story.",
+            ),
+        ],
+        "recon_prompts": [
+            "Explain why gravitational potential energy is not a height-only quantity.",
+            "Explain how the Lift-Launch Height Store prepares students to understand E_p = mgh.",
+        ],
+        "capsule_prompt": (
+            "Height Store depends on load, world grip, and deck level together. The formal summary is E_p = mgh."
+        ),
+        "capsule_checks": [
+            mcq(
+                "M3L2_C1",
+                "For the same pod and world, tripling the Deck Level makes the Height Store...",
+                ["three times as large", "nine times as large", "one third as large", "unchanged"],
+                0,
+                "Height is a direct factor in mgh.",
+                ["height_store_variable_confusion"],
+            ),
+            short(
+                "M3L2_C2",
+                "A 2 kg pod gains 60 J of Height Store in a world where g = 10 N/kg. Through what height was it lifted?",
+                ["3 m", "3"],
+                "Rearrange 60 = 2 x 10 x h.",
+                ["height_store_variable_confusion", "energy_equation_choice_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L2_T1",
+                "A 6 kg pod is lifted 4 m where g = 10 N/kg. What Height Store does it gain?",
+                ["240 J", "240"],
+                "Use mgh directly.",
+                ["height_store_variable_confusion"],
+            ),
+            mcq(
+                "M3L2_T2",
+                "Two pods reach the same deck in the same world. Pod A has double the mass of Pod B. Which statement is true?",
+                [
+                    "Pod A gains double the Height Store.",
+                    "Both gain the same Height Store because the height is the same.",
+                    "Pod A gains four times the Height Store.",
+                    "Pod A gains half the Height Store.",
+                ],
+                0,
+                "Mass changes Height Store directly.",
+                ["height_store_variable_confusion"],
+            ),
+            short(
+                "M3L2_T3",
+                "A pod gains 300 J of Height Store when lifted 5 m in a world with g = 10 N/kg. What is its mass?",
+                ["6 kg", "6"],
+                "Rearrange 300 = m x 10 x 5.",
+                ["height_store_variable_confusion", "energy_equation_choice_confusion"],
+            ),
+        ],
+        "contract": contract(
+            concept_targets=[
+                "Use the Lift-Launch Height Store to motivate gravitational potential energy.",
+                "Keep mass, world grip, and height visible in every comparison.",
+                "Rearrange mgh when one variable is unknown.",
+            ],
+            prerequisite_lessons=["M3_L1"],
+            misconception_focus=[
+                "height_store_variable_confusion",
+                "energy_equation_choice_confusion",
+            ],
+            formulas=[
+                formula(
+                    "Height Store proportional to Load Rating x World Grip x Deck Level",
+                    "Before the formal name appears, students should see the store growing with mass, field strength, and height together.",
+                    ["J"],
+                    "Use as the conceptual pattern before the compact equation is revealed.",
+                ),
+                formula(
+                    "E_p = mgh",
+                    "Gravitational potential energy equals mass times gravitational field strength times height change.",
+                    ["J"],
+                    "Use when a lifting story changes the object's height in a gravitational field.",
+                ),
+            ],
+            representations=[
+                representation("words", "Explain why a heavier pod or stronger world gives a larger Height Store."),
+                representation("diagram", "Show pods on different decks in worlds with different grip strengths."),
+                representation("table", "Compare several lift missions by mass, height, world grip, and Height Store."),
+                representation("formula", "Calculate or rearrange mgh."),
+            ],
+            analogy_map={
+                "comparison": "Height Store is the Lift-Launch name for gravitational potential energy.",
+                "mapping": [
+                    "Load Rating maps to mass.",
+                    "Deck Level maps to height above the chosen reference.",
+                    "World Grip maps to gravitational field strength g.",
+                ],
+                "limit": "The analogy gives a visible shelf-like store, but gravitational potential energy is a property of the mass-field-position system.",
+                "prediction_prompt": "If the world grip doubles while the same pod reaches the same deck, what should happen to the Height Store?",
+            },
+            worked_examples=[
+                worked(
+                    "A 5 kg pod is lifted 8 m in a world where g = 10 N/kg. Find the Height Store gained.",
+                    [
+                        "Identify the quantity: this is a Height Store or gravitational potential energy story.",
+                        "Write E_p = mgh.",
+                        "Substitute 5, 10, and 8 to get 5 x 10 x 8.",
+                    ],
+                    "Height Store gained = 400 J.",
+                    "The pod's mass, world grip, and deck level all contribute directly, so E_p = 5 x 10 x 8 = 400 J.",
+                    "This makes the store rule concrete before students compare more subtle cases.",
+                ),
+                worked(
+                    "A learner says 'only the height matters because gravitational potential energy is about height.' Evaluate the claim.",
+                    [
+                        "Check the full relationship instead of the name alone.",
+                        "Notice that E_p = mgh contains mass and world grip as well as height.",
+                        "Compare two pods lifted to the same height: the heavier one gains more Height Store.",
+                    ],
+                    "The claim is wrong because Height Store depends on mass and world grip as well as height.",
+                    "The equation shows three direct factors, so a height-only explanation leaves out two essential variables.",
+                    "This blocks a common simplification before it turns into a persistent formula error.",
+                ),
+            ],
+            visual_assets=[
+                visual(
+                    "m3-l2-height-store",
+                    "height_store",
+                    "Height Store comparison",
+                    "Compare how load, world grip, and deck level change the same store.",
+                    "Higher, heavier, or stronger-grip lift missions all create more Height Store.",
+                )
+            ],
+            animation_assets=[
+                animation(
+                    "m3-l2-height-store-rise",
+                    "height_store",
+                    "Rising deck comparison",
+                    "Animate the same pod reaching higher decks in different worlds to compare store growth.",
+                )
+            ],
+            simulation_contract={
+                "asset_id": "m3_l2_height_store_lab",
+                "concept": "height_store",
+                "baseline_case": "Start with a 3 kg pod lifted 4 m where g = 10 N/kg.",
+                "comparison_tasks": [
+                    "Double the height while keeping the same pod and world.",
+                    "Double the mass while keeping the same height and world.",
+                    "Change world grip while keeping mass and height fixed.",
+                ],
+                "watch_for": "Students should say which variable changed before they predict how the store changes.",
+                "takeaway": "Height Store is gravitational potential energy, and it depends on mass, g, and height together.",
+            },
+            reflection_prompts=[
+                "Why is it dangerous to remember only the word 'height' and ignore the other factors in gravitational potential energy?"
+            ],
+            mastery_skills=[
+                "Calculate Height Store with E_p = mgh.",
+                "Explain why mass affects gravitational potential energy.",
+                "Explain why world grip affects gravitational potential energy.",
+                "Compare direct proportional changes in height-store stories.",
+                "Rearrange mgh to solve for height or mass.",
+            ],
+            variation_plan={
+                "diagnostic": "Rotate between direct mgh calculations, one-variable proportionality checks, and world-grip interpretation questions.",
+                "concept_gate": "Swap between rearrangement items and explanatory comparisons that hold one or two variables fixed.",
+                "mastery": "Use fresh lift missions with different masses, heights, and worlds so students must choose the changing factor each time.",
+            },
+            scaffold_support=scaffold(
+                "Height Store grows with load, world grip, and deck level together.",
+                "Decide first that the story is about lifting to a higher position in a gravitational field. Then name the three factors m, g, and h before you substitute any numbers.",
+                "If two pods reach the same deck in the same world but one is heavier, which factor tells you their Height Stores differ?",
+                "Do not let the word 'height' trick you into deleting mass or world grip from the story.",
+                "The Lift-Launch shelf image is useful because it makes the store look bigger for heavier pods and higher decks. The real takeaway is the three-factor pattern.",
+                "In the analogy, what does changing the World Grip knob teach you about the formal equation?",
+            ),
+        ),
+    }
+
+
+def lesson_l3() -> Dict[str, Any]:
+    return {
+        "id": "M3_L3",
+        "title": "Motion Store and Kinetic Energy",
+        "sim": {
+            "lab_id": "m3_motion_store_lab",
+            "title": "Motion Store explorer",
+            "description": "Use a Motion Grid to compare how mass and speed fill the Motion Store.",
+            "instructions": [
+                "Keep load fixed and increase motion pace to see the Motion Grid grow.",
+                "Compare doubling load with doubling speed.",
+                "Use the grid to explain why speed matters more strongly than many learners expect.",
+            ],
+            "outcomes": [
+                "motion_store_speed_squared_confusion",
+                "energy_equation_choice_confusion",
+            ],
+            "fields": [
+                "load_rating",
+                "motion_pace",
+                "motion_store",
+                "grid_area",
+                "comparison_reasoning",
+            ],
+            "depth": "number of mass-speed comparisons justified with the squared-speed idea rather than one-variable shortcuts",
+        },
+        "analogy_text": (
+            "The Motion Store grows when the pod moves faster, and the Motion Grid makes the growth visible. "
+            "Load Rating matters directly, but Motion Pace matters especially strongly because doubling speed makes the store four times larger."
+        ),
+        "commitment_prompt": "Before you compare cases, decide whether the main change came from load, from speed, or from both together.",
+        "micro_prompts": [
+            prompt_block(
+                "Compare a 2 kg pod at 4 m/s with the same pod at 8 m/s.",
+                "Doubling speed does much more than doubling the number written beside the speed slider.",
+            ),
+            prompt_block(
+                "Compare doubling load with doubling speed for the same pod mission.",
+                "One is a direct factor; the other is squared.",
+            ),
+            prompt_block(
+                "A learner says 'speed only adds a bit more energy because it is just one number getting bigger.' Repair that idea.",
+                "Use the Motion Grid to make the squared effect visible.",
+            ),
+        ],
+        "diagnostic": [
+            mcq(
+                "M3L3_D1",
+                "If the same pod doubles its speed, its Motion Store becomes...",
+                ["four times as large", "twice as large", "half as large", "unchanged"],
+                0,
+                "Kinetic energy depends on speed squared.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            mcq(
+                "M3L3_D2",
+                "If the same speed is kept but the load doubles, the Motion Store becomes...",
+                ["twice as large", "four times as large", "half as large", "unchanged"],
+                0,
+                "Mass changes the store directly.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            short(
+                "M3L3_D3",
+                "A 3 kg pod moves at 4 m/s. What Motion Store does it have?",
+                ["24 J", "24"],
+                "Use E_k = 0.5mv^2.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            mcq(
+                "M3L3_D4",
+                "Which change usually increases Motion Store more strongly?",
+                [
+                    "doubling speed",
+                    "doubling mass",
+                    "doubling the time shown on the clock",
+                    "doubling the deck level",
+                ],
+                0,
+                "The squared-speed term dominates the comparison.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+        ],
+        "inquiry": [
+            prompt_block(
+                "Use the Motion Grid to compare 3 m/s, 6 m/s, and 9 m/s for the same pod.",
+                "Look for a faster-than-linear growth pattern.",
+            ),
+            prompt_block(
+                "Keep speed fixed and change only Load Rating.",
+                "This change is simpler and proportional.",
+            ),
+            prompt_block(
+                "Explain why a light fast pod can outrank a heavy slow pod in Motion Store.",
+                "You need the full relationship, not one favored variable.",
+            ),
+        ],
+        "recon_prompts": [
+            "Explain why kinetic energy is a speed-squared story rather than a speed-only story.",
+            "Explain why the Motion Grid is a better teaching picture than just reading the formula out loud.",
+        ],
+        "capsule_prompt": (
+            "Motion Store depends on Load Rating and Motion Pace, with speed squared. The formal relationship is E_k = 0.5mv^2."
+        ),
+        "capsule_checks": [
+            mcq(
+                "M3L3_C1",
+                "Which variable is squared in the Motion Store equation?",
+                ["speed", "mass", "time", "height"],
+                0,
+                "Only the speed term is squared.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            short(
+                "M3L3_C2",
+                "A 2 kg pod has 64 J of Motion Store. What is v^2?",
+                ["64", "64 m^2/s^2"],
+                "Solve 64 = 0.5 x 2 x v^2.",
+                ["motion_store_speed_squared_confusion", "energy_equation_choice_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L3_T1",
+                "A 4 kg pod moves at 5 m/s. What Motion Store does it have?",
+                ["50 J", "50"],
+                "Substitute into E_k = 0.5mv^2.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            mcq(
+                "M3L3_T2",
+                "Which pod has the larger Motion Store?",
+                [
+                    "a 2 kg pod at 8 m/s",
+                    "a 4 kg pod at 4 m/s",
+                    "they are equal",
+                    "there is not enough information",
+                ],
+                0,
+                "Use the full equation rather than comparing one variable only.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            short(
+                "M3L3_T3",
+                "Why does doubling speed not just double the Motion Store?",
+                [
+                    "Because kinetic energy depends on speed squared.",
+                    "Because the speed term is squared in 0.5mv^2.",
+                ],
+                "Mention the squared-speed relationship, not just 'it gets bigger.'",
+                ["motion_store_speed_squared_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("speed", "v"),
+                    ("square", "squared", "v^2"),
+                ),
+                skill_tags=["concept_explanation", "speed_squared_reasoning"],
+            ),
+        ],
+        "contract": contract(
+            concept_targets=[
+                "Use the Motion Store to motivate kinetic energy as a mass-and-speed-squared relationship.",
+                "Compare the effects of changing mass and speed without collapsing them together.",
+                "Rearrange kinetic-energy relationships when one variable is unknown.",
+            ],
+            prerequisite_lessons=["M3_L1"],
+            misconception_focus=[
+                "motion_store_speed_squared_confusion",
+                "energy_equation_choice_confusion",
+            ],
+            formulas=[
+                formula(
+                    "Motion Store proportional to Load Rating x (Motion Pace)^2",
+                    "Before the compact formula appears, students should see that speed changes the store much more strongly than a direct factor.",
+                    ["J"],
+                    "Use as the conceptual pattern behind the Motion Grid.",
+                ),
+                formula(
+                    "E_k = 0.5mv^2",
+                    "Kinetic energy equals one half times mass times speed squared.",
+                    ["J"],
+                    "Use for translational motion when mass and speed are known or can be solved for.",
+                ),
+            ],
+            representations=[
+                representation("words", "Explain why speed is the stronger lever in kinetic energy."),
+                representation("graph", "Use the Motion Grid or area growth idea to show the squared-speed effect."),
+                representation("table", "Compare mass, speed, and Motion Store across several pods."),
+                representation("formula", "Calculate or rearrange E_k = 0.5mv^2."),
+            ],
+            analogy_map={
+                "comparison": "Motion Store is the Lift-Launch name for kinetic energy.",
+                "mapping": [
+                    "Load Rating maps to mass.",
+                    "Motion Pace maps to speed.",
+                    "The Motion Grid makes the speed-squared dependence visible.",
+                ],
+                "limit": "A real moving object does not carry a literal grid inside it; the grid is only revealing the mathematical growth pattern.",
+                "prediction_prompt": "If the same pod doubles its Motion Pace, how should the Motion Grid change?",
+            },
+            worked_examples=[
+                worked(
+                    "A 3 kg pod moves at 6 m/s. Find the Motion Store.",
+                    [
+                        "Identify the quantity as kinetic energy or Motion Store.",
+                        "Write E_k = 0.5mv^2 and square the speed first: 6^2 = 36.",
+                        "Calculate 0.5 x 3 x 36.",
+                    ],
+                    "Motion Store = 54 J.",
+                    "The speed must be squared before multiplying, so E_k = 0.5 x 3 x 36 = 54 J.",
+                    "This keeps the key operation in the right order and blocks the common 'forget the square' error.",
+                ),
+                worked(
+                    "A learner says doubling mass and doubling speed have the same effect on Motion Store because both just make the object 'more energetic.' Evaluate the claim.",
+                    [
+                        "Use the actual relationship instead of the vague phrase 'more energetic.'",
+                        "Doubling mass multiplies E_k by 2, while doubling speed multiplies E_k by 4 because the speed term is squared.",
+                        "So the two changes do not have the same effect.",
+                    ],
+                    "The claim is wrong because doubling speed quadruples the Motion Store, while doubling mass only doubles it.",
+                    "The speed change is stronger because kinetic energy depends on v^2, not on v alone.",
+                    "This contrast is central to later high-speed launch and gate-smash energy reasoning.",
+                ),
+            ],
+            visual_assets=[
+                visual(
+                    "m3-l3-motion-store-grid",
+                    "motion_store",
+                    "Motion Grid comparison",
+                    "Show how speed and load fill the Motion Store differently.",
+                    "The Motion Grid makes the squared-speed effect visible instead of leaving it as a hidden algebraic detail.",
+                )
+            ],
+            animation_assets=[
+                animation(
+                    "m3-l3-motion-store-rise",
+                    "motion_store",
+                    "Motion Store growth",
+                    "Animate several speed doublings so the Motion Grid area grows faster than linearly.",
+                )
+            ],
+            simulation_contract={
+                "asset_id": "m3_l3_motion_store_lab",
+                "concept": "motion_store",
+                "baseline_case": "Start with a 2 kg pod moving at 4 m/s.",
+                "comparison_tasks": [
+                    "Double the speed while keeping the load fixed.",
+                    "Double the load while keeping the speed fixed.",
+                    "Compare a heavy slow pod with a light fast pod.",
+                ],
+                "watch_for": "Students should say when speed is the dominant change and justify it with v^2.",
+                "takeaway": "Motion Store is kinetic energy, and speed matters more strongly because it is squared.",
+            },
+            reflection_prompts=[
+                "Why does the speed-squared idea make kinetic energy especially important in high-speed mission planning?"
+            ],
+            mastery_skills=[
+                "Calculate Motion Store with E_k = 0.5mv^2.",
+                "Explain why speed has a squared effect.",
+                "Compare mass and speed changes correctly.",
+                "Rearrange kinetic-energy relationships for unknowns.",
+                "Reject one-variable comparison shortcuts.",
+            ],
+            variation_plan={
+                "diagnostic": "Rotate between direct E_k questions, factor-comparison prompts, and speed-squared misconception checks.",
+                "concept_gate": "Swap between narrative comparisons and algebraic rearrangement tasks.",
+                "mastery": "Use fresh mass-speed combinations and contrast cases so students cannot rely on memorized numeric patterns.",
+            },
+            scaffold_support=scaffold(
+                "Motion Store depends on load directly and on speed through a squared relationship.",
+                "Name the story as a moving-store problem first. Then write E_k = 0.5mv^2, square the speed, and only then multiply by the mass term and the one-half factor.",
+                "If the same pod doubles its speed, what should you expect before you touch the calculator?",
+                "Do not compare moving objects by speed alone or by mass alone when both matter.",
+                "The Motion Grid is helpful because it makes the speed-squared growth feel less arbitrary. Students can see why the store jumps sharply as speed increases.",
+                "In the analogy, why does the Motion Grid grow faster than the speed slider itself?",
+            ),
+        ),
+    }
+
+
+def lesson_l4() -> Dict[str, Any]:
+    return {
+        "id": "M3_L4",
+        "title": "Energy Hand-offs and Work Done",
+        "sim": {
+            "lab_id": "m3_energy_handoff_lab",
+            "title": "Energy hand-off explorer",
+            "description": "Decide when a machine is handing energy into a store and which work equation matches the mission story.",
+            "instructions": [
+                "Compare a lift that raises a pod with a push that moves the pod along a track.",
+                "Match a store increase to W = Delta E and a force-distance story to W = Fd.",
+                "Explain why no displacement means no work done by that force.",
+            ],
+            "outcomes": [
+                "work_hand_off_confusion",
+                "energy_equation_choice_confusion",
+            ],
+            "fields": [
+                "force",
+                "distance",
+                "store_change",
+                "work_done",
+                "equation_choice",
+            ],
+            "depth": "number of mission stories matched to the correct hand-off equation with a clear reason",
+        },
+        "analogy_text": (
+            "In Lift-Launch, any increase in Height Store or Motion Store requires an Energy Hand-off. "
+            "When the hand-off is described by a store change, use W = Delta E. When the story gives a steady force through a distance in the force direction, use W = Fd."
+        ),
+        "commitment_prompt": "Before you calculate, decide whether the story is giving you a store change directly or a force acting through a distance.",
+        "micro_prompts": [
+            prompt_block(
+                "Compare a launcher that gives the pod 500 J of Motion Store with a push of 50 N through 10 m.",
+                "Both describe work done, but one begins with a store change and the other begins with force and distance.",
+            ),
+            prompt_block(
+                "Compare pushing a crate 4 m with pushing a wall that does not move.",
+                "A force can exist without doing work if it causes no displacement.",
+            ),
+            prompt_block(
+                "A lift raises the pod and the Height Store rises by 240 J. Which equation family starts the job more directly?",
+                "Use the description that the story gives you most directly.",
+            ),
+        ],
+        "diagnostic": [
+            mcq(
+                "M3L4_D1",
+                "A lift increases a pod's Height Store by 300 J with negligible leak. How much work does the lift do?",
+                ["300 J", "150 J", "30 J", "0 J"],
+                0,
+                "Use W = Delta E when the store gain is given directly.",
+                ["work_hand_off_confusion", "energy_equation_choice_confusion"],
+            ),
+            short(
+                "M3L4_D2",
+                "A steady 60 N push moves the pod 5 m in the force direction. What work is done?",
+                ["300 J", "300"],
+                "Use W = Fd for an aligned force-distance story.",
+                ["work_hand_off_confusion"],
+            ),
+            mcq(
+                "M3L4_D3",
+                "A learner pushes hard on a sealed gate but the gate does not move. What work is done on the gate by that push?",
+                ["0 J", "some work because the push feels hard", "equal to the force only", "it cannot be known"],
+                0,
+                "No displacement means no work done by that force on the gate.",
+                ["work_hand_off_confusion"],
+            ),
+            mcq(
+                "M3L4_D4",
+                "Which first question helps you choose between W = Delta E and W = Fd?",
+                [
+                    "Does the story give a store change directly or a force-through-distance story?",
+                    "Is the pod painted blue or orange?",
+                    "How long is the mission soundtrack?",
+                    "What was the previous module title?",
+                ],
+                0,
+                "Equation choice should come from the physics story, not from grabbing familiar symbols.",
+                ["energy_equation_choice_confusion"],
+            ),
+        ],
+        "inquiry": [
+            prompt_block(
+                "Build one mission where the store change is given directly and one where only force and distance are given.",
+                "The correct equation family should change with the information given.",
+            ),
+            prompt_block(
+                "Keep the same force but change the distance moved.",
+                "For aligned force and motion, work grows directly with distance.",
+            ),
+            prompt_block(
+                "Remove the displacement while keeping the push visible.",
+                "The hand-off should vanish when that force causes no motion.",
+            ),
+        ],
+        "recon_prompts": [
+            "Explain why work is best understood as an energy hand-off rather than as effort.",
+            "Explain why choosing the right work equation is a story-interpretation problem before it is an algebra problem.",
+        ],
+        "capsule_prompt": (
+            "Work is the energy hand-off. Use W = Delta E when the store change is the given story, and W = Fd when a force acts through a distance in the force direction."
+        ),
+        "capsule_checks": [
+            mcq(
+                "M3L4_C1",
+                "If a pod gains 180 J of Motion Store and leaks are negligible, what work has been done on it?",
+                ["180 J", "90 J", "18 J", "0 J"],
+                0,
+                "With negligible leak, the work equals the store gain.",
+                ["work_hand_off_confusion", "energy_equation_choice_confusion"],
+            ),
+            short(
+                "M3L4_C2",
+                "A 25 N launcher pushes through 8 m in the same direction. What work is done?",
+                ["200 J", "200"],
+                "Multiply force by distance.",
+                ["work_hand_off_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L4_T1",
+                "A pod's Height Store rises by 450 J during a lift, with no leak mentioned. What work is done by the lift?",
+                ["450 J", "450"],
+                "Use W = Delta E when the store change is the given information.",
+                ["work_hand_off_confusion", "energy_equation_choice_confusion"],
+            ),
+            short(
+                "M3L4_T2",
+                "A constant 40 N force moves the pod 9 m along the track. What work is done?",
+                ["360 J", "360"],
+                "Use W = Fd.",
+                ["work_hand_off_confusion"],
+            ),
+            mcq(
+                "M3L4_T3",
+                "Which explanation is strongest?",
+                [
+                    "Work means an energy hand-off, so the equation choice depends on whether the story gives a store change or a force-distance transfer.",
+                    "Work means effort, so the harder the machine feels, the bigger the answer.",
+                    "Work is always force times distance even when no distance is given.",
+                    "Work and power are the same because both use joules somewhere.",
+                ],
+                0,
+                "The correct equation must match the physical hand-off story.",
+                ["work_hand_off_confusion", "energy_equation_choice_confusion"],
+            ),
+        ],
+        "contract": contract(
+            concept_targets=[
+                "Treat work as the energy hand-off that fills or empties stores.",
+                "Choose between W = Delta E and W = Fd from the mission description.",
+                "Reject effort-only and no-displacement work misconceptions.",
+            ],
+            prerequisite_lessons=["M3_L1", "M3_L2", "M3_L3"],
+            misconception_focus=[
+                "work_hand_off_confusion",
+                "energy_equation_choice_confusion",
+            ],
+            formulas=[
+                formula(
+                    "W = Delta E",
+                    "Work done is the change in energy when the hand-off is described through a store gain or loss.",
+                    ["J"],
+                    "Use when the problem gives the energy change directly.",
+                ),
+                formula(
+                    "W = Fd",
+                    "For an aligned force and displacement, work equals force multiplied by distance.",
+                    ["J"],
+                    "Use when a force causes displacement in the force direction.",
+                ),
+            ],
+            representations=[
+                representation("words", "Explain work as an energy hand-off rather than as effort."),
+                representation("diagram", "Show lift, launcher, and push stories with store changes and track motion."),
+                representation("equation_story", "Match the story type to W = Delta E or W = Fd."),
+                representation("formula", "Calculate the work numerically once the story is classified."),
+            ],
+            analogy_map={
+                "comparison": "Energy Hand-off is the Lift-Launch name for work done.",
+                "mapping": [
+                    "A lift handing energy into Height Store stands for work increasing gravitational potential energy.",
+                    "A launcher or push through distance stands for force doing work along the track.",
+                ],
+                "limit": "Not every real work problem contains a visible machine panel announcing the store gain; the analogy is only making the transfer story explicit.",
+                "prediction_prompt": "If the force stays but the pod does not move, what should happen to the hand-off value?",
+            },
+            worked_examples=[
+                worked(
+                    "A launcher increases a pod's Motion Store by 520 J, and leaks are negligible. Find the work done by the launcher.",
+                    [
+                        "Identify the story as a direct store-change hand-off.",
+                        "Use W = Delta E because the energy gain is given directly.",
+                        "Set W = 520 J.",
+                    ],
+                    "Work done = 520 J.",
+                    "Because the launcher handed 520 J into the Motion Store, the work done equals that energy change.",
+                    "This keeps students from forcing a force-distance equation onto the wrong kind of problem.",
+                ),
+                worked(
+                    "A constant 35 N push moves a pod 12 m along the track. Find the work done.",
+                    [
+                        "Identify the story as force acting through distance in the same direction.",
+                        "Use W = Fd.",
+                        "Calculate 35 x 12.",
+                    ],
+                    "Work done = 420 J.",
+                    "The story gives force and distance directly, so W = 35 x 12 = 420 J.",
+                    "This contrasts cleanly with the store-change route and sharpens equation choice.",
+                ),
+            ],
+            visual_assets=[
+                visual(
+                    "m3-l4-energy-handoff",
+                    "energy_handoff",
+                    "Energy Hand-off board",
+                    "Contrast store-change hand-offs with force-distance hand-offs in the same Lift-Launch world.",
+                    "Work is one idea with two common entry routes: store change or force through distance.",
+                )
+            ],
+            animation_assets=[
+                animation(
+                    "m3-l4-energy-handoff-flow",
+                    "energy_handoff",
+                    "Hand-off route comparison",
+                    "Animate one mission described by Delta E and another described by Fd so the equation choice becomes visible.",
+                )
+            ],
+            simulation_contract={
+                "asset_id": "m3_l4_energy_handoff_lab",
+                "concept": "energy_handoff",
+                "baseline_case": "Start with a launcher that gives 200 J Motion Store and a separate push of 40 N through 5 m.",
+                "comparison_tasks": [
+                    "Decide which work route fits each mission story.",
+                    "Hold force fixed and increase distance.",
+                    "Hold the push but set distance to zero.",
+                ],
+                "watch_for": "Students should justify equation choice before doing arithmetic.",
+                "takeaway": "Work is the energy hand-off, and the story tells you whether Delta E or Fd is the right entry point.",
+            },
+            reflection_prompts=[
+                "Why is equation choice in work problems really a question about the type of energy hand-off taking place?"
+            ],
+            mastery_skills=[
+                "Recognize work as an energy hand-off.",
+                "Choose between W = Delta E and W = Fd.",
+                "Calculate work from store change.",
+                "Calculate work from force and distance.",
+                "Reject effort-only and no-displacement misconceptions.",
+            ],
+            variation_plan={
+                "diagnostic": "Rotate between direct Delta E stories, aligned force-distance stories, and no-displacement traps.",
+                "concept_gate": "Swap numerical work calculations with equation-choice explanations.",
+                "mastery": "Use new machine, lift, launcher, and track contexts so students must read the story rather than memorize a stem pattern.",
+            },
+            scaffold_support=scaffold(
+                "Work is the energy hand-off that fills or empties stores.",
+                "Classify the mission first. If the story gives a store change, use W = Delta E. If it gives a force acting through a distance in the same direction, use W = Fd. Then calculate.",
+                "If a problem tells you the pod gained 300 J of Motion Store, what should you think about before using any other equation?",
+                "Do not grab W = Fd just because it looks familiar. The story decides the route.",
+                "The Lift-Launch model is powerful here because it makes the 'hand-off' idea common across lifts, launches, and pushes. The equations are just different ways into that same story.",
+                "In the analogy, what clue tells you that Delta E is the cleaner starting point?",
+            ),
+        ),
+    }
+
+
+def lesson_l5() -> Dict[str, Any]:
+    return {
+        "id": "M3_L5",
+        "title": "Transfer Rate, Useful Yield, and Machine Choice",
+        "sim": {
+            "lab_id": "m3_rate_yield_lab",
+            "title": "Rate and yield explorer",
+            "description": "Compare how fast machines transfer energy and how much of that transfer becomes useful.",
+            "instructions": [
+                "Hold the useful transfer fixed while changing the time taken.",
+                "Hold the input fixed while changing the useful share and leak trail.",
+                "Compare a high-power wasteful machine with a lower-power efficient machine.",
+            ],
+            "outcomes": [
+                "power_energy_rate_confusion",
+                "efficiency_power_distinction_confusion",
+            ],
+            "fields": [
+                "machine_input",
+                "time_taken",
+                "useful_output",
+                "transfer_rate",
+                "useful_yield",
+            ],
+            "depth": "number of comparisons that keep rate and useful share conceptually separate while still calculating both correctly",
+        },
+        "analogy_text": (
+            "The Transfer Rate Meter shows how quickly energy hand-offs happen, while the Useful Yield Meter shows what fraction of the input became the intended useful result. "
+            "A machine can be fast but wasteful, or slower but efficient."
+        ),
+        "commitment_prompt": "Before you calculate, decide whether the question is about how fast the transfer happens, how much becomes useful, or both.",
+        "micro_prompts": [
+            prompt_block(
+                "Compare two machines that each transfer 600 J, but one finishes in 3 s and the other in 6 s.",
+                "Same total energy does not mean the same transfer rate.",
+            ),
+            prompt_block(
+                "Compare two machines that each take 10 s, but one turns 80% of its input into useful output and the other turns 40% useful.",
+                "Useful Yield is a fraction of input, not a timing measure.",
+            ),
+            prompt_block(
+                "Can a very powerful machine still have poor Useful Yield?",
+                "Power and efficiency judge different aspects of the mission.",
+            ),
+        ],
+        "diagnostic": [
+            mcq(
+                "M3L5_D1",
+                "Which statement defines Transfer Rate most accurately?",
+                [
+                    "how much energy is transferred each second",
+                    "the useful fraction of the input",
+                    "the total mass times the speed",
+                    "the number of stores in the mission",
+                ],
+                0,
+                "Power is energy transferred per second.",
+                ["power_energy_rate_confusion"],
+            ),
+            short(
+                "M3L5_D2",
+                "A machine transfers 600 J in 3 s. What is its Transfer Rate?",
+                ["200 W", "200"],
+                "Use P = E / t.",
+                ["power_energy_rate_confusion"],
+            ),
+            short(
+                "M3L5_D3",
+                "A machine takes in 500 J and gives 350 J of useful output. What is its Useful Yield as a percentage?",
+                ["70%", "70"],
+                "Use efficiency = useful output / total input x 100%.",
+                ["efficiency_power_distinction_confusion"],
+            ),
+            mcq(
+                "M3L5_D4",
+                "Which statement can be true?",
+                [
+                    "A machine can be high-power but low-efficiency.",
+                    "A machine with higher power must have higher efficiency.",
+                    "A machine with 100% efficiency must take zero time.",
+                    "Efficiency and power are the same quantity with different units.",
+                ],
+                0,
+                "Power and efficiency answer different questions about the same machine.",
+                ["power_energy_rate_confusion", "efficiency_power_distinction_confusion"],
+            ),
+        ],
+        "inquiry": [
+            prompt_block(
+                "Keep total transferred energy fixed and shorten the transfer time.",
+                "The rate should rise even though the total stays the same.",
+            ),
+            prompt_block(
+                "Keep machine input fixed and change only the useful output.",
+                "Useful Yield changes while total input stays put.",
+            ),
+            prompt_block(
+                "Compare a fast wasteful machine with a slower efficient one.",
+                "Students should learn to describe both judgments without collapsing them into one word.",
+            ),
+        ],
+        "recon_prompts": [
+            "Explain why power is a rate question but efficiency is a share question.",
+            "Explain how one machine could beat another on power while losing on Useful Yield.",
+        ],
+        "capsule_prompt": (
+            "Transfer Rate is power: P = E / t or P = W / t. Useful Yield is efficiency: useful output divided by total input, often written as a percentage."
+        ),
+        "capsule_checks": [
+            mcq(
+                "M3L5_C1",
+                "If the same 400 J is transferred in half the time, the Transfer Rate becomes...",
+                ["twice as large", "half as large", "unchanged", "zero"],
+                0,
+                "For the same energy, less time means higher power.",
+                ["power_energy_rate_confusion"],
+            ),
+            short(
+                "M3L5_C2",
+                "A machine takes in 800 J and gives 600 J useful output. What is the Useful Yield percentage?",
+                ["75%", "75"],
+                "Divide useful output by total input, then convert to percent.",
+                ["efficiency_power_distinction_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L5_T1",
+                "A launcher transfers 960 J in 8 s. What is its power?",
+                ["120 W", "120"],
+                "Divide energy by time.",
+                ["power_energy_rate_confusion"],
+            ),
+            short(
+                "M3L5_T2",
+                "A machine runs at 150 W for 12 s. How much energy does it transfer?",
+                ["1800 J", "1800"],
+                "Use E = Pt.",
+                ["power_energy_rate_confusion"],
+            ),
+            short(
+                "M3L5_T3",
+                "Can a machine be powerful but inefficient? Explain briefly.",
+                [
+                    "Yes. Power is how quickly energy is transferred, while efficiency is the useful fraction of the input.",
+                    "Yes, because a machine can transfer energy quickly but waste a lot of it.",
+                ],
+                "Mention both the fast transfer-rate idea and the useful-fraction idea.",
+                ["power_energy_rate_confusion", "efficiency_power_distinction_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("yes", "it can"),
+                    ("power", "rate", "quickly", "fast"),
+                    ("efficiency", "useful", "waste", "fraction"),
+                ),
+                skill_tags=["concept_explanation", "rate_vs_yield"],
+            ),
+        ],
+        "contract": contract(
+            concept_targets=[
+                "Distinguish Transfer Rate from Useful Yield in one machine story.",
+                "Calculate power from energy and time and reverse the relationship when needed.",
+                "Calculate efficiency as a useful-output fraction and interpret it conceptually.",
+            ],
+            prerequisite_lessons=["M3_L4"],
+            misconception_focus=[
+                "power_energy_rate_confusion",
+                "efficiency_power_distinction_confusion",
+            ],
+            formulas=[
+                formula(
+                    "P = E / t and P = W / t",
+                    "Power is the rate of energy transfer or the rate of doing work.",
+                    ["W", "J/s"],
+                    "Use when a total transfer and the time interval are known.",
+                ),
+                formula(
+                    "efficiency = useful output / total input x 100%",
+                    "Efficiency is the useful share of the input, often expressed as a percentage.",
+                    ["%", "fraction"],
+                    "Use when both the useful output and the total input are known or can be found.",
+                ),
+            ],
+            representations=[
+                representation("words", "Separate how fast a transfer happens from how useful that transfer is."),
+                representation("table", "Compare machines by input, useful output, time, power, and efficiency."),
+                representation("graph", "Show equal-energy different-time cases and equal-input different-yield cases."),
+                representation("formula", "Calculate power, energy, time, or efficiency."),
+            ],
+            analogy_map={
+                "comparison": "Transfer Rate is the power meter and Useful Yield is the efficiency meter in Lift-Launch.",
+                "mapping": [
+                    "A faster meter means more joules are transferred each second.",
+                    "A higher Useful Yield meter means more of the input became the intended useful output.",
+                ],
+                "limit": "Real machines do not carry two perfect meters that announce their physics; the meters only separate two distinct judgments for learners.",
+                "prediction_prompt": "If two machines transfer the same total energy but one finishes sooner, which meter changes and which one might stay the same?",
+            },
+            worked_examples=[
+                worked(
+                    "A lift transfers 1200 J in 6 s. Find the Transfer Rate.",
+                    [
+                        "Identify the quantity as power because the question asks how quickly energy is transferred.",
+                        "Use P = E / t.",
+                        "Calculate 1200 / 6.",
+                    ],
+                    "Transfer Rate = 200 W.",
+                    "Power is the number of joules transferred each second, so 1200 J in 6 s gives 200 W.",
+                    "This makes rate different from total amount right at the point of calculation.",
+                ),
+                worked(
+                    "A launcher takes in 900 J and gives the pod 540 J of useful Motion Store. Find the Useful Yield.",
+                    [
+                        "Identify the quantity as efficiency because the question asks about the useful share of the input.",
+                        "Use efficiency = useful output / total input x 100%.",
+                        "Calculate 540 / 900 = 0.6, then convert to 60%.",
+                    ],
+                    "Useful Yield = 60%.",
+                    "The useful share is 540 out of 900, so the machine converts 60% of its input into the intended output.",
+                    "This keeps 'efficient' from collapsing into 'fast' or 'large.'",
+                ),
+            ],
+            visual_assets=[
+                visual(
+                    "m3-l5-rate-yield",
+                    "transfer_rate_yield",
+                    "Rate and yield board",
+                    "Contrast a fast wasteful machine with a slower efficient machine using separate meters.",
+                    "Power and efficiency are different judgments, even when they describe the same mission machine.",
+                )
+            ],
+            animation_assets=[
+                animation(
+                    "m3-l5-rate-yield-compare",
+                    "transfer_rate_yield",
+                    "Machine choice comparison",
+                    "Animate the same total transfer happening at different rates and with different useful shares.",
+                )
+            ],
+            simulation_contract={
+                "asset_id": "m3_l5_rate_yield_lab",
+                "concept": "transfer_rate_yield",
+                "baseline_case": "Start with a machine that transfers 600 J in 6 s and converts 75% of that input usefully.",
+                "comparison_tasks": [
+                    "Keep the input fixed while changing the time taken.",
+                    "Keep the input fixed while changing the useful output share.",
+                    "Compare two machines where one wins on rate and the other wins on yield.",
+                ],
+                "watch_for": "Students should say which quantity is being judged before they calculate it.",
+                "takeaway": "Power asks how fast the hand-off happens; efficiency asks how much of it is useful.",
+            },
+            reflection_prompts=[
+                "Why can a machine that looks impressive because it is fast still be a poor choice in an energy-limited mission?"
+            ],
+            mastery_skills=[
+                "Calculate power from energy and time.",
+                "Rearrange power relationships to find energy or time.",
+                "Calculate efficiency as a percentage.",
+                "Interpret efficiency as a useful share, not as speed.",
+                "Compare machines using both rate and yield without collapsing them together.",
+            ],
+            variation_plan={
+                "diagnostic": "Rotate between power-definition prompts, direct P = E / t items, percentage-yield items, and rate-versus-yield distinctions.",
+                "concept_gate": "Swap numeric calculation tasks with concept explanations about why power and efficiency are different.",
+                "mastery": "Use fresh machine contexts that change input, time, and useful output independently so students must decide what is being asked.",
+            },
+            scaffold_support=scaffold(
+                "Transfer Rate tells how fast the hand-off happens; Useful Yield tells what fraction of the input was useful.",
+                "Ask two separate questions in order: first, is this a rate question or a useful-share question? Then choose P = E/t or the efficiency fraction. Only after that should you calculate.",
+                "If two machines transfer the same energy but one finishes sooner, which quantity has clearly changed?",
+                "Do not call an efficient machine powerful just because it wastes less, and do not call a powerful machine efficient just because it is fast.",
+                "The dual-meter Lift-Launch picture is useful because it stops students from treating 'good machine' as one vague label. Rate and yield stay separate all the way through.",
+                "In the analogy, what does the Useful Yield meter tell you that the Transfer Rate meter cannot?",
+            ),
+        ),
+    }
+
+
+def lesson_l6() -> Dict[str, Any]:
+    return {
+        "id": "M3_L6",
+        "title": "Ledger Missions and Energy Accounting",
+        "sim": {
+            "lab_id": "m3_ledger_missions_lab",
+            "title": "Ledger mission planner",
+            "description": "Solve multi-step missions by choosing the right equation family and balancing the full energy ledger.",
+            "instructions": [
+                "Plan a mission that lifts the pod, launches it, and delivers useful output at the target.",
+                "Track useful gains and leak trail at each step rather than only at the end.",
+                "Explain why your chosen equation was the correct first step before doing the next calculation.",
+            ],
+            "outcomes": [
+                "ledger_balance_confusion",
+                "energy_equation_choice_confusion",
+                "efficiency_power_distinction_confusion",
+            ],
+            "fields": [
+                "load_rating",
+                "deck_level",
+                "motion_pace",
+                "machine_input",
+                "transfer_time",
+                "useful_output",
+                "leak_trail",
+                "ledger_entries",
+            ],
+            "depth": "number of multi-step missions solved with justified equation choice and a balanced full-mission ledger",
+        },
+        "analogy_text": (
+            "The Lift-Launch mission planner is where the whole module comes together. A real mission may lift the pod, launch it, leak some energy, and still need enough useful output at the end. "
+            "The Energy Ledger must stay balanced across the entire chain, and each step demands the right relationship for that stage."
+        ),
+        "commitment_prompt": "Before you touch the numbers, mark the mission steps and choose the right equation family for each step.",
+        "micro_prompts": [
+            prompt_block(
+                "A lift inputs 1500 J at 60% Useful Yield. What useful Height Store is gained before you ask about height?",
+                "Pick the efficiency step first, then move to the store equation.",
+            ),
+            prompt_block(
+                "A pod loses 500 J of Height Store and reaches the target with 420 J of Motion Store. What happened to the rest?",
+                "Use the ledger before inventing a new equation.",
+            ),
+            prompt_block(
+                "Two students start the same mission, but one begins with mgh and the other begins with efficiency. Which start is justified depends on which quantity the story gives first.",
+                "Equation choice is part of the physics reasoning, not an afterthought.",
+            ),
+        ],
+        "diagnostic": [
+            short(
+                "M3L6_D1",
+                "A launcher inputs 900 J and operates at 80% Useful Yield. How much useful Motion Store can it give the pod?",
+                ["720 J", "720"],
+                "Find the useful share first.",
+                ["efficiency_power_distinction_confusion", "energy_equation_choice_confusion"],
+            ),
+            short(
+                "M3L6_D2",
+                "A pod loses 500 J from Height Store and gains 380 J in Motion Store on the way down. How much leaks away?",
+                ["120 J", "120"],
+                "Use the ledger balance.",
+                ["ledger_balance_confusion"],
+            ),
+            mcq(
+                "M3L6_D3",
+                "A mission brief gives mass, deck level, and world grip and asks for the useful store gained by lifting. Which equation family is the best first step?",
+                ["gravitational potential energy", "kinetic energy", "power only", "efficiency only"],
+                0,
+                "Choose the relationship that matches the physical store being discussed.",
+                ["energy_equation_choice_confusion"],
+            ),
+            mcq(
+                "M3L6_D4",
+                "Which planning statement is strongest?",
+                [
+                    "Use the ledger to map the steps, then choose the matching equation for each step.",
+                    "Write down every formula you remember and hope one fits.",
+                    "Start with power in every energy problem because it has the most letters.",
+                    "Ignore the leak trail until the very end because it is usually small.",
+                ],
+                0,
+                "Mixed missions are solved by story structure first, not by random formula grabbing.",
+                ["energy_equation_choice_confusion", "ledger_balance_confusion"],
+            ),
+        ],
+        "inquiry": [
+            prompt_block(
+                "Plan one mission that starts with a lift and one that starts with a launcher.",
+                "The first equation should depend on the first store or transfer in the story.",
+            ),
+            prompt_block(
+                "Hold the final useful target fixed while changing the leak trail.",
+                "Students should see how extra leak increases the required input.",
+            ),
+            prompt_block(
+                "Explain a full mission in ledger sentences before compressing it into a few linked equations.",
+                "The planner is meant to keep the reasoning visible.",
+            ),
+        ],
+        "recon_prompts": [
+            "Explain why multi-step energy missions are really bookkeeping-and-choice problems before they are arithmetic problems.",
+            "Explain how the Lift-Launch model helps students tell the difference between a useful gain, a transfer rate, and a leak trail in one long mission.",
+        ],
+        "capsule_prompt": (
+            "In a full mission, choose the right relationship for each step, carry useful gains and leaks through the ledger, and only then move to the next equation."
+        ),
+        "capsule_checks": [
+            short(
+                "M3L6_C1",
+                "A lift inputs 2000 J at 75% Useful Yield. How much Height Store does the pod gain?",
+                ["1500 J", "1500"],
+                "Find the useful output before moving on.",
+                ["efficiency_power_distinction_confusion", "energy_equation_choice_confusion"],
+            ),
+            mcq(
+                "M3L6_C2",
+                "A launcher gives the pod 600 J of useful Motion Store, and 90 J leaks away. How much total input was required?",
+                ["690 J", "510 J", "600 J", "90 J"],
+                0,
+                "Input equals useful gain plus leak.",
+                ["ledger_balance_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L6_T1",
+                "A lift inputs 1800 J at 60% Useful Yield. The useful output becomes Height Store. How much Height Store is gained?",
+                ["1080 J", "1080"],
+                "Use efficiency first because the useful share is being asked for.",
+                ["efficiency_power_distinction_confusion", "energy_equation_choice_confusion"],
+            ),
+            short(
+                "M3L6_T2",
+                "A pod reaches the bottom of a drop having lost 700 J of Height Store. Its Motion Store at the bottom is 560 J. How much leaked away during the drop?",
+                ["140 J", "140"],
+                "Use the ledger: store lost = store gained + leak.",
+                ["ledger_balance_confusion"],
+            ),
+            mcq(
+                "M3L6_T3",
+                "A mission asks whether a gate needing 650 J of Motion Store can be opened. Your launcher gives 800 J input at 70% Useful Yield. What is the best conclusion?",
+                [
+                    "No, because only 560 J becomes useful Motion Store.",
+                    "Yes, because 800 J is bigger than 650 J.",
+                    "Yes, because power was not mentioned.",
+                    "No, because efficiency only matters for lifts.",
+                ],
+                0,
+                "Find the useful output before comparing it with the required store target.",
+                ["efficiency_power_distinction_confusion", "energy_equation_choice_confusion", "ledger_balance_confusion"],
+            ),
+        ],
+        "contract": contract(
+            concept_targets=[
+                "Solve multi-step energy missions by balancing the ledger across the entire chain.",
+                "Choose the right equation family from the physical story at each step.",
+                "Use useful gains, leaks, and store changes to justify whether a mission succeeds.",
+            ],
+            prerequisite_lessons=["M3_L1", "M3_L2", "M3_L3", "M3_L4", "M3_L5"],
+            misconception_focus=[
+                "ledger_balance_confusion",
+                "energy_equation_choice_confusion",
+                "efficiency_power_distinction_confusion",
+            ],
+            formulas=[
+                formula(
+                    "E_start + input energy = E_end + useful output + leak trail",
+                    "A full mission balances the starting stores, machine inputs, ending stores, useful outputs, and leaks.",
+                    ["J"],
+                    "Use when tracking an entire sequence of energy transfers across several steps.",
+                ),
+                formula(
+                    "Choose mgh, 0.5mv^2, W = Delta E, W = Fd, P = E / t, or efficiency from the story step being described",
+                    "No single equation owns the whole mission; the solver must match each step to the correct relation.",
+                    ["J", "W", "%"],
+                    "Use in planning before the arithmetic begins.",
+                ),
+            ],
+            representations=[
+                representation("words", "Explain the mission as a chain of store changes, hand-offs, useful outputs, and leaks."),
+                representation("table", "Use a step-by-step Energy Ledger with one row per mission stage."),
+                representation("model", "Use the Lift-Launch mission planner to keep store and transfer stories distinct."),
+                representation("formula", "Link the correct equations across several justified steps."),
+            ],
+            analogy_map={
+                "comparison": "The mission planner is the Lift-Launch version of a full energy-transfer calculation.",
+                "mapping": [
+                    "Each mission step maps to a specific store change or hand-off in the real physics story.",
+                    "The planner's Useful Yield and Leak Trail columns map to efficiency and dissipated energy accounting.",
+                    "The final gate or lift target maps to a useful output or required store amount.",
+                ],
+                "limit": "Real exam problems do not arrive with colored planner boxes already drawn; students must build the structure mentally or on paper.",
+                "prediction_prompt": "If leak trail rises while the final useful target stays fixed, what must happen to the required input?",
+            },
+            worked_examples=[
+                worked(
+                    "A lift inputs 1500 J at 60% Useful Yield to raise a 30 kg pod in a world where g = 10 N/kg. Find the Height Store gained and then the height reached.",
+                    [
+                        "Plan the mission in two steps: first useful output from efficiency, then height from E_p = mgh.",
+                        "Useful Height Store gain = 0.60 x 1500 J = 900 J.",
+                        "Set 900 = 30 x 10 x h and solve for h.",
+                    ],
+                    "The pod gains 900 J of Height Store and reaches 3 m.",
+                    "Efficiency gives the useful store gain first, and that 900 J becomes the input to the mgh step, so h = 900 / 300 = 3 m.",
+                    "This example shows why equation choice and order matter in a chained mission.",
+                ),
+                worked(
+                    "A pod drops and loses 800 J of Height Store. On the way to the gate, 150 J leaks away. Does it arrive with enough Motion Store to open a gate that needs 700 J?",
+                    [
+                        "Use the ledger first: Height Store lost = Motion Store gained + leak trail.",
+                        "Write 800 J = Motion Store gained + 150 J.",
+                        "Solve for Motion Store gained and compare it with the gate requirement.",
+                    ],
+                    "The pod reaches the gate with 650 J of Motion Store, so it does not have enough to open the 700 J gate.",
+                    "After the 150 J leak, only 650 J remains as useful Motion Store, which is less than the 700 J target.",
+                    "This is the capstone idea: energy problems become careful ledger reasoning instead of disconnected formula hunting.",
+                ),
+            ],
+            visual_assets=[
+                visual(
+                    "m3-l6-ledger-missions",
+                    "energy_ledger_mission",
+                    "Ledger mission planner",
+                    "Show a full lift-launch-target sequence with useful gains, leaks, and equation choice notes.",
+                    "The planner turns mixed energy problems into visible bookkeeping and justified equation choice.",
+                )
+            ],
+            animation_assets=[
+                animation(
+                    "m3-l6-ledger-mission-chain",
+                    "energy_ledger_mission",
+                    "Full mission chain",
+                    "Animate a lift, launch, leak, and target hit sequence while the ledger fills step by step.",
+                )
+            ],
+            simulation_contract={
+                "asset_id": "m3_l6_ledger_missions_lab",
+                "concept": "energy_ledger_mission",
+                "baseline_case": "Start with a mission that lifts the pod, leaks 20% during launch, and must reach a target store threshold.",
+                "comparison_tasks": [
+                    "Solve one mission that begins with a lift and another that begins with a launcher.",
+                    "Increase leak trail while keeping the final target fixed.",
+                    "Compare two different equation routes and justify which one should come first.",
+                ],
+                "watch_for": "Students should plan in steps and explain why each equation belongs to that step.",
+                "takeaway": "Extended energy problems are ledger-and-choice problems, not formula lotteries.",
+            },
+            reflection_prompts=[
+                "How does the Lift-Launch mission planner change the way you think about long energy-transfer calculations?"
+            ],
+            mastery_skills=[
+                "Choose the correct energy relationship for the first step of a mixed mission.",
+                "Use efficiency to find useful store gains or required inputs.",
+                "Use the ledger to find leak trail in multi-step transfers.",
+                "Link one justified calculation into the next step.",
+                "Judge whether a full mission succeeds by comparing useful output with the target requirement.",
+            ],
+            variation_plan={
+                "diagnostic": "Rotate between full-ledger subtraction, efficiency-first planning, and equation-choice judgment prompts.",
+                "concept_gate": "Swap between multistep numerical chains and mission-planning explanations.",
+                "mastery": "Use fresh lift-launch-target missions with different leak levels and starting information so students must build the sequence anew each time.",
+            },
+            scaffold_support=scaffold(
+                "A full energy mission is solved by stepwise ledger reasoning and justified equation choice.",
+                "Mark the mission stages first. For each stage, write what changes store, what leaks, and what the target is. Then choose the equation that matches that stage and carry the result forward.",
+                "If a mission gives total input and efficiency before it asks about height or speed, which quantity should you find first?",
+                "Do not treat a multi-step mission like one giant plug-in exercise. The structure matters before the arithmetic.",
+                "The Lift-Launch planner is deliberately explicit so students can see why mixed energy questions are really controlled bookkeeping. Once that structure is secure, the formal equations stop feeling disconnected.",
+                "In the analogy, why is it dangerous to jump straight to a familiar formula without first marking the mission steps?",
+            ),
+        ),
+    }
 
 
 M3_SPEC = {
     "module_description": (
-        "Module 3 develops quantitative energy reasoning through work done, kinetic energy, "
-        "gravitational potential energy, power, efficiency, and extended energy-transfer calculations."
+        "Module 3 upgrades energy into a full Lift-Launch system: the pod carries Height Store and Motion Store, "
+        "machines perform Energy Hand-offs, Transfer Rate and Useful Yield stay distinct, and every multi-step mission "
+        "is solved by balancing an Energy Ledger across useful gains and leak trail."
     ),
     "mastery_outcomes": [
-        "Calculate work done as energy transferred when force causes displacement in the force direction.",
-        "Calculate and compare kinetic energy and gravitational potential energy using the correct variables.",
-        "Use power equations to connect transfer rate, total energy, and time.",
-        "Calculate efficiency as a useful-output fraction and interpret it as a percentage.",
-        "Select and combine the right equations in mixed energy-transfer calculations.",
+        "Explain energy as stores, hand-offs, leaks, and balanced ledger entries rather than as a disconnected list of formulas.",
+        "Use Height Store reasoning and E_p = mgh to compare and calculate gravitational potential energy in different worlds.",
+        "Use Motion Store reasoning and E_k = 0.5mv^2 to compare mass and speed changes, including the squared-speed effect.",
+        "Treat work as an energy hand-off and choose correctly between W = Delta E and W = Fd from the mission story.",
+        "Distinguish Transfer Rate from Useful Yield by calculating power and efficiency without collapsing them into one idea.",
+        "Solve multi-step energy missions by choosing the right relationship at each step and balancing the full Energy Ledger.",
     ],
-    "lessons": [],
+    "lessons": [
+        lesson_l1(),
+        lesson_l2(),
+        lesson_l3(),
+        lesson_l4(),
+        lesson_l5(),
+        lesson_l6(),
+    ],
 }
-
-
-M3_SPEC["lessons"].extend(
-    [
-        {
-            "id": "M3_L1",
-            "title": "Work Done and Energy Transfer",
-            "sim": {
-                "lab_id": "m3_work_transfer_lab",
-                "title": "Work transfer explorer",
-                "description": "Compare force-only stories with force-plus-displacement stories.",
-                "instructions": [
-                    "Keep the force fixed and change the distance moved.",
-                    "Compare a moving object with a rigid wall.",
-                    "Reverse the motion direction and explain the sign of the transfer.",
-                ],
-                "outcomes": ["work_energy_transfer_confusion"],
-                "fields": ["force", "distance", "motion_case", "work_done"],
-                "depth": "number of force-displacement stories interpreted correctly as work transfer or no work transfer",
-            },
-            "analogy_text": "Energy Ledger records work only when a force causes displacement in the force direction.",
-            "commitment_prompt": "Check first whether the force actually causes movement through a distance.",
-            "micro_prompts": [
-                {"prompt": "Compare pushing a moving crate with pushing a wall that does not move.", "hint": "Force exists in both stories, but only one has displacement."},
-                {"prompt": "Compare 2 m and 6 m of motion under the same force.", "hint": "For a fixed force, more displacement means more work done."},
-            ],
-            "diagnostic": [
-                {"kind": "mcq", "id": "M3L1_D1", "prompt": "Work is done on an object when...", "choices": ["a force causes displacement in the force direction", "a force simply exists", "time passes while the object is held", "the object has a large mass"], "answer_index": 0, "hint": "Work links force with displacement.", "tags": ["work_energy_transfer_confusion"]},
-                {"kind": "mcq", "id": "M3L1_D2", "prompt": "A wall does not move while being pushed. What work is done on the wall?", "choices": ["0 J", "some work because the push is hard", "equal to the force only", "cannot be known"], "answer_index": 0, "hint": "No displacement means no work done on the wall.", "tags": ["work_energy_transfer_confusion"]},
-                {"kind": "short", "id": "M3L1_D3", "prompt": "A 5 N force moves a box 2 m in the same direction. What work is done?", "accepted_answers": ["10 J", "10"], "hint": "Use W = Fd when force and displacement are aligned.", "tags": ["work_energy_transfer_confusion"]},
-            ],
-            "inquiry": [
-                {"prompt": "Hold force fixed and vary the displacement.", "hint": "Watch work scale directly with distance."},
-                {"prompt": "Keep the push but remove the motion.", "hint": "The transfer should disappear when displacement becomes zero."},
-            ],
-            "recon_prompts": [
-                "Explain why force alone does not guarantee work done.",
-                "Explain why work and energy transfer are measured in the same unit.",
-            ],
-            "capsule_prompt": "Work needs force and displacement together, not force by itself.",
-            "capsule_checks": [
-                {"kind": "mcq", "id": "M3L1_C1", "prompt": "If the distance doubles while the force stays the same, the work done is...", "choices": ["twice as large", "half as large", "unchanged", "zero"], "answer_index": 0, "hint": "Work is proportional to distance for a fixed force.", "tags": ["work_energy_transfer_confusion"]},
-                {"kind": "mcq", "id": "M3L1_C2", "prompt": "1 joule of work means...", "choices": ["1 joule of energy is transferred", "1 newton of force exists", "1 second has passed", "1 kilogram is moving"], "answer_index": 0, "hint": "Work is measured in joules because it measures energy transferred.", "tags": ["work_energy_transfer_confusion"]},
-            ],
-            "transfer": [
-                {"kind": "short", "id": "M3L1_T1", "prompt": "A 12 N force moves an object 3 m in the same direction. What work is done?", "accepted_answers": ["36 J", "36"], "hint": "Multiply force by displacement.", "tags": ["work_energy_transfer_confusion"]},
-                {"kind": "mcq", "id": "M3L1_T2", "prompt": "Why is no work done on a held-still book?", "choices": ["the book does not move through a distance", "gravity disappears", "the book has no energy", "the force is too small to matter"], "answer_index": 0, "hint": "Without displacement, work done on the book is zero.", "tags": ["work_energy_transfer_confusion"]},
-                {"kind": "mcq", "id": "M3L1_T3", "prompt": "Which change most directly increases work done for the same force?", "choices": ["greater displacement", "more waiting time", "a different color", "less discussion"], "answer_index": 0, "hint": "For the same force, more distance means more work done.", "tags": ["work_energy_transfer_confusion"]},
-            ],
-            "contract": {
-                "concept_targets": [
-                    "Treat work done as energy transferred by force through displacement.",
-                    "Separate effort or force presence from actual transferred energy.",
-                ],
-                "prerequisite_lessons": ["F3_L1", "M2_L1"],
-                "misconception_focus": ["work_energy_transfer_confusion"],
-                "formulas": [
-                    {"equation": "W = Fd", "meaning": "Work done equals force multiplied by displacement in the force direction.", "units": ["J"], "conditions": "Use when force and displacement are along the same line."},
-                    {"equation": "1 J = 1 N m", "meaning": "A joule is the work done when a 1 N force acts through 1 m.", "units": ["J"], "conditions": "Use when interpreting the unit of work."},
-                ],
-                "representations": [
-                    {"kind": "words", "purpose": "Explain why work needs both force and displacement."},
-                    {"kind": "diagram", "purpose": "Show force and motion on the same object."},
-                    {"kind": "formula", "purpose": "Calculate transferred energy."},
-                ],
-                "analogy_map": {
-                    "comparison": "Energy Ledger stands for recorded transfer caused by force through motion.",
-                    "mapping": ["The push stands for the force acting on the object.", "Ledger tokens appear only when that force produces displacement."],
-                    "limit": "Real energy transfer is not a visible token drop in space.",
-                    "prediction_prompt": "If the push stays but the object does not move, what should happen to the ledger record?",
-                },
-                "worked_examples": [
-                    {"prompt": "A 4 N force moves a box 5 m. Find the work done.", "steps": ["Identify force and displacement.", "Use W = Fd.", "Multiply 4 by 5."], "final_answer": "20 J", "why_it_matters": "This anchors work to force causing motion."},
-                    {"prompt": "A learner says holding a suitcase still does work on it because the force feels hard. Evaluate the claim.", "steps": ["Check whether the suitcase moves.", "Notice that the displacement is zero.", "Conclude that no work is done on the suitcase."], "final_answer": "The claim is wrong.", "why_it_matters": "This blocks effort-only reasoning."},
-                ],
-                "visual_assets": [
-                    {"asset_id": "m3-l1-work-transfer", "concept": "energy_transfer", "phase_key": "analogical_grounding", "title": "Work transfers energy", "purpose": "Contrast force without motion against force with displacement.", "caption": "Force plus displacement transfers energy."}
-                ],
-                "animation_assets": [
-                    {"asset_id": "m3-l1-work-transfer-anim", "concept": "energy_transfer", "phase_key": "analogical_grounding", "title": "Work done comparison", "description": "Animate a moving crate and a non-moving wall under a push.", "duration_sec": 8}
-                ],
-                "simulation_contract": {
-                    "asset_id": "m3_l1_work_transfer_lab",
-                    "concept": "energy_transfer",
-                    "baseline_case": "Start with a 5 N push moving a crate 2 m.",
-                    "comparison_tasks": ["Keep the force but remove the motion.", "Double the displacement under the same force."],
-                    "watch_for": "Students should say that work only happens when force causes displacement.",
-                    "takeaway": "Work is transferred energy, not effort by itself.",
-                },
-                "reflection_prompts": ["Explain why a force can exist without doing work on the object."],
-                "mastery_skills": [
-                    "Identify when work is done.",
-                    "Calculate work from force and distance.",
-                    "Interpret joules as transferred energy.",
-                    "Reject no-motion work misconceptions.",
-                    "Explain work qualitatively.",
-                ],
-                "variation_plan": {
-                    "diagnostic": "Rotate moving-object, no-motion, and doubled-distance stories.",
-                    "concept_gate": "Swap between explanation prompts and direct W = Fd questions.",
-                    "mastery": "Vary force, distance, and context while keeping the same work structure.",
-                },
-            },
-        },
-        {
-            "id": "M3_L2",
-            "title": "Kinetic Energy",
-            "sim": {
-                "lab_id": "m3_kinetic_energy_lab",
-                "title": "Kinetic energy explorer",
-                "description": "Compare how mass and speed change kinetic energy.",
-                "instructions": ["Keep mass fixed and change the speed.", "Keep speed fixed and change the mass.", "Compare doubling mass with doubling speed."],
-                "outcomes": ["kinetic_energy_relationship_error"],
-                "fields": ["mass", "speed", "kinetic_energy", "comparison_reasoning"],
-                "depth": "number of mass-speed comparisons explained correctly with the squared-speed relationship",
-            },
-            "analogy_text": "Energy Ledger stores motion energy in a motion vault. Speed changes the size of that store more dramatically because it is squared.",
-            "commitment_prompt": "Decide whether the change comes from mass, speed, or both before choosing the relationship.",
-            "micro_prompts": [
-                {"prompt": "Compare doubling mass with doubling speed for the same moving object.", "hint": "Speed has the stronger effect because the speed term is squared."},
-                {"prompt": "Compare a heavy slow object with a light fast object.", "hint": "You need the full relationship, not a single-variable shortcut."},
-            ],
-            "diagnostic": [
-                {"kind": "mcq", "id": "M3L2_D1", "prompt": "For the same object, which change increases kinetic energy most?", "choices": ["doubling the speed", "doubling the time", "doubling the color", "doubling the distance moved yesterday"], "answer_index": 0, "hint": "Kinetic energy depends on speed squared.", "tags": ["kinetic_energy_relationship_error"]},
-                {"kind": "mcq", "id": "M3L2_D2", "prompt": "If mass doubles while speed stays the same, kinetic energy becomes...", "choices": ["twice as large", "four times as large", "half as large", "unchanged"], "answer_index": 0, "hint": "Mass changes kinetic energy directly, not as a square.", "tags": ["kinetic_energy_relationship_error"]},
-                {"kind": "short", "id": "M3L2_D3", "prompt": "A 2 kg trolley moves at 3 m/s. What kinetic energy does it have?", "accepted_answers": ["9 J", "9"], "hint": "Use KE = 0.5mv^2.", "tags": ["kinetic_energy_relationship_error"]},
-            ],
-            "inquiry": [
-                {"prompt": "Hold mass fixed and vary the speed.", "hint": "The motion store should grow rapidly as speed rises."},
-                {"prompt": "Hold speed fixed and vary the mass.", "hint": "The change is direct and proportional."},
-            ],
-            "recon_prompts": [
-                "Explain why doubling speed changes kinetic energy more strongly than doubling mass.",
-                "Explain why you cannot compare moving objects accurately by looking at speed alone.",
-            ],
-            "capsule_prompt": "Kinetic energy depends on mass and on speed squared.",
-            "capsule_checks": [
-                {"kind": "mcq", "id": "M3L2_C1", "prompt": "If speed doubles for the same mass, kinetic energy becomes...", "choices": ["four times as large", "twice as large", "half as large", "unchanged"], "answer_index": 0, "hint": "The speed term is squared.", "tags": ["kinetic_energy_relationship_error"]},
-                {"kind": "mcq", "id": "M3L2_C2", "prompt": "Which variable is squared in the kinetic energy equation?", "choices": ["speed", "mass", "time", "force"], "answer_index": 0, "hint": "Only the speed term is squared in KE = 0.5mv^2.", "tags": ["kinetic_energy_relationship_error"]},
-            ],
-            "transfer": [
-                {"kind": "short", "id": "M3L2_T1", "prompt": "A 4 kg cart moves at 5 m/s. What is its kinetic energy?", "accepted_answers": ["50 J", "50"], "hint": "Substitute into KE = 0.5mv^2.", "tags": ["kinetic_energy_relationship_error"]},
-                {"kind": "mcq", "id": "M3L2_T2", "prompt": "Which object has the larger kinetic energy?", "choices": ["a 2 kg object at 6 m/s", "a 4 kg object at 3 m/s", "they are equal", "there is not enough information because both are moving"], "answer_index": 0, "hint": "Estimate with the full equation, not one variable only.", "tags": ["kinetic_energy_relationship_error"]},
-                {"kind": "short", "id": "M3L2_T3", "prompt": "A 3 kg bicycle has 24 J of kinetic energy. If KE = 0.5mv^2, what is v^2?", "accepted_answers": ["16", "16 m^2/s^2"], "hint": "Rearrange 24 = 0.5 x 3 x v^2.", "tags": ["kinetic_energy_relationship_error", "energy_transfer_calculation_error"]},
-            ],
-            "contract": {
-                "concept_targets": [
-                    "Calculate kinetic energy using mass and speed.",
-                    "Explain the squared-speed relationship in comparisons.",
-                ],
-                "prerequisite_lessons": ["F3_L2", "M3_L1"],
-                "misconception_focus": ["kinetic_energy_relationship_error"],
-                "formulas": [
-                    {"equation": "KE = 0.5mv^2", "meaning": "Kinetic energy depends on how much mass is moving and how fast it is moving.", "units": ["J"], "conditions": "Use for translational motion when mass and speed are known."}
-                ],
-                "representations": [
-                    {"kind": "words", "purpose": "Explain why speed matters strongly in kinetic energy."},
-                    {"kind": "diagram", "purpose": "Show motion comparisons for different masses and speeds."},
-                    {"kind": "formula", "purpose": "Calculate kinetic energy numerically."},
-                ],
-                "analogy_map": {
-                    "comparison": "The motion vault stands for stored kinetic energy in a moving object.",
-                    "mapping": ["A heavier object stands for a larger mass term.", "A faster object fills the vault much more quickly because speed is squared."],
-                    "limit": "Energy is not a visible liquid filling a box.",
-                    "prediction_prompt": "If the same object doubles its speed, how should the motion vault change?",
-                },
-                "worked_examples": [
-                    {"prompt": "A 3 kg cart moves at 2 m/s. Find its kinetic energy.", "steps": ["Write KE = 0.5mv^2.", "Square the speed first.", "Multiply 0.5 x 3 x 4."], "final_answer": "6 J", "why_it_matters": "This keeps students from skipping the square."},
-                    {"prompt": "A learner says doubling mass and doubling speed have the same effect on kinetic energy. Evaluate the claim.", "steps": ["Compare the mass term with the squared-speed term.", "Notice that doubling mass doubles KE, but doubling speed multiplies KE by four.", "Conclude that the claim is wrong."], "final_answer": "The claim is wrong.", "why_it_matters": "This blocks the most common comparison error."},
-                ],
-                "visual_assets": [
-                    {"asset_id": "m3-l2-kinetic-energy", "concept": "energy_stores", "phase_key": "analogical_grounding", "title": "Kinetic energy depends on speed strongly", "purpose": "Show how mass and speed affect the motion store differently.", "caption": "Speed changes kinetic energy more strongly because it is squared."}
-                ],
-                "animation_assets": [
-                    {"asset_id": "m3-l2-kinetic-energy-anim", "concept": "energy_stores", "phase_key": "analogical_grounding", "title": "Motion store comparison", "description": "Animate mass and speed changes feeding the same kinetic-energy store.", "duration_sec": 8}
-                ],
-                "simulation_contract": {
-                    "asset_id": "m3_l2_kinetic_energy_lab",
-                    "concept": "energy_stores",
-                    "baseline_case": "Start with a 2 kg trolley moving at 4 m/s.",
-                    "comparison_tasks": ["Double the speed while keeping mass fixed.", "Double the mass while keeping speed fixed."],
-                    "watch_for": "Students should say speed is squared while mass changes kinetic energy directly.",
-                    "takeaway": "Kinetic energy depends on mass and especially on speed.",
-                },
-                "reflection_prompts": ["Explain why speed usually changes kinetic energy more dramatically than mass does."],
-                "mastery_skills": [
-                    "Calculate kinetic energy.",
-                    "Compare the effects of changing mass and speed.",
-                    "Use the squared-speed idea correctly.",
-                    "Reject one-variable comparison shortcuts.",
-                    "Rearrange simple kinetic-energy relationships.",
-                ],
-                "variation_plan": {
-                    "diagnostic": "Rotate speed-squared comparisons, direct calculations, and mass-versus-speed prompts.",
-                    "concept_gate": "Swap between numerical KE questions and qualitative comparison items.",
-                    "mastery": "Vary mass, speed, and rearrangement structure without repeating stems.",
-                },
-            },
-        },
-    ]
-)
-
-
-M3_SPEC["lessons"].extend(
-    [
-        {
-            "id": "M3_L5",
-            "title": "Efficiency",
-            "sim": {
-                "lab_id": "m3_efficiency_lab",
-                "title": "Efficiency explorer",
-                "description": "Compare useful output, wasted output, and total input in systems.",
-                "instructions": ["Keep total input fixed and change the useful output.", "Compare two devices with different useful fractions.", "Connect percentage efficiency to the same fraction written in decimal form."],
-                "outcomes": ["efficiency_calculation_error"],
-                "fields": ["total_input", "useful_output", "wasted_output", "efficiency_percent"],
-                "depth": "number of useful-output comparisons explained correctly as a fraction of total input",
-            },
-            "analogy_text": "Energy Ledger sends all input into a system, but only part reaches the useful-output lane. Efficiency measures that useful fraction.",
-            "commitment_prompt": "Check which quantity is total input, which is useful output, and which is the fraction you need to compare.",
-            "micro_prompts": [
-                {"prompt": "Compare 80 J useful from 100 J input with 80 J useful from 160 J input.", "hint": "The same useful output can correspond to different efficiencies if the total input changes."},
-                {"prompt": "Compare useful output and wasted output in one device.", "hint": "Wasted energy does not vanish; it is the part not counted as useful."},
-            ],
-            "diagnostic": [
-                {"kind": "mcq", "id": "M3L5_D1", "prompt": "Efficiency compares...", "choices": ["useful output with total input", "useful output with time only", "wasted output with mass only", "power with speed only"], "answer_index": 0, "hint": "Efficiency is a useful fraction, not a rate.", "tags": ["efficiency_calculation_error"]},
-                {"kind": "short", "id": "M3L5_D2", "prompt": "A machine takes in 200 J and gives 150 J usefully. What is its efficiency?", "accepted_answers": ["75%", "0.75"], "hint": "Efficiency = useful output / total input.", "tags": ["efficiency_calculation_error"]},
-                {"kind": "mcq", "id": "M3L5_D3", "prompt": "Which statement is true about efficiency?", "choices": ["it cannot be greater than 100%", "it is always larger for bigger machines", "it tells how fast a machine works", "it makes wasted energy disappear"], "answer_index": 0, "hint": "Useful output cannot exceed total input.", "tags": ["efficiency_calculation_error"]},
-            ],
-            "inquiry": [
-                {"prompt": "Hold total input fixed and raise the useful output.", "hint": "The useful fraction should rise."},
-                {"prompt": "Keep useful output fixed and raise the total input.", "hint": "The efficiency should fall because the fraction becomes smaller."},
-            ],
-            "recon_prompts": [
-                "Explain why efficiency is a fraction rather than a separate type of energy.",
-                "Explain why a machine can transfer a lot of energy and still be inefficient.",
-            ],
-            "capsule_prompt": "Efficiency asks what fraction of the total input becomes useful output.",
-            "capsule_checks": [
-                {"kind": "mcq", "id": "M3L5_C1", "prompt": "An efficiency of 60% means...", "choices": ["60% of the input becomes useful output", "40% of the input disappears", "the machine always outputs 60 J", "the machine has no wasted energy"], "answer_index": 0, "hint": "Efficiency compares useful output with the whole input.", "tags": ["efficiency_calculation_error"]},
-                {"kind": "mcq", "id": "M3L5_C2", "prompt": "If useful output stays the same but total input increases, efficiency becomes...", "choices": ["smaller", "larger", "unchanged", "exactly 100%"], "answer_index": 0, "hint": "The denominator gets larger while the numerator stays fixed.", "tags": ["efficiency_calculation_error"]},
-            ],
-            "transfer": [
-                {"kind": "short", "id": "M3L5_T1", "prompt": "A system takes in 2400 J and produces 1800 J usefully. What is the efficiency?", "accepted_answers": ["75%", "0.75"], "hint": "Divide useful output by total input.", "tags": ["efficiency_calculation_error"]},
-                {"kind": "short", "id": "M3L5_T2", "prompt": "A device is 40% efficient and receives 500 J. What useful output does it provide?", "accepted_answers": ["200 J", "200"], "hint": "Useful output = efficiency x total input.", "tags": ["efficiency_calculation_error", "energy_transfer_calculation_error"]},
-                {"kind": "mcq", "id": "M3L5_T3", "prompt": "Which device is more efficient?", "choices": ["the one giving 90 J useful from 100 J input", "the one giving 120 J useful from 160 J input", "they are equally efficient", "there is not enough information because the useful output values differ"], "answer_index": 0, "hint": "Compare useful fraction, not useful amount alone.", "tags": ["efficiency_calculation_error"]},
-            ],
-            "contract": {
-                "concept_targets": [
-                    "Calculate efficiency as useful output divided by total input.",
-                    "Interpret efficiency as a fraction or percentage without confusing it with power.",
-                ],
-                "prerequisite_lessons": ["F3_L3", "M3_L1", "M3_L4"],
-                "misconception_focus": ["efficiency_calculation_error"],
-                "formulas": [
-                    {"equation": "efficiency = useful output / total input", "meaning": "Efficiency compares the useful part with the full input.", "units": ["fraction"], "conditions": "Use when useful and total energy or power are known."},
-                    {"equation": "efficiency (%) = (useful output / total input) x 100", "meaning": "Percentage efficiency expresses the same fraction out of 100.", "units": ["%"], "conditions": "Use when reporting efficiency as a percentage."},
-                ],
-                "representations": [
-                    {"kind": "words", "purpose": "Explain useful output and wasted output clearly."},
-                    {"kind": "diagram", "purpose": "Show one input splitting into useful and wasted parts."},
-                    {"kind": "formula", "purpose": "Calculate efficiency and useful output numerically."},
-                ],
-                "analogy_map": {
-                    "comparison": "The useful-output lane stands for the share of the input that reaches the intended outcome.",
-                    "mapping": ["All input tokens represent the total input.", "Only the tokens reaching the useful lane count toward efficiency."],
-                    "limit": "Real systems do not sort energy into visible lanes.",
-                    "prediction_prompt": "If the useful output stays the same but the total input rises, what happens to the useful fraction?",
-                },
-                "worked_examples": [
-                    {"prompt": "A machine takes in 500 J and gives 350 J usefully. Find the efficiency.", "steps": ["Write efficiency = useful / total.", "Substitute 350 / 500.", "Convert to 0.70 or 70%."], "final_answer": "70%", "why_it_matters": "This anchors efficiency to a fraction of the whole input."},
-                    {"prompt": "A learner says an efficiency of 60% means 40% of the energy disappeared. Evaluate the claim.", "steps": ["Separate useful output from wasted output.", "Notice that the non-useful part is not counted as useful but is still transferred.", "Conclude that the claim is wrong."], "final_answer": "The claim is wrong.", "why_it_matters": "This blocks the common 'vanishing energy' misconception."},
-                ],
-                "visual_assets": [
-                    {"asset_id": "m3-l5-efficiency", "concept": "energy_stores", "phase_key": "analogical_grounding", "title": "Efficiency is a useful fraction", "purpose": "Show total input splitting into useful and wasted outputs.", "caption": "Efficiency compares the useful part with the whole input."}
-                ],
-                "animation_assets": [
-                    {"asset_id": "m3-l5-efficiency-anim", "concept": "energy_stores", "phase_key": "analogical_grounding", "title": "Useful versus wasted output", "description": "Animate the same input splitting into useful and wasted pathways.", "duration_sec": 8}
-                ],
-                "simulation_contract": {
-                    "asset_id": "m3_l5_efficiency_lab",
-                    "concept": "energy_stores",
-                    "baseline_case": "Start with 100 J input and 75 J useful output.",
-                    "comparison_tasks": ["Keep the input fixed and increase the useful output.", "Keep the useful output fixed and increase the total input."],
-                    "watch_for": "Students should compare useful output with total input rather than useful output alone.",
-                    "takeaway": "Efficiency is a useful fraction, not a separate store or a rate.",
-                },
-                "reflection_prompts": ["Explain why a large useful output does not automatically mean high efficiency."],
-                "mastery_skills": [
-                    "Calculate efficiency as a fraction or percentage.",
-                    "Calculate useful output from efficiency and total input.",
-                    "Compare devices by useful fraction.",
-                    "Separate useful and wasted output clearly.",
-                    "Reject impossible efficiency claims above 100%.",
-                ],
-                "variation_plan": {
-                    "diagnostic": "Rotate useful-fraction definitions, direct percentage calculations, and above-100% checks.",
-                    "concept_gate": "Swap between efficiency interpretation and useful-output calculation prompts.",
-                    "mastery": "Vary input, useful output, and decimal-versus-percent contexts without repeating stems.",
-                },
-            },
-        },
-        {
-            "id": "M3_L6",
-            "title": "Energy Transfer Calculations",
-            "sim": {
-                "lab_id": "m3_energy_transfer_calculations_lab",
-                "title": "Energy calculation planner",
-                "description": "Select and connect work, store, power, and efficiency relationships in multi-step problems.",
-                "instructions": ["Decide which equation fits a work story, a store story, a power story, or an efficiency story.", "Solve a calculation in stages instead of guessing one formula.", "Check that each answer keeps the units and physical meaning consistent."],
-                "outcomes": ["work_energy_transfer_confusion", "kinetic_energy_relationship_error", "gravitational_potential_energy_error", "power_rate_confusion", "efficiency_calculation_error", "energy_transfer_calculation_error"],
-                "fields": ["known_quantities", "chosen_equation", "intermediate_value", "final_answer"],
-                "depth": "number of multi-step energy problems solved by selecting and linking the correct equations",
-            },
-            "analogy_text": "Energy Ledger becomes a planning board in extended problems: first identify the story, then choose the right equation, then connect one result to the next step.",
-            "commitment_prompt": "Name the calculation type first: work, kinetic energy, gravitational potential energy, power, or efficiency.",
-            "micro_prompts": [
-                {"prompt": "Compare a pushing problem with a lifting problem.", "hint": "One starts with work done, the other may end with GPE or use GPE directly."},
-                {"prompt": "Compare a power-time question with an efficiency question.", "hint": "One asks about rate over time, while the other asks about useful fraction."},
-            ],
-            "diagnostic": [
-                {"kind": "mcq", "id": "M3L6_D1", "prompt": "Which equation best matches 'A 40 N force pushes an object 5 m'?", "choices": ["W = Fd", "KE = 0.5mv^2", "P = E / t", "efficiency = useful / total"], "answer_index": 0, "hint": "This is a force-through-distance story.", "tags": ["work_energy_transfer_confusion", "energy_transfer_calculation_error"]},
-                {"kind": "short", "id": "M3L6_D2", "prompt": "A 200 W machine runs for 5 s. How much energy is transferred?", "accepted_answers": ["1000 J", "1000"], "hint": "Use E = Pt.", "tags": ["power_rate_confusion", "energy_transfer_calculation_error"]},
-                {"kind": "short", "id": "M3L6_D3", "prompt": "A system is 25% efficient and takes in 400 J. What useful output does it deliver?", "accepted_answers": ["100 J", "100"], "hint": "Useful output = efficiency x total input.", "tags": ["efficiency_calculation_error", "energy_transfer_calculation_error"]},
-            ],
-            "inquiry": [
-                {"prompt": "Sort a set of problems by the first equation they need.", "hint": "The right first step depends on the physical story, not on which numbers look familiar."},
-                {"prompt": "Use one result as the next step in a two-stage calculation.", "hint": "Intermediate values often become the input for a second equation."},
-            ],
-            "recon_prompts": [
-                "Explain how you decide which energy equation to start with in a mixed problem.",
-                "Explain why unit checks help you catch wrong formula choices in extended calculations.",
-            ],
-            "capsule_prompt": "Extended energy questions are solved by identifying the story, choosing the equation, and checking the units.",
-            "capsule_checks": [
-                {"kind": "mcq", "id": "M3L6_C1", "prompt": "Which equation would you use first to find the height reached when GPE gain is known?", "choices": ["GPE = mgh", "W = Fd", "P = E / t", "efficiency = useful / total"], "answer_index": 0, "hint": "Start with the relationship that already contains GPE and height.", "tags": ["gravitational_potential_energy_error", "energy_transfer_calculation_error"]},
-                {"kind": "mcq", "id": "M3L6_C2", "prompt": "Which check is most useful after finishing a multi-step energy calculation?", "choices": ["whether the units and physical meaning fit the answer", "whether the numbers look large", "whether the answer is a multiple of 10", "whether the object is brightly colored"], "answer_index": 0, "hint": "Unit checks help catch wrong equation choices.", "tags": ["energy_transfer_calculation_error"]},
-            ],
-            "transfer": [
-                {"kind": "short", "id": "M3L6_T1", "prompt": "A 50 N force pushes a box 4 m. The transferred 200 J becomes gravitational potential energy for a 5 kg load. Use g = 10 N/kg. How high is the load lifted?", "accepted_answers": ["4 m", "4"], "hint": "Find the work first, then set that equal to GPE.", "tags": ["work_energy_transfer_confusion", "gravitational_potential_energy_error", "energy_transfer_calculation_error"]},
-                {"kind": "short", "id": "M3L6_T2", "prompt": "A 400 W hoist works for 15 s and is 60% efficient. How much useful energy output does it provide?", "accepted_answers": ["3600 J", "3600"], "hint": "Find total energy with E = Pt, then take 60% of it.", "tags": ["power_rate_confusion", "efficiency_calculation_error", "energy_transfer_calculation_error"]},
-                {"kind": "mcq", "id": "M3L6_T3", "prompt": "Which plan best solves 'A 2 kg trolley speeds up to 5 m/s, then compare its kinetic energy with the GPE needed to raise it 2.5 m using g = 10 N/kg'?", "choices": ["calculate KE with 0.5mv^2, calculate GPE with mgh, then compare the two values", "calculate power first because all energy problems start with rate", "calculate efficiency because every comparison is a useful fraction", "use only W = Fd because distance always matters most"], "answer_index": 0, "hint": "Pick the equation that matches each physical part of the story.", "tags": ["kinetic_energy_relationship_error", "gravitational_potential_energy_error", "energy_transfer_calculation_error"]},
-            ],
-            "contract": {
-                "concept_targets": [
-                    "Select the correct equation for each energy story in a mixed problem.",
-                    "Link equations across multi-step calculations while keeping units consistent.",
-                ],
-                "prerequisite_lessons": ["M3_L1", "M3_L2", "M3_L3", "M3_L4", "M3_L5"],
-                "misconception_focus": ["work_energy_transfer_confusion", "kinetic_energy_relationship_error", "gravitational_potential_energy_error", "power_rate_confusion", "efficiency_calculation_error", "energy_transfer_calculation_error"],
-                "formulas": [
-                    {"equation": "W = Fd", "meaning": "Use this when force causes displacement.", "units": ["J"], "conditions": "Use when force and displacement are aligned."},
-                    {"equation": "KE = 0.5mv^2", "meaning": "Use this for motion energy.", "units": ["J"], "conditions": "Use when mass and speed are known."},
-                    {"equation": "GPE = mgh", "meaning": "Use this for height-related energy gain.", "units": ["J"], "conditions": "Use near Earth's surface for height changes."},
-                    {"equation": "P = E / t and E = Pt", "meaning": "Use these when transfer rate and time are involved.", "units": ["W", "J"], "conditions": "Use when the story is about rate over time."},
-                    {"equation": "efficiency = useful output / total input", "meaning": "Use this when the story is about useful fraction.", "units": ["fraction", "%"], "conditions": "Use when useful and total values are both known or linked."},
-                ],
-                "representations": [
-                    {"kind": "words", "purpose": "Explain the formula-selection plan before calculating."},
-                    {"kind": "table", "purpose": "Organize known quantities, chosen equations, and intermediate values."},
-                    {"kind": "formula", "purpose": "Carry out multi-step energy calculations accurately."},
-                ],
-                "analogy_map": {
-                    "comparison": "The planning board version of Energy Ledger stands for sorting mixed problems into the right energy story before calculating.",
-                    "mapping": ["Each column on the board stands for one equation family.", "An intermediate result moving to the next column stands for a multi-step calculation."],
-                    "limit": "Real problem solving is more flexible than moving tokens between fixed columns.",
-                    "prediction_prompt": "If a problem gives force and distance first, which column should you use before anything else?",
-                },
-                "worked_examples": [
-                    {"prompt": "A 300 W machine runs for 12 s. Find the total energy transferred, then find the useful output if it is 50% efficient.", "steps": ["Use E = Pt to find total energy: 300 x 12 = 3600 J.", "Use efficiency as 0.50 of the total input.", "Calculate useful output as 1800 J."], "final_answer": "1800 J", "why_it_matters": "This models how one equation can feed the next step."},
-                    {"prompt": "A learner solves a lifting problem with P = E / t even though no time is given. Evaluate the plan.", "steps": ["Look at the physical story and the quantities given.", "Notice that the problem is about height gain, not rate over time.", "Choose GPE = mgh instead."], "final_answer": "The plan is wrong because the equation does not match the story.", "why_it_matters": "This trains formula selection instead of number matching."},
-                ],
-                "visual_assets": [
-                    {"asset_id": "m3-l6-energy-transfer-calculations", "concept": "power_rate", "phase_key": "analogical_grounding", "title": "Choose the right energy equation", "purpose": "Show mixed energy stories being sorted into work, stores, power, and efficiency.", "caption": "Extended problems start with equation choice, not guesswork."}
-                ],
-                "animation_assets": [
-                    {"asset_id": "m3-l6-energy-transfer-calculations-anim", "concept": "power_rate", "phase_key": "analogical_grounding", "title": "Multi-step energy planning", "description": "Animate one result feeding the next equation in a multi-step energy problem.", "duration_sec": 8}
-                ],
-                "simulation_contract": {
-                    "asset_id": "m3_l6_energy_transfer_calculations_lab",
-                    "concept": "power_rate",
-                    "baseline_case": "Start with one energy-and-time story, then connect its result to a second step.",
-                    "comparison_tasks": ["Choose the first equation for several different energy stories.", "Use one intermediate answer to complete a second calculation."],
-                    "watch_for": "Students should select equations by physical meaning and check units after each step.",
-                    "takeaway": "Extended energy calculations are solved by matching the story to the right relationship and linking steps carefully.",
-                },
-                "reflection_prompts": ["Explain how you decide whether a mixed problem starts with work, a store equation, power, or efficiency."],
-                "mastery_skills": [
-                    "Choose the correct energy equation from context.",
-                    "Carry out two-step energy calculations.",
-                    "Link intermediate answers into a second equation.",
-                    "Check units and physical meaning at each step.",
-                    "Avoid number-matching shortcuts when selecting formulas.",
-                ],
-                "variation_plan": {
-                    "diagnostic": "Rotate first-equation choice, direct E = Pt, and useful-output prompts.",
-                    "concept_gate": "Swap between unit-check questions and two-step calculation plans.",
-                    "mastery": "Blend work, store, power, and efficiency stories so formula choice must stay deliberate.",
-                },
-            },
-        },
-    ]
-)
-
-
-M3_SPEC["lessons"].extend(
-    [
-        {
-            "id": "M3_L3",
-            "title": "Gravitational Potential Energy",
-            "sim": {
-                "lab_id": "m3_gravitational_potential_energy_lab",
-                "title": "Height store explorer",
-                "description": "Compare how mass and height change gravitational potential energy.",
-                "instructions": ["Keep mass fixed and change the height.", "Keep height fixed and change the mass.", "Compare equal height gains for different masses."],
-                "outcomes": ["gravitational_potential_energy_error"],
-                "fields": ["mass", "height", "field_strength", "gpe_gain"],
-                "depth": "number of mass-height comparisons explained correctly with the mgh relationship",
-            },
-            "analogy_text": "Energy Ledger stores gravitational potential energy on a height shelf. Raising the object or increasing its mass increases the stored amount.",
-            "commitment_prompt": "Check whether the question is about mass, gravitational field strength, height, or a combination of them.",
-            "micro_prompts": [
-                {"prompt": "Compare doubling the mass with doubling the height.", "hint": "Both changes double gravitational potential energy if the other variables stay fixed."},
-                {"prompt": "Compare lifting two objects to the same shelf height.", "hint": "The heavier object gains more gravitational potential energy."},
-            ],
-            "diagnostic": [
-                {"kind": "mcq", "id": "M3L3_D1", "prompt": "Gravitational potential energy increases most directly when...", "choices": ["height increases", "color changes", "time passes", "speed stays constant"], "answer_index": 0, "hint": "Height above the reference level matters in GPE.", "tags": ["gravitational_potential_energy_error"]},
-                {"kind": "mcq", "id": "M3L3_D2", "prompt": "If mass doubles while height stays the same, gravitational potential energy becomes...", "choices": ["twice as large", "four times as large", "half as large", "unchanged"], "answer_index": 0, "hint": "GPE changes directly with mass.", "tags": ["gravitational_potential_energy_error"]},
-                {"kind": "short", "id": "M3L3_D3", "prompt": "A 3 kg object is raised 5 m. Use g = 10 N/kg. What GPE gain occurs?", "accepted_answers": ["150 J", "150"], "hint": "Use GPE = mgh.", "tags": ["gravitational_potential_energy_error"]},
-            ],
-            "inquiry": [
-                {"prompt": "Hold mass fixed and vary the height.", "hint": "Watch the height shelf rise in direct proportion."},
-                {"prompt": "Hold height fixed and vary the mass.", "hint": "Heavier objects gain more energy at the same height."},
-            ],
-            "recon_prompts": [
-                "Explain why doubling height and doubling mass can produce the same proportional change in GPE.",
-                "Explain what the gravitational field strength contributes in the mgh relationship.",
-            ],
-            "capsule_prompt": "Gravitational potential energy depends on mass, field strength, and height.",
-            "capsule_checks": [
-                {"kind": "mcq", "id": "M3L3_C1", "prompt": "If height doubles while mass and g stay the same, GPE becomes...", "choices": ["twice as large", "four times as large", "half as large", "unchanged"], "answer_index": 0, "hint": "GPE is directly proportional to height.", "tags": ["gravitational_potential_energy_error"]},
-                {"kind": "mcq", "id": "M3L3_C2", "prompt": "In GPE = mgh, the symbol g stands for...", "choices": ["gravitational field strength", "grams", "gradient", "graph"], "answer_index": 0, "hint": "g describes the strength of the gravitational field.", "tags": ["gravitational_potential_energy_error"]},
-            ],
-            "transfer": [
-                {"kind": "short", "id": "M3L3_T1", "prompt": "An 8 kg box is lifted onto a shelf 2 m high. Use g = 10 N/kg. What GPE gain occurs?", "accepted_answers": ["160 J", "160"], "hint": "Multiply mass, field strength, and height.", "tags": ["gravitational_potential_energy_error"]},
-                {"kind": "mcq", "id": "M3L3_T2", "prompt": "Which object gains more GPE when lifted through the same height?", "choices": ["the heavier object", "the lighter object", "both gain the same regardless of mass", "the object with the brighter color"], "answer_index": 0, "hint": "At the same height, larger mass means larger GPE gain.", "tags": ["gravitational_potential_energy_error"]},
-                {"kind": "short", "id": "M3L3_T3", "prompt": "A 5 kg climber gains 250 J of GPE. Use g = 10 N/kg. How high did the climber rise?", "accepted_answers": ["5 m", "5"], "hint": "Rearrange 250 = 5 x 10 x h.", "tags": ["gravitational_potential_energy_error", "energy_transfer_calculation_error"]},
-            ],
-            "contract": {
-                "concept_targets": [
-                    "Calculate gravitational potential energy from mass, g, and height.",
-                    "Explain direct proportionality in the mgh relationship.",
-                ],
-                "prerequisite_lessons": ["F3_L2", "M3_L1"],
-                "misconception_focus": ["gravitational_potential_energy_error"],
-                "formulas": [
-                    {"equation": "GPE = mgh", "meaning": "Gravitational potential energy depends on mass, field strength, and height gain.", "units": ["J"], "conditions": "Use near Earth's surface for height changes."}
-                ],
-                "representations": [
-                    {"kind": "words", "purpose": "Explain why lifted objects gain gravitational potential energy."},
-                    {"kind": "diagram", "purpose": "Show height gain and reference level clearly."},
-                    {"kind": "formula", "purpose": "Calculate GPE numerically."},
-                ],
-                "analogy_map": {
-                    "comparison": "The height shelf stands for stored gravitational potential energy.",
-                    "mapping": ["Higher placement stands for larger height gain.", "A heavier object stands for a larger mass term on the shelf."],
-                    "limit": "Energy is not literally stacked on a visible shelf.",
-                    "prediction_prompt": "If two objects rise through the same height, what happens when one has twice the mass?",
-                },
-                "worked_examples": [
-                    {"prompt": "A 4 kg bag is lifted 3 m. Use g = 10 N/kg. Find the GPE gain.", "steps": ["Write GPE = mgh.", "Substitute 4, 10, and 3.", "Multiply to get 120."], "final_answer": "120 J", "why_it_matters": "This anchors the three-factor structure of the equation."},
-                    {"prompt": "A learner says doubling height matters but doubling mass does not. Evaluate the claim.", "steps": ["Inspect the m and h terms in GPE = mgh.", "Notice that both mass and height affect GPE directly.", "Conclude that the claim is wrong."], "final_answer": "The claim is wrong.", "why_it_matters": "This blocks one-variable reasoning in GPE problems."},
-                ],
-                "visual_assets": [
-                    {"asset_id": "m3-l3-gravitational-potential-energy", "concept": "energy_stores", "phase_key": "analogical_grounding", "title": "Height changes gravitational potential energy", "purpose": "Show how mass and height change the height store.", "caption": "Gravitational potential energy grows with mass and height."}
-                ],
-                "animation_assets": [
-                    {"asset_id": "m3-l3-gravitational-potential-energy-anim", "concept": "energy_stores", "phase_key": "analogical_grounding", "title": "Height store comparison", "description": "Animate objects rising to different heights and masses on the height store.", "duration_sec": 8}
-                ],
-                "simulation_contract": {
-                    "asset_id": "m3_l3_gravitational_potential_energy_lab",
-                    "concept": "energy_stores",
-                    "baseline_case": "Start with a 2 kg object lifted 3 m using g = 10 N/kg.",
-                    "comparison_tasks": ["Double the height while keeping mass fixed.", "Double the mass while keeping height fixed."],
-                    "watch_for": "Students should keep the three factors of mgh separate and proportional.",
-                    "takeaway": "Gravitational potential energy depends on mass, field strength, and height.",
-                },
-                "reflection_prompts": ["Explain why the same height gain does not give every object the same GPE gain."],
-                "mastery_skills": [
-                    "Calculate GPE.",
-                    "Compare mass and height effects directly.",
-                    "Use g correctly in simple problems.",
-                    "Rearrange the mgh relationship.",
-                    "Reject one-variable-only explanations.",
-                ],
-                "variation_plan": {
-                    "diagnostic": "Rotate direct calculations, proportionality comparisons, and g-meaning prompts.",
-                    "concept_gate": "Swap between numerical GPE items and mass-versus-height reasoning.",
-                    "mastery": "Vary mass, height, and rearrangement steps without repeating the same story.",
-                },
-            },
-        },
-        {
-            "id": "M3_L4",
-            "title": "Power Equations",
-            "sim": {
-                "lab_id": "m3_power_equations_lab",
-                "title": "Power rate explorer",
-                "description": "Compare the same energy transfer across different times and rates.",
-                "instructions": ["Keep energy fixed and change the time.", "Keep time fixed and change the energy transferred.", "Compare power and total energy as separate ideas."],
-                "outcomes": ["power_rate_confusion", "energy_transfer_calculation_error"],
-                "fields": ["energy_transferred", "time_taken", "power", "rate_reasoning"],
-                "depth": "number of energy-time comparisons explained correctly through transfer rate",
-            },
-            "analogy_text": "The Rate Meter on Energy Ledger shows how many joules are transferred each second. Power is transfer rate, not total energy itself.",
-            "commitment_prompt": "Decide whether the question asks for total energy, time, or transfer rate before choosing the equation.",
-            "micro_prompts": [
-                {"prompt": "Compare 600 J transferred in 10 s with 600 J transferred in 20 s.", "hint": "The total is the same, but the rate is different."},
-                {"prompt": "Compare 300 J in 5 s with 600 J in 10 s.", "hint": "Different numbers can still produce the same power if the ratio matches."},
-            ],
-            "diagnostic": [
-                {"kind": "mcq", "id": "M3L4_D1", "prompt": "Power tells you...", "choices": ["energy transferred each second", "total energy only", "mass multiplied by height", "the useful fraction only"], "answer_index": 0, "hint": "Power is a rate of energy transfer.", "tags": ["power_rate_confusion"]},
-                {"kind": "short", "id": "M3L4_D2", "prompt": "A motor transfers 240 J in 12 s. What power does it have?", "accepted_answers": ["20 W", "20"], "hint": "Use P = E / t.", "tags": ["power_rate_confusion"]},
-                {"kind": "mcq", "id": "M3L4_D3", "prompt": "Two machines transfer the same energy, but one does it in less time. Which is more powerful?", "choices": ["the faster one", "the slower one", "they are equally powerful", "the heavier one"], "answer_index": 0, "hint": "Less time for the same energy means a greater rate.", "tags": ["power_rate_confusion"]},
-            ],
-            "inquiry": [
-                {"prompt": "Keep the total energy the same and change only the time.", "hint": "The rate meter changes even when the total stays fixed."},
-                {"prompt": "Keep time fixed and increase the energy transferred.", "hint": "A larger numerator means a larger rate."},
-            ],
-            "recon_prompts": [
-                "Explain why power and total energy are related but not identical quantities.",
-                "Explain how the same power can come from different energy-time pairs.",
-            ],
-            "capsule_prompt": "Power is joules per second, so the equation depends on both energy and time.",
-            "capsule_checks": [
-                {"kind": "mcq", "id": "M3L4_C1", "prompt": "If the same energy is transferred in half the time, the power is...", "choices": ["twice as large", "half as large", "unchanged", "zero"], "answer_index": 0, "hint": "For fixed energy, less time means higher power.", "tags": ["power_rate_confusion"]},
-                {"kind": "mcq", "id": "M3L4_C2", "prompt": "1 watt is equal to...", "choices": ["1 joule per second", "1 joule per kilogram", "1 newton per metre", "1 second per joule"], "answer_index": 0, "hint": "A watt measures energy transferred each second.", "tags": ["power_rate_confusion"]},
-            ],
-            "transfer": [
-                {"kind": "short", "id": "M3L4_T1", "prompt": "A heater transfers 1800 J in 30 s. What power does it use?", "accepted_answers": ["60 W", "60"], "hint": "Divide energy by time.", "tags": ["power_rate_confusion"]},
-                {"kind": "short", "id": "M3L4_T2", "prompt": "A machine runs at 50 W for 8 s. How much energy does it transfer?", "accepted_answers": ["400 J", "400"], "hint": "Use E = Pt.", "tags": ["power_rate_confusion", "energy_transfer_calculation_error"]},
-                {"kind": "mcq", "id": "M3L4_T3", "prompt": "Which device is more powerful?", "choices": ["the one transferring 900 J in 15 s", "the one transferring 900 J in 30 s", "they are the same", "the answer depends only on mass"], "answer_index": 0, "hint": "Compare energy per second, not energy alone.", "tags": ["power_rate_confusion"]},
-            ],
-            "contract": {
-                "concept_targets": [
-                    "Use power as the rate of energy transfer.",
-                    "Move flexibly between P = E / t and E = Pt.",
-                ],
-                "prerequisite_lessons": ["F3_L3", "M3_L1"],
-                "misconception_focus": ["power_rate_confusion", "energy_transfer_calculation_error"],
-                "formulas": [
-                    {"equation": "P = E / t", "meaning": "Power is the rate at which energy is transferred.", "units": ["W", "J/s"], "conditions": "Use when total energy transfer and time are known."},
-                    {"equation": "E = Pt", "meaning": "Total energy transferred equals power multiplied by time.", "units": ["J"], "conditions": "Use when power is steady over the time interval."},
-                ],
-                "representations": [
-                    {"kind": "words", "purpose": "Explain transfer rate in plain language."},
-                    {"kind": "table", "purpose": "Compare energy, time, and power across several devices."},
-                    {"kind": "formula", "purpose": "Calculate power or energy numerically."},
-                ],
-                "analogy_map": {
-                    "comparison": "The Rate Meter stands for how quickly the ledger records transferred energy.",
-                    "mapping": ["A faster ticking meter stands for larger power.", "A longer run time stands for more time over which transfer continues."],
-                    "limit": "A real system does not contain a literal meter deciding its power.",
-                    "prediction_prompt": "If two devices transfer the same energy but one does it faster, what changes?",
-                },
-                "worked_examples": [
-                    {"prompt": "A heater transfers 900 J in 15 s. Find the power.", "steps": ["Write P = E / t.", "Substitute 900 and 15.", "Divide to get 60."], "final_answer": "60 W", "why_it_matters": "This ties power directly to rate."},
-                    {"prompt": "A learner says power and total energy are the same thing. Evaluate the claim.", "steps": ["Recall that power measures energy per second.", "Notice that total energy also depends on how long the transfer lasts.", "Conclude that the claim is wrong."], "final_answer": "The claim is wrong.", "why_it_matters": "This prevents students from collapsing rate into amount."},
-                ],
-                "visual_assets": [
-                    {"asset_id": "m3-l4-power-equations", "concept": "power_rate", "phase_key": "analogical_grounding", "title": "Power compares transfer rate", "purpose": "Show the same energy transferred over different times.", "caption": "Power is how fast energy is transferred."}
-                ],
-                "animation_assets": [
-                    {"asset_id": "m3-l4-power-equations-anim", "concept": "power_rate", "phase_key": "analogical_grounding", "title": "Rate meter comparison", "description": "Animate identical energy transfers happening over different time intervals.", "duration_sec": 8}
-                ],
-                "simulation_contract": {
-                    "asset_id": "m3_l4_power_equations_lab",
-                    "concept": "power_rate",
-                    "baseline_case": "Start with 600 J transferred in 20 s.",
-                    "comparison_tasks": ["Keep energy fixed and shorten the time.", "Keep time fixed and increase the energy transferred."],
-                    "watch_for": "Students should keep total energy separate from the rate of transfer.",
-                    "takeaway": "Power tells how quickly energy is transferred.",
-                },
-                "reflection_prompts": ["Explain how two devices can transfer different total energies yet have the same power."],
-                "mastery_skills": [
-                    "Calculate power from energy and time.",
-                    "Calculate energy from power and time.",
-                    "Interpret watts as joules per second.",
-                    "Compare rates qualitatively.",
-                    "Avoid confusing amount with rate.",
-                ],
-                "variation_plan": {
-                    "diagnostic": "Rotate rate-definition, direct P = E / t, and same-energy-different-time prompts.",
-                    "concept_gate": "Swap between unit-meaning checks and rearrangement questions.",
-                    "mastery": "Vary energy, time, and rate-comparison contexts without repeating the same stem.",
-                },
-            },
-        },
-    ]
-)
-
-
-M3_SPEC["lessons"] = sorted(
-    M3_SPEC["lessons"],
-    key=lambda lesson: int(str(lesson["id"]).split("_L")[-1]),
-)
-
-
-M3_SCAFFOLD_SUPPORT = {
-    "M3_L1": {
-        "core_idea": "Work done is energy transferred only when a force causes displacement in the force direction.",
-        "reasoning": "Check the physical story before using W = Fd. First ask whether the object actually moves. Then decide whether the force is the one causing that displacement. Only after both pieces are true should you multiply force by distance.",
-        "check_for_understanding": "If a large force acts for a long time but the object never moves, what happens to the work done on that object?",
-        "common_trap": "Do not confuse effort or difficulty with work done. Force by itself is not enough.",
-        "analogy_bridge": {
-            "body": "Use the Energy Ledger carefully: a force can be present without creating a ledger entry. Tokens appear only when the push actually moves the object through a distance in the push direction.",
-            "check_for_understanding": "In the ledger picture, what has to happen before any transfer token is recorded?",
-        },
-        "extra_sections": [],
-    },
-    "M3_L2": {
-        "core_idea": "Kinetic energy depends on mass and speed, and speed changes it more strongly because the speed term is squared.",
-        "reasoning": "Name the quantity first, then use KE = 0.5mv^2. Square the speed before multiplying. When comparing cases, check whether mass changed directly or speed changed through the squared term.",
-        "check_for_understanding": "If the same trolley doubles its speed, does its kinetic energy double or change more strongly than that?",
-        "common_trap": "Do not treat doubling mass and doubling speed as equivalent changes in kinetic energy.",
-        "analogy_bridge": {
-            "body": "In the motion-vault analogy, speed is the bigger lever because the vault grows with the squared speed term, not with speed alone.",
-            "check_for_understanding": "What makes the motion vault grow faster: doubling mass or doubling speed?",
-        },
-        "extra_sections": [],
-    },
-    "M3_L3": {
-        "core_idea": "Gravitational potential energy gain depends on mass, gravitational field strength, and height change together.",
-        "reasoning": "Check whether the story is about lifting through a height, then use GPE = mgh. Keep mass, g, and height separate so you can see which variable changed and whether the change is direct or proportional.",
-        "check_for_understanding": "If height stays the same and mass doubles, what happens to the GPE gain?",
-        "common_trap": "Do not reduce a height-store question to height alone and ignore mass or g.",
-        "analogy_bridge": {
-            "body": "The height-shelf picture works only when you keep all three factors visible: heavier objects and higher shelves both increase the stored amount.",
-            "check_for_understanding": "In the shelf picture, which two changes clearly increase the stored amount?",
-        },
-        "extra_sections": [],
-    },
-    "M3_L4": {
-        "core_idea": "Power is the rate of energy transfer, so it tells how quickly work is done or energy is transferred, not how much in total.",
-        "reasoning": "Decide whether the question asks for rate, total energy, or time. Use P = E / t for rate and E = Pt for total transfer. Keep the rate story separate from the total amount story all the way through the calculation.",
-        "check_for_understanding": "Can two devices have the same power but transfer different total energies?",
-        "common_trap": "Do not treat power as another name for energy.",
-        "analogy_bridge": {
-            "body": "The Rate Meter on the ledger counts joules each second, so it tracks how fast transfer happens rather than the full transfer stored over a longer interval.",
-            "check_for_understanding": "What does the meter show in the ledger picture: total energy or energy each second?",
-        },
-        "extra_sections": [],
-    },
-    "M3_L5": {
-        "core_idea": "Efficiency compares useful output with total input, so it is a fraction or percentage of how much transfer ends up useful.",
-        "reasoning": "Identify the useful output and the total input before doing any division. Divide useful by total, then convert to a percentage only if the question wants percent form. Keep efficiency separate from power and total energy.",
-        "check_for_understanding": "If a device is 100% efficient, what does that say about useful output compared with total input?",
-        "common_trap": "Do not subtract input and output first, and do not confuse efficiency with speed or power.",
-        "analogy_bridge": {
-            "body": "In the Energy Ledger, efficiency is the useful-share fraction, not the full size of the ledger entry. A large total transfer can still have poor efficiency if only a small share is useful.",
-            "check_for_understanding": "Can a large total transfer still have low efficiency in the ledger picture?",
-        },
-        "extra_sections": [],
-    },
-    "M3_L6": {
-        "core_idea": "Extended energy problems are solved by choosing the right equation from the physical story, then linking one justified result into the next step.",
-        "reasoning": "Sort the story first: work, kinetic energy, gravitational potential energy, power, or efficiency. Use the equation that matches that part of the story, carry units through each step, and only then feed the intermediate result into the next relation.",
-        "check_for_understanding": "If a problem starts by giving force and distance, which equation family should you consider before anything else?",
-        "common_trap": "Do not grab the first familiar formula from the page and hope the numbers fit.",
-        "analogy_bridge": {
-            "body": "The planning-board version of the ledger is useful because each column stands for a different energy story. The job is to choose the right column first, not to chase numbers without meaning.",
-            "check_for_understanding": "What does choosing the right board column represent in the real calculation?",
-        },
-        "extra_sections": [],
-    },
-}
-
-
-def _ensure_worked_example_reason(example: dict) -> dict:
-    enriched = deepcopy(example)
-    if str(enriched.get("answer_reason") or "").strip():
-        return enriched
-
-    final_answer = str(enriched.get("final_answer") or "").strip()
-    steps = [str(step).strip() for step in enriched.get("steps") or [] if str(step).strip()]
-    why_it_matters = str(enriched.get("why_it_matters") or "").strip()
-
-    if steps:
-        enriched["answer_reason"] = steps[-1]
-    elif why_it_matters:
-        enriched["answer_reason"] = why_it_matters
-    elif final_answer:
-        enriched["answer_reason"] = f"That is why the correct answer is {final_answer}."
-    else:
-        enriched["answer_reason"] = "The reasoning steps lead directly to the stated answer."
-    return enriched
-
-
-for lesson in M3_SPEC["lessons"]:
-    lesson_id = str(lesson["id"])
-    contract = dict(lesson["contract"])
-    contract["scaffold_support"] = deepcopy(M3_SCAFFOLD_SUPPORT[lesson_id])
-    contract["worked_examples"] = [_ensure_worked_example_reason(example) for example in contract["worked_examples"]]
-    lesson["contract"] = contract
 
 
 RELEASE_CHECKS = [
-    "Every formula is taught with meaning, units, and conditions before mastery uses it.",
-    "Every lesson includes a generated visual asset and a usable simulation contract.",
-    "Work, stores, power, and efficiency stay distinct instead of collapsing into one slogan.",
-    "Extended calculation prompts require correct equation choice, substitution, and unit checks.",
+    "Every lesson keeps stores, hand-offs, rate, and yield conceptually distinct before combining equations.",
+    "Every worked example states why the final answer follows instead of stopping at substitution only.",
+    "Every simulation contract requires at least one comparison and at least one ledger-style explanation.",
+    "Every mixed mission demands justified equation choice and explicit leak accounting rather than formula grabbing.",
 ]
 
 
 M3_MODULE_DOC, M3_LESSONS, M3_SIM_LABS = build_nextgen_module_bundle(
     module_id=M3_MODULE_ID,
-    module_title="Energy, Work & Power",
+    module_title=M3_MODULE_TITLE,
     module_spec=M3_SPEC,
     allowlist=M3_ALLOWLIST,
     content_version=M3_CONTENT_VERSION,
     release_checks=RELEASE_CHECKS,
     sequence=7,
     level="Module 3",
-    estimated_minutes=225,
+    estimated_minutes=270,
     plan_assets=True,
     public_base="/lesson_assets",
 )
@@ -792,7 +1979,10 @@ def main() -> None:
     if args.compile_assets:
         render_module_assets(lesson_pairs, sim_pairs, asset_root=asset_root, public_base=args.public_base)
 
-    plan: List[Tuple[str, str]] = [("modules", M3_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in lesson_pairs] + [("sim_labs", doc_id) for doc_id, _ in sim_pairs]
+    plan: List[Tuple[str, str]] = [("modules", M3_MODULE_ID)]
+    plan.extend(("lessons", doc_id) for doc_id, _ in lesson_pairs)
+    plan.extend(("sim_labs", doc_id) for doc_id, _ in sim_pairs)
+
     print(f"Project: {project}")
     print(f"Mode: {'APPLY (writes enabled)' if apply else 'DRY RUN (no writes)'}")
     if args.compile_assets:

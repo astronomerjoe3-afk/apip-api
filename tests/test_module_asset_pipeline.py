@@ -51,7 +51,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m3_bundle_includes_planned_generated_assets(self) -> None:
         self.assertEqual(M3_MODULE_DOC["id"], "M3")
-        self.assertEqual(M3_MODULE_DOC["title"], "Energy, Work & Power")
+        self.assertEqual(M3_MODULE_DOC["title"], "Energy Stores, Hand-offs & Ledger Reasoning")
         self.assertEqual(M3_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v2")
         self.assertEqual(len(M3_LESSONS), 6)
         self.assertEqual(len(M3_SIM_LABS), 6)
@@ -67,7 +67,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
         self.assertEqual(
             lesson["phases"]["simulation_inquiry"]["generated_lab"]["url"],
-            "/lesson_assets/M3/M3_L1/simulations/m3_work_transfer_lab/index.html",
+            "/lesson_assets/M3/M3_L1/simulations/m3_lift_launch_ledger_lab/index.html",
         )
 
     def test_m3_v2_contract_includes_scaffold_support_and_answer_reasons(self) -> None:
@@ -86,13 +86,17 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m3_curriculum_scope_stays_on_energy_work_and_power(self) -> None:
         mastery_text = " ".join(M3_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M3_MODULE_DOC.get("description") or "").lower()
         self.assertIn("kinetic energy", mastery_text)
         self.assertIn("gravitational potential energy", mastery_text)
         self.assertIn("power", mastery_text)
         self.assertIn("efficiency", mastery_text)
+        self.assertIn("ledger", description_text)
+        self.assertIn("hand-off", description_text)
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("resistance", mastery_text)
         self.assertNotIn("circuit", mastery_text)
+        self.assertNotIn("momentum", mastery_text)
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
