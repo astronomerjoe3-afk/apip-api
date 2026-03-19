@@ -650,6 +650,104 @@ M3_SPEC["lessons"] = sorted(
 )
 
 
+M3_SCAFFOLD_SUPPORT = {
+    "M3_L1": {
+        "core_idea": "Work done is energy transferred only when a force causes displacement in the force direction.",
+        "reasoning": "Check the physical story before using W = Fd. First ask whether the object actually moves. Then decide whether the force is the one causing that displacement. Only after both pieces are true should you multiply force by distance.",
+        "check_for_understanding": "If a large force acts for a long time but the object never moves, what happens to the work done on that object?",
+        "common_trap": "Do not confuse effort or difficulty with work done. Force by itself is not enough.",
+        "analogy_bridge": {
+            "body": "Use the Energy Ledger carefully: a force can be present without creating a ledger entry. Tokens appear only when the push actually moves the object through a distance in the push direction.",
+            "check_for_understanding": "In the ledger picture, what has to happen before any transfer token is recorded?",
+        },
+        "extra_sections": [],
+    },
+    "M3_L2": {
+        "core_idea": "Kinetic energy depends on mass and speed, and speed changes it more strongly because the speed term is squared.",
+        "reasoning": "Name the quantity first, then use KE = 0.5mv^2. Square the speed before multiplying. When comparing cases, check whether mass changed directly or speed changed through the squared term.",
+        "check_for_understanding": "If the same trolley doubles its speed, does its kinetic energy double or change more strongly than that?",
+        "common_trap": "Do not treat doubling mass and doubling speed as equivalent changes in kinetic energy.",
+        "analogy_bridge": {
+            "body": "In the motion-vault analogy, speed is the bigger lever because the vault grows with the squared speed term, not with speed alone.",
+            "check_for_understanding": "What makes the motion vault grow faster: doubling mass or doubling speed?",
+        },
+        "extra_sections": [],
+    },
+    "M3_L3": {
+        "core_idea": "Gravitational potential energy gain depends on mass, gravitational field strength, and height change together.",
+        "reasoning": "Check whether the story is about lifting through a height, then use GPE = mgh. Keep mass, g, and height separate so you can see which variable changed and whether the change is direct or proportional.",
+        "check_for_understanding": "If height stays the same and mass doubles, what happens to the GPE gain?",
+        "common_trap": "Do not reduce a height-store question to height alone and ignore mass or g.",
+        "analogy_bridge": {
+            "body": "The height-shelf picture works only when you keep all three factors visible: heavier objects and higher shelves both increase the stored amount.",
+            "check_for_understanding": "In the shelf picture, which two changes clearly increase the stored amount?",
+        },
+        "extra_sections": [],
+    },
+    "M3_L4": {
+        "core_idea": "Power is the rate of energy transfer, so it tells how quickly work is done or energy is transferred, not how much in total.",
+        "reasoning": "Decide whether the question asks for rate, total energy, or time. Use P = E / t for rate and E = Pt for total transfer. Keep the rate story separate from the total amount story all the way through the calculation.",
+        "check_for_understanding": "Can two devices have the same power but transfer different total energies?",
+        "common_trap": "Do not treat power as another name for energy.",
+        "analogy_bridge": {
+            "body": "The Rate Meter on the ledger counts joules each second, so it tracks how fast transfer happens rather than the full transfer stored over a longer interval.",
+            "check_for_understanding": "What does the meter show in the ledger picture: total energy or energy each second?",
+        },
+        "extra_sections": [],
+    },
+    "M3_L5": {
+        "core_idea": "Efficiency compares useful output with total input, so it is a fraction or percentage of how much transfer ends up useful.",
+        "reasoning": "Identify the useful output and the total input before doing any division. Divide useful by total, then convert to a percentage only if the question wants percent form. Keep efficiency separate from power and total energy.",
+        "check_for_understanding": "If a device is 100% efficient, what does that say about useful output compared with total input?",
+        "common_trap": "Do not subtract input and output first, and do not confuse efficiency with speed or power.",
+        "analogy_bridge": {
+            "body": "In the Energy Ledger, efficiency is the useful-share fraction, not the full size of the ledger entry. A large total transfer can still have poor efficiency if only a small share is useful.",
+            "check_for_understanding": "Can a large total transfer still have low efficiency in the ledger picture?",
+        },
+        "extra_sections": [],
+    },
+    "M3_L6": {
+        "core_idea": "Extended energy problems are solved by choosing the right equation from the physical story, then linking one justified result into the next step.",
+        "reasoning": "Sort the story first: work, kinetic energy, gravitational potential energy, power, or efficiency. Use the equation that matches that part of the story, carry units through each step, and only then feed the intermediate result into the next relation.",
+        "check_for_understanding": "If a problem starts by giving force and distance, which equation family should you consider before anything else?",
+        "common_trap": "Do not grab the first familiar formula from the page and hope the numbers fit.",
+        "analogy_bridge": {
+            "body": "The planning-board version of the ledger is useful because each column stands for a different energy story. The job is to choose the right column first, not to chase numbers without meaning.",
+            "check_for_understanding": "What does choosing the right board column represent in the real calculation?",
+        },
+        "extra_sections": [],
+    },
+}
+
+
+def _ensure_worked_example_reason(example: dict) -> dict:
+    enriched = deepcopy(example)
+    if str(enriched.get("answer_reason") or "").strip():
+        return enriched
+
+    final_answer = str(enriched.get("final_answer") or "").strip()
+    steps = [str(step).strip() for step in enriched.get("steps") or [] if str(step).strip()]
+    why_it_matters = str(enriched.get("why_it_matters") or "").strip()
+
+    if steps:
+        enriched["answer_reason"] = steps[-1]
+    elif why_it_matters:
+        enriched["answer_reason"] = why_it_matters
+    elif final_answer:
+        enriched["answer_reason"] = f"That is why the correct answer is {final_answer}."
+    else:
+        enriched["answer_reason"] = "The reasoning steps lead directly to the stated answer."
+    return enriched
+
+
+for lesson in M3_SPEC["lessons"]:
+    lesson_id = str(lesson["id"])
+    contract = dict(lesson["contract"])
+    contract["scaffold_support"] = deepcopy(M3_SCAFFOLD_SUPPORT[lesson_id])
+    contract["worked_examples"] = [_ensure_worked_example_reason(example) for example in contract["worked_examples"]]
+    lesson["contract"] = contract
+
+
 RELEASE_CHECKS = [
     "Every formula is taught with meaning, units, and conditions before mastery uses it.",
     "Every lesson includes a generated visual asset and a usable simulation contract.",

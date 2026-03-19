@@ -721,8 +721,14 @@ SIM_BY_LESSON = {str(lesson["lesson_id"]): sim for lesson, sim in zip(_LESSONS, 
 
 def build_question(spec: Dict[str, Any]) -> Dict[str, Any]:
     if str(spec.get("kind") or "") == "mcq":
-        return make_mcq(str(spec["id"]), str(spec["prompt"]), list(spec["choices"]), int(spec["answer_index"]), str(spec["hint"]), list(spec["tags"]))
-    return make_short(str(spec["id"]), str(spec["prompt"]), list(spec["accepted_answers"]), str(spec["hint"]), list(spec["tags"]))
+        question = make_mcq(str(spec["id"]), str(spec["prompt"]), list(spec["choices"]), int(spec["answer_index"]), str(spec["hint"]), list(spec["tags"]))
+    else:
+        question = make_short(str(spec["id"]), str(spec["prompt"]), list(spec["accepted_answers"]), str(spec["hint"]), list(spec["tags"]))
+    if spec.get("acceptance_rules"):
+        question["acceptance_rules"] = dict(spec["acceptance_rules"])
+    if spec.get("skill_tags"):
+        question["skill_tags"] = [str(tag) for tag in spec["skill_tags"]]
+    return question
 
 def configure_sim(spec: Dict[str, Any]) -> None:
     lesson = LESSON_BY_ID[str(spec["id"])]

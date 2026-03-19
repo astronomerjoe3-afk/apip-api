@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,19 @@ class StudentQuestionItem(BaseModel):
     feedback: List[str] = Field(default_factory=list)
     answer_index: Optional[int] = None
     accepted_answers: List[str] = Field(default_factory=list)
+    acceptance_rules: Dict[str, Any] = Field(default_factory=dict)
+    skill_tags: List[str] = Field(default_factory=list)
+
+    model_config = {"extra": "ignore"}
+
+
+class StudentAuthoringContractOut(BaseModel):
+    worked_examples: List[Dict[str, Any]] = Field(default_factory=list)
+    visual_assets: List[Dict[str, Any]] = Field(default_factory=list)
+    animation_assets: List[Dict[str, Any]] = Field(default_factory=list)
+    simulation_contract: Dict[str, Any] = Field(default_factory=dict)
+    assessment_bank_targets: Dict[str, Any] = Field(default_factory=dict)
+    scaffold_support: Dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"extra": "ignore"}
 
@@ -80,6 +93,7 @@ class StudentLessonOut(BaseModel):
     title: Optional[str] = None
     sequence: Optional[int] = None
     phases: StudentLessonPhases = Field(default_factory=StudentLessonPhases)
+    authoring_contract: StudentAuthoringContractOut = Field(default_factory=StudentAuthoringContractOut)
 
     model_config = {"extra": "ignore"}
 

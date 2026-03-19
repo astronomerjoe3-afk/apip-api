@@ -2560,8 +2560,11 @@ def rep(kind: str, purpose: str) -> Dict[str, Any]:
     return {"kind": kind, "purpose": purpose}
 
 
-def example(prompt: str, steps: List[str], final_answer: str, why: str) -> Dict[str, Any]:
-    return {"prompt": prompt, "steps": steps, "final_answer": final_answer, "why_it_matters": why}
+def example(prompt: str, steps: List[str], final_answer: str, why: str, answer_reason: str = "") -> Dict[str, Any]:
+    payload = {"prompt": prompt, "steps": steps, "final_answer": final_answer, "why_it_matters": why}
+    if answer_reason:
+        payload["answer_reason"] = answer_reason
+    return payload
 
 
 def vis(
@@ -3168,8 +3171,14 @@ SIM_BY_LESSON = {str(lesson["lesson_id"]): sim for lesson, sim in zip(_LESSONS, 
 
 def build_question(spec: Dict[str, Any]) -> Dict[str, Any]:
     if str(spec.get("kind") or "") == "mcq":
-        return make_mcq(str(spec["id"]), str(spec["prompt"]), list(spec["choices"]), int(spec["answer_index"]), str(spec["hint"]), list(spec["tags"]))
-    return make_short(str(spec["id"]), str(spec["prompt"]), list(spec["accepted_answers"]), str(spec["hint"]), list(spec["tags"]))
+        question = make_mcq(str(spec["id"]), str(spec["prompt"]), list(spec["choices"]), int(spec["answer_index"]), str(spec["hint"]), list(spec["tags"]))
+    else:
+        question = make_short(str(spec["id"]), str(spec["prompt"]), list(spec["accepted_answers"]), str(spec["hint"]), list(spec["tags"]))
+    if spec.get("acceptance_rules"):
+        question["acceptance_rules"] = dict(spec["acceptance_rules"])
+    if spec.get("skill_tags"):
+        question["skill_tags"] = [str(tag) for tag in spec["skill_tags"]]
+    return question
 
 
 def build_prompt_blocks(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -3185,7 +3194,16 @@ def build_representations(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def build_examples(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return [example(str(item["prompt"]), list(item["steps"]), str(item["final_answer"]), str(item["why_it_matters"])) for item in items]
+    return [
+        example(
+            str(item["prompt"]),
+            list(item["steps"]),
+            str(item["final_answer"]),
+            str(item["why_it_matters"]),
+            str(item.get("answer_reason") or ""),
+        )
+        for item in items
+    ]
 
 
 def build_visuals(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

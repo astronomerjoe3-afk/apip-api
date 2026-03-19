@@ -52,6 +52,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
     def test_m3_bundle_includes_planned_generated_assets(self) -> None:
         self.assertEqual(M3_MODULE_DOC["id"], "M3")
         self.assertEqual(M3_MODULE_DOC["title"], "Energy, Work & Power")
+        self.assertEqual(M3_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v2")
         self.assertEqual(len(M3_LESSONS), 6)
         self.assertEqual(len(M3_SIM_LABS), 6)
         self.assertEqual(
@@ -68,6 +69,20 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             lesson["phases"]["simulation_inquiry"]["generated_lab"]["url"],
             "/lesson_assets/M3/M3_L1/simulations/m3_work_transfer_lab/index.html",
         )
+
+    def test_m3_v2_contract_includes_scaffold_support_and_answer_reasons(self) -> None:
+        for _, lesson in M3_LESSONS:
+            contract = lesson["authoring_contract"]
+            scaffold_support = contract["scaffold_support"]
+            self.assertTrue(scaffold_support["core_idea"])
+            self.assertTrue(scaffold_support["reasoning"])
+            self.assertTrue(scaffold_support["check_for_understanding"])
+            self.assertTrue(scaffold_support["common_trap"])
+            self.assertTrue(scaffold_support["analogy_bridge"]["body"])
+            self.assertTrue(scaffold_support["analogy_bridge"]["check_for_understanding"])
+
+            for example in contract["worked_examples"]:
+                self.assertTrue(example["answer_reason"])
 
     def test_m3_curriculum_scope_stays_on_energy_work_and_power(self) -> None:
         mastery_text = " ".join(M3_MODULE_DOC.get("mastery_outcomes") or []).lower()

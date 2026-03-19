@@ -4,11 +4,11 @@ from copy import deepcopy
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
-    from scripts.lesson_authoring_contract import validate_nextgen_module
+    from scripts.lesson_authoring_contract import AUTHORING_STANDARD_V2, validate_nextgen_module
     from scripts.module_asset_pipeline import DEFAULT_PUBLIC_BASE, plan_module_assets
     from scripts.nextgen_module_scaffold import build_nextgen_module_scaffold
 except ModuleNotFoundError:
-    from lesson_authoring_contract import validate_nextgen_module
+    from lesson_authoring_contract import AUTHORING_STANDARD_V2, validate_nextgen_module
     from module_asset_pipeline import DEFAULT_PUBLIC_BASE, plan_module_assets
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
@@ -26,9 +26,11 @@ def _safe_tags(tags: Sequence[str], allowlist: Sequence[str]) -> List[str]:
 def _question(spec: Dict[str, Any], allowlist: Sequence[str]) -> Dict[str, Any]:
     hint = str(spec["hint"])
     tags = _safe_tags(list(spec.get("tags") or []), allowlist)
+    acceptance_rules = deepcopy(dict(spec.get("acceptance_rules") or {}))
+    skill_tags = [str(tag) for tag in spec.get("skill_tags") or [] if str(tag).strip()]
     if str(spec.get("kind") or "") == "mcq":
         choices = list(spec["choices"])
-        return {
+        question = {
             "id": str(spec["id"]),
             "question_id": str(spec["id"]),
             "type": "mcq",
@@ -39,7 +41,10 @@ def _question(spec: Dict[str, Any], allowlist: Sequence[str]) -> Dict[str, Any]:
             "feedback": [hint for _ in choices],
             "misconception_tags": tags,
         }
-    return {
+        if skill_tags:
+            question["skill_tags"] = skill_tags
+        return question
+    question = {
         "id": str(spec["id"]),
         "question_id": str(spec["id"]),
         "type": "short",
@@ -49,6 +54,11 @@ def _question(spec: Dict[str, Any], allowlist: Sequence[str]) -> Dict[str, Any]:
         "feedback": [hint],
         "misconception_tags": tags,
     }
+    if acceptance_rules:
+        question["acceptance_rules"] = acceptance_rules
+    if skill_tags:
+        question["skill_tags"] = skill_tags
+    return question
 
 
 def _prompt_blocks(items: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -73,7 +83,7 @@ def build_nextgen_module_bundle(
     sequence: int,
     level: str,
     estimated_minutes: int,
-    authoring_standard: str = "lesson_authoring_spec_v1",
+    authoring_standard: str = AUTHORING_STANDARD_V2,
     plan_assets: bool = False,
     public_base: str = DEFAULT_PUBLIC_BASE,
 ) -> Tuple[Dict[str, Any], List[Tuple[str, Dict[str, Any]]], List[Tuple[str, Dict[str, Any]]]]:

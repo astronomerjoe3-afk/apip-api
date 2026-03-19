@@ -114,6 +114,14 @@ def _choice_strings(value: Any) -> List[str]:
     return choices
 
 
+def _text_strings(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(entry) for entry in value if entry is not None and str(entry).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value]
+    return []
+
+
 def _feedback_strings(value: Any) -> List[str]:
     if isinstance(value, dict):
         return [str(entry) for entry in value.values() if entry is not None]
@@ -129,6 +137,19 @@ def _accepted_answers(item: Dict[str, Any], choices: List[str]) -> List[str]:
     if isinstance(correct_answer, str) and correct_answer.strip() and not choices:
         values.append(correct_answer)
     return values
+
+
+def _acceptance_rules(item: Dict[str, Any]) -> Dict[str, Any]:
+    raw = item.get("acceptance_rules")
+    if not isinstance(raw, dict):
+        return {}
+    phrase_groups: List[List[str]] = []
+    for group in raw.get("phrase_groups") or []:
+        if isinstance(group, list):
+            phrases = [str(phrase) for phrase in group if phrase is not None and str(phrase).strip()]
+            if phrases:
+                phrase_groups.append(phrases)
+    return {"phrase_groups": phrase_groups} if phrase_groups else {}
 
 
 def _answer_index(item: Dict[str, Any], choices: List[str]) -> Any:
@@ -164,6 +185,8 @@ def _student_question_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[
                 "feedback": feedback,
                 "answer_index": _answer_index(item, choices),
                 "accepted_answers": _accepted_answers(item, choices),
+                "acceptance_rules": _acceptance_rules(item),
+                "skill_tags": _text_strings(item.get("skill_tags")),
             }
         )
     return questions
@@ -181,6 +204,19 @@ def _student_capsules(capsules: Optional[List[Dict[str, Any]]]) -> List[Dict[str
             }
         )
     return output
+
+
+def _student_authoring_contract(authoring: Any) -> Dict[str, Any]:
+    if not isinstance(authoring, dict):
+        return {}
+    return {
+        "worked_examples": deepcopy(authoring.get("worked_examples") or []),
+        "visual_assets": deepcopy(authoring.get("visual_assets") or []),
+        "animation_assets": deepcopy(authoring.get("animation_assets") or []),
+        "simulation_contract": deepcopy(authoring.get("simulation_contract") or {}),
+        "assessment_bank_targets": deepcopy(authoring.get("assessment_bank_targets") or {}),
+        "scaffold_support": deepcopy(authoring.get("scaffold_support") or {}),
+    }
 
 
 def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
@@ -227,6 +263,7 @@ def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
                 "items": _student_question_items(transfer.get("items")),
             },
         },
+        "authoring_contract": _student_authoring_contract(normalized.get("authoring_contract")),
     }
 
 

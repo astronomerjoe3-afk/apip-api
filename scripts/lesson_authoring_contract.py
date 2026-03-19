@@ -11,6 +11,9 @@ NEXTGEN_REQUIRED_PHASES = (
     "transfer",
 )
 
+AUTHORING_STANDARD_V1 = "lesson_authoring_spec_v1"
+AUTHORING_STANDARD_V2 = "lesson_authoring_spec_v2"
+
 QUESTION_TYPES = {"mcq", "short"}
 CORE_REPRESENTATION_KINDS = {"words", "formula"}
 OPTIONAL_REPRESENTATION_KINDS = {"diagram", "graph", "table", "model", "equation_story"}
@@ -44,6 +47,10 @@ def _require(condition: bool, message: str, errors: List[str]) -> None:
         errors.append(message)
 
 
+def _uses_v2(authoring_standard: str) -> bool:
+    return _text(authoring_standard).lower() == AUTHORING_STANDARD_V2
+
+
 def _validate_tags(tags: Sequence[Any], allowlist: Sequence[str], errors: List[str], label: str) -> None:
     clean = [_text(tag) for tag in tags if _text(tag)]
     _require(bool(clean), f"{label}: at least one misconception tag is required.", errors)
@@ -60,14 +67,26 @@ def _validate_question(item: Dict[str, Any], allowlist: Sequence[str], errors: L
     _require(bool(_text(item.get("hint"))), f"{label}: missing hint.", errors)
     _require(bool(_items(item.get("feedback"))), f"{label}: feedback must not be empty.", errors)
     _validate_tags(_items(item.get("misconception_tags")), allowlist, errors, label)
+    acceptance_rules = _record(item.get("acceptance_rules"))
     if qtype == "mcq":
         choices = [_text(choice) for choice in _items(item.get("choices")) if _text(choice)]
         answer_index = item.get("answer_index")
         _require(len(choices) >= 4, f"{label}: mcq questions need at least 4 choices.", errors)
         _require(isinstance(answer_index, int) and 0 <= answer_index < len(choices), f"{label}: mcq answer_index is invalid.", errors)
+        _require(not acceptance_rules, f"{label}: acceptance_rules only apply to short questions.", errors)
     if qtype == "short":
         accepted = [_text(answer) for answer in _items(item.get("accepted_answers")) if _text(answer)]
         _require(bool(accepted), f"{label}: short questions need accepted answers.", errors)
+        if acceptance_rules:
+            phrase_groups = [_items(group) for group in _items(acceptance_rules.get("phrase_groups"))]
+            _require(bool(phrase_groups), f"{label}: acceptance_rules.phrase_groups needs at least one phrase group.", errors)
+            for group_index, group in enumerate(phrase_groups, start=1):
+                phrases = [_text(phrase) for phrase in group if _text(phrase)]
+                _require(
+                    bool(phrases),
+                    f"{label}: acceptance_rules.phrase_groups[{group_index}] needs at least one phrase.",
+                    errors,
+                )
 
 
 def _validate_prompt_block(item: Dict[str, Any], errors: List[str], label: str) -> None:
@@ -90,11 +109,13 @@ def _validate_representation(item: Dict[str, Any], errors: List[str], label: str
     _require(bool(_text(item.get("purpose"))), f"{label}: representation needs a purpose statement.", errors)
 
 
-def _validate_worked_example(item: Dict[str, Any], errors: List[str], label: str) -> None:
+def _validate_worked_example(item: Dict[str, Any], errors: List[str], label: str, *, require_answer_reason: bool = False) -> None:
     _require(bool(_text(item.get("prompt"))), f"{label}: missing example prompt.", errors)
     steps = [_text(step) for step in _items(item.get("steps")) if _text(step)]
     _require(len(steps) >= 3, f"{label}: worked examples need at least 3 reasoning steps.", errors)
     _require(bool(_text(item.get("final_answer"))), f"{label}: missing final answer.", errors)
+    if require_answer_reason:
+        _require(bool(_text(item.get("answer_reason"))), f"{label}: explain why the final answer follows from the reasoning.", errors)
     _require(bool(_text(item.get("why_it_matters"))), f"{label}: explain the conceptual takeaway.", errors)
 
 
@@ -104,9 +125,32 @@ def _validate_visual(item: Dict[str, Any], errors: List[str], label: str) -> Non
     _require(bool(_text(item.get("caption"))), f"{label}: missing visual caption.", errors)
 
 
-def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str]) -> List[str]:
+def _validate_scaffold_support(item: Dict[str, Any], errors: List[str], label: str) -> None:
+    _require(bool(_text(item.get("core_idea"))), f"{label}: scaffold_support.core_idea is required.", errors)
+    _require(bool(_text(item.get("reasoning"))), f"{label}: scaffold_support.reasoning is required.", errors)
+    _require(
+        bool(_text(item.get("check_for_understanding"))),
+        f"{label}: scaffold_support.check_for_understanding is required.",
+        errors,
+    )
+    _require(bool(_text(item.get("common_trap"))), f"{label}: scaffold_support.common_trap is required.", errors)
+    analogy_bridge = _record(item.get("analogy_bridge"))
+    _require(bool(_text(analogy_bridge.get("body"))), f"{label}: scaffold_support.analogy_bridge.body is required.", errors)
+    _require(
+        bool(_text(analogy_bridge.get("check_for_understanding"))),
+        f"{label}: scaffold_support.analogy_bridge.check_for_understanding is required.",
+        errors,
+    )
+    extra_sections = [_record(entry) for entry in _items(item.get("extra_sections"))]
+    for index, section in enumerate(extra_sections, start=1):
+        _require(bool(_text(section.get("heading"))), f"{label}: extra section {index} needs a heading.", errors)
+        _require(bool(_text(section.get("body"))), f"{label}: extra section {index} needs a body.", errors)
+
+
+def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], authoring_standard: str = AUTHORING_STANDARD_V1) -> List[str]:
     errors: List[str] = []
     lesson_id = _text(lesson.get("lesson_id") or lesson.get("id") or "lesson")
+    use_v2 = _uses_v2(authoring_standard)
     _require(bool(_text(lesson.get("id"))), f"{lesson_id}: missing top-level id.", errors)
     _require(bool(_text(lesson.get("lesson_id"))), f"{lesson_id}: missing top-level lesson_id.", errors)
     _require(bool(_text(lesson.get("module_id")) or _text(lesson.get("moduleId"))), f"{lesson_id}: missing module id.", errors)
@@ -185,7 +229,7 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str]) ->
     worked_examples = [_record(item) for item in _items(authoring.get("worked_examples"))]
     _require(len(worked_examples) >= 2, f"{lesson_id}: provide at least 2 worked examples, including a contrast or non-example.", errors)
     for index, item in enumerate(worked_examples, start=1):
-        _validate_worked_example(item, errors, f"{lesson_id} worked example {index}")
+        _validate_worked_example(item, errors, f"{lesson_id} worked example {index}", require_answer_reason=use_v2)
 
     visual_assets = [_record(item) for item in _items(authoring.get("visual_assets"))]
     _require(bool(visual_assets), f"{lesson_id}: at least one visual asset is required.", errors)
@@ -251,6 +295,12 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str]) ->
     release_checks = [_text(item) for item in _items(authoring.get("release_checks")) if _text(item)]
     _require(len(release_checks) >= 4, f"{lesson_id}: authoring_contract.release_checks needs at least 4 release checks.", errors)
 
+    if use_v2:
+        scaffold_support = _record(authoring.get("scaffold_support"))
+        _require(bool(scaffold_support), f"{lesson_id}: authoring_contract.scaffold_support is required for spec v2 lessons.", errors)
+        if scaffold_support:
+            _validate_scaffold_support(scaffold_support, errors, lesson_id)
+
     return errors
 
 
@@ -270,8 +320,10 @@ def validate_nextgen_module(module_doc: Dict[str, Any], lessons: Sequence[Dict[s
     _require(len(lessons) >= 6, f"{module_id}: next-generation modules should contain at least 6 lessons.", errors)
     _require(len(sim_labs) >= len(lessons), f"{module_id}: provide one simulation/lab configuration per lesson.", errors)
 
+    authoring_standard = _text(module_doc.get("authoring_standard")) or AUTHORING_STANDARD_V1
+
     for lesson in lessons:
-        errors.extend(validate_nextgen_lesson(_record(lesson), allowlist_items or allowlist))
+        errors.extend(validate_nextgen_lesson(_record(lesson), allowlist_items or allowlist, authoring_standard))
 
     if errors:
         raise LessonAuthoringContractError("\n".join(errors))
@@ -349,8 +401,8 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
                 "prediction_prompt": "",
             },
             "worked_examples": [
-                {"prompt": "", "steps": ["", "", ""], "final_answer": "", "why_it_matters": ""},
-                {"prompt": "", "steps": ["", "", ""], "final_answer": "", "why_it_matters": ""},
+                {"prompt": "", "steps": ["", "", ""], "final_answer": "", "answer_reason": "", "why_it_matters": ""},
+                {"prompt": "", "steps": ["", "", ""], "final_answer": "", "answer_reason": "", "why_it_matters": ""},
             ],
             "visual_assets": [
                 {"asset_id": f"{lesson_id.lower()}-visual.svg", "purpose": "", "caption": ""},
@@ -367,6 +419,17 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
                 "diagnostic": "New contexts, numbers, or representation on each fresh attempt.",
                 "concept_gate": "Retries must rotate to a different quick-check prompt.",
                 "mastery": "No repeated stems in one attempt; retests must change context or data.",
+            },
+            "scaffold_support": {
+                "core_idea": "",
+                "reasoning": "",
+                "check_for_understanding": "",
+                "common_trap": "",
+                "analogy_bridge": {
+                    "body": "",
+                    "check_for_understanding": "",
+                },
+                "extra_sections": [],
             },
             "release_checks": [
                 "Every mastery-tested relationship is explicitly taught before mastery.",
@@ -390,7 +453,7 @@ def nextgen_module_doc_template(module_id: str, title: str, description: str, al
         "mastery_outcomes": ["", "", "", ""],
         "misconception_tag_allowlist": list(allowlist),
         "content_version": "REPLACE_WITH_VERSION",
-        "authoring_standard": "lesson_authoring_spec_v1",
+        "authoring_standard": AUTHORING_STANDARD_V2,
         "updated_utc": "REPLACE_WITH_UTC_TIMESTAMP",
     }
 
