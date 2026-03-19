@@ -571,11 +571,12 @@ M2_SPEC = json.loads(r'''
         "fields": ["arrow_angle", "horizontal_component", "vertical_component", "resultant_arrow"],
         "depth": "number of angled-force stories explained through component structure rather than mystery-vector language"
       },
-      "analogy_text": "Arrow Split breaks one diagonal Drive Arrow into simpler deck-aligned pushes. The pieces are not extra forces; they are a clearer way to reason about one angled push.",
-      "commitment_prompt": "Before you answer, decide whether you need the full diagonal arrow or its horizontal and vertical parts.",
+      "analogy_text": "Arrow Split breaks one diagonal Drive Arrow into simpler deck-aligned pushes. The pieces are not extra forces; they are a clearer way to reason about one angled push, and the rebuilt direction is then read from the +x axis to the final resultant.",
+      "commitment_prompt": "Before you answer, decide whether you need the full diagonal arrow or its horizontal and vertical parts, and whether the final direction should be measured from +x.",
       "micro_prompts": [
         {"prompt": "Split one diagonal arrow into forward and sideways pieces.", "hint": "The components help you combine forces one direction at a time."},
-        {"prompt": "Compare combining forces directly with combining their components first.", "hint": "Components can make the same resultant easier to see and calculate."}
+        {"prompt": "Compare combining forces directly with combining their components first.", "hint": "Components can make the same resultant easier to see and calculate."},
+        {"prompt": "After rebuilding the resultant, identify where the angle should be measured from.", "hint": "The lesson reads direction counterclockwise from +x."}
       ],
       "diagnostic": [
         {"kind": "mcq", "id": "M2L6_D1", "prompt": "Why is Arrow Split useful?", "choices": ["it turns one angled push into simpler perpendicular parts", "it creates two new physical forces", "it removes direction from the force", "it makes mass unnecessary"], "answer_index": 0, "hint": "Components are a reasoning tool for one angled vector.", "tags": ["vector_resolution_component_confusion"]},
@@ -586,11 +587,12 @@ M2_SPEC = json.loads(r'''
         {"prompt": "Split one diagonal arrow and compare the horizontal and vertical bookkeeping.", "hint": "Work direction by direction before recombining the result."},
         {"prompt": "Create two different component pairs that rebuild the same resultant magnitude and direction.", "hint": "Different components can be compared before you recombine the final arrow."}
       ],
-      "recon_prompts": ["Explain why components are not extra forces.", "Explain why vector resolution helps before you combine multiple angled pushes."],
+      "recon_prompts": ["Explain why components are not extra forces.", "Explain why vector resolution helps before you combine multiple angled pushes.", "Explain how the rebuilt resultant direction is determined in degrees from +x."],
       "capsule_prompt": "Split the angled arrow into aligned parts, combine those parts, then rebuild the Master Arrow.",
       "capsule_checks": [
         {"kind": "mcq", "id": "M2L6_C1", "prompt": "When two horizontal components oppose each other, what do you do first?", "choices": ["subtract and keep the larger direction", "add them regardless of direction", "ignore the vertical parts forever", "treat them as masses"], "answer_index": 0, "hint": "Combine components on one axis the same way you combine same-line forces.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]},
-        {"kind": "mcq", "id": "M2L6_C2", "prompt": "Why do physicists resolve a diagonal force into components before combining several forces?", "choices": ["it organizes the vector sum by axis", "it removes the need for units", "it turns vectors into scalars", "it makes the original arrow disappear"], "answer_index": 0, "hint": "Component reasoning is structured vector bookkeeping.", "tags": ["vector_resolution_component_confusion"]}
+        {"kind": "mcq", "id": "M2L6_C2", "prompt": "Why do physicists resolve a diagonal force into components before combining several forces?", "choices": ["it organizes the vector sum by axis", "it removes the need for units", "it turns vectors into scalars", "it makes the original arrow disappear"], "answer_index": 0, "hint": "Component reasoning is structured vector bookkeeping.", "tags": ["vector_resolution_component_confusion"]},
+        {"kind": "mcq", "id": "M2L6_C3", "prompt": "Once the net components are known, from where is the direction angle measured in this lesson?", "choices": ["from the +x axis toward the resultant", "from the +y axis toward the resultant", "from whichever component is larger", "from the vertical component only"], "answer_index": 0, "hint": "The board reads direction counterclockwise from +x.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
       ],
       "transfer": [
         {"kind": "mcq", "id": "M2L6_T1", "prompt": "A diagonal arrow is split into east and north components. What must be true?", "choices": ["those components add back to the original arrow", "the original arrow was two separate pushes", "the components are unrelated to direction", "the resultant must be smaller than each component"], "answer_index": 0, "hint": "Components reconstruct the original vector.", "tags": ["vector_resolution_component_confusion"]},
@@ -598,12 +600,13 @@ M2_SPEC = json.loads(r'''
         {"kind": "short", "id": "M2L6_T3", "prompt": "A force has components 3 N east and 4 N north. What resultant magnitude does that give?", "accepted_answers": ["5 N", "5"], "hint": "Use vector addition: the components are perpendicular, so rebuild the diagonal resultant rather than adding 3 + 4.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
       ],
       "contract": {
-        "concept_targets": ["Use components to reason about one angled vector and about multi-force resultants.", "Treat component resolution as structured bookkeeping rather than as a mysterious trick."],
+        "concept_targets": ["Use components to reason about one angled vector and about multi-force resultants.", "Treat component resolution as structured bookkeeping rather than as a mysterious trick.", "Determine the direction of a rebuilt resultant in degrees by measuring from +x and checking the quadrant."],
         "prerequisite_lessons": ["M2_L1", "M2_L2"],
         "misconception_focus": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"],
         "formulas": [
           {"equation": "F_x = F cos theta and F_y = F sin theta", "meaning": "An angled force can be expressed as perpendicular components on chosen axes.", "units": ["N"], "conditions": "Use for resolved components on perpendicular axes."},
-          {"equation": "F_net = vector sum of components", "meaning": "Combine horizontal parts with horizontal parts and vertical parts with vertical parts before rebuilding the resultant.", "units": ["N"], "conditions": "Use after resolving all angled forces onto the same axes."}
+          {"equation": "F_net = vector sum of components", "meaning": "Combine horizontal parts with horizontal parts and vertical parts with vertical parts before rebuilding the resultant.", "units": ["N"], "conditions": "Use after resolving all angled forces onto the same axes."},
+          {"equation": "theta = tan^-1(F_y / F_x)", "meaning": "Once the net components are known, the direction angle is measured from +x to the rebuilt resultant, with a quadrant check from the signs.", "units": ["degree"], "conditions": "Use after the net x and net y components are known and the quadrant has been identified."}
         ],
       "representations": [
         {"kind": "words", "purpose": "Explain what component resolution is doing conceptually."},
@@ -653,12 +656,13 @@ M2_SPEC = json.loads(r'''
       ],
       "visual_assets": [
         {"asset_id": "m2-l6-arrow-split.svg", "purpose": "Show one diagonal arrow, its components, and the rebuilt resultant.", "caption": "The diagram turns vector resolution into visible arrow bookkeeping."},
-        {"asset_id": "m2-l6-vector-addition.svg", "purpose": "Show tip-to-tail vector addition and contrast it with invalid plain-number addition across perpendicular axes.", "caption": "The extra visual makes the start-to-finish resultant explicit and warns against adding perpendicular components as 8 + 15."}
+        {"asset_id": "m2-l6-vector-addition.svg", "purpose": "Show tip-to-tail vector addition and contrast it with invalid plain-number addition across perpendicular axes.", "caption": "The extra visual makes the start-to-finish resultant explicit and warns against adding perpendicular components as 8 + 15."},
+        {"asset_id": "m2-l6-direction-angle.svg", "purpose": "Teach how to determine a rebuilt resultant direction in degrees from +x before students enter the simulation.", "caption": "The direction card turns the degree readout into an explicitly taught step instead of an unexplained display."}
       ],
       "simulation_contract": {
         "baseline_case": "Start with one diagonal arrow and display its resolved components.",
         "comparison_tasks": ["Compare direct vector combination with component-by-component combination.", "Build two different component sets that recreate the same resultant."],
-        "watch_for": "Students should explain that components are not new forces and that perpendicular components must not be added as plain same-line numbers.",
+        "watch_for": "Students should explain that components are not new forces, that perpendicular components must not be added as plain same-line numbers, and that the final direction is measured from +x after the net components are known.",
         "takeaway": "Vector resolution is a structured way to understand and combine angled forces."
       },
       "reflection_prompts": ["Explain why Arrow Split is a bookkeeping move rather than a claim that one force has become two separate pushes." ],
