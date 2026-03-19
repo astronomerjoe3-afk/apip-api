@@ -15,7 +15,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M2_MODULE_ID = "M2"
-M2_CONTENT_VERSION = "20260317_m2_force_systems_v2"
+M2_CONTENT_VERSION = "20260319_m2_force_systems_v3"
 M2_ALLOWLIST = [
     "motion_implies_force_confusion",
     "balanced_force_rest_confusion",
@@ -580,7 +580,7 @@ M2_SPEC = json.loads(r'''
       "diagnostic": [
         {"kind": "mcq", "id": "M2L6_D1", "prompt": "Why is Arrow Split useful?", "choices": ["it turns one angled push into simpler perpendicular parts", "it creates two new physical forces", "it removes direction from the force", "it makes mass unnecessary"], "answer_index": 0, "hint": "Components are a reasoning tool for one angled vector.", "tags": ["vector_resolution_component_confusion"]},
         {"kind": "mcq", "id": "M2L6_D2", "prompt": "Which statement about components is correct?", "choices": ["they add back to the original vector", "they replace the need for direction", "they are always larger than the original vector", "they only work in one dimension"], "answer_index": 0, "hint": "Components recombine to recover the original vector.", "tags": ["vector_resolution_component_confusion"]},
-        {"kind": "short", "id": "M2L6_D3", "prompt": "A force has components 6 N east and 8 N north. What is the resultant magnitude?", "accepted_answers": ["10 N", "10"], "hint": "Use the right-triangle result for 6, 8, 10.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
+        {"kind": "short", "id": "M2L6_D3", "prompt": "A force has components 6 N east and 8 N north. What is the resultant magnitude?", "accepted_answers": ["10 N", "10"], "hint": "Use the 6-8-10 right triangle: 6 N east and 8 N north rebuild a 10 N resultant.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
       ],
       "inquiry": [
         {"prompt": "Split one diagonal arrow and compare the horizontal and vertical bookkeeping.", "hint": "Work direction by direction before recombining the result."},
@@ -595,7 +595,7 @@ M2_SPEC = json.loads(r'''
       "transfer": [
         {"kind": "mcq", "id": "M2L6_T1", "prompt": "A diagonal arrow is split into east and north components. What must be true?", "choices": ["those components add back to the original arrow", "the original arrow was two separate pushes", "the components are unrelated to direction", "the resultant must be smaller than each component"], "answer_index": 0, "hint": "Components reconstruct the original vector.", "tags": ["vector_resolution_component_confusion"]},
         {"kind": "mcq", "id": "M2L6_T2", "prompt": "Why can component reasoning help with 2D resultants?", "choices": ["it lets you combine one axis at a time", "it removes all angles from physics", "it makes direction irrelevant", "it works only for vertical arrows"], "answer_index": 0, "hint": "Axis-by-axis combination reduces confusion.", "tags": ["vector_resolution_component_confusion"]},
-        {"kind": "short", "id": "M2L6_T3", "prompt": "A force has components 3 N east and 4 N north. What resultant magnitude does that give?", "accepted_answers": ["5 N", "5"], "hint": "Use the 3, 4, 5 triangle.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
+        {"kind": "short", "id": "M2L6_T3", "prompt": "A force has components 3 N east and 4 N north. What resultant magnitude does that give?", "accepted_answers": ["5 N", "5"], "hint": "Use the 3-4-5 right triangle: 3 N east and 4 N north rebuild a 5 N resultant.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
       ],
       "contract": {
         "concept_targets": ["Use components to reason about one angled vector and about multi-force resultants.", "Treat component resolution as structured bookkeeping rather than as a mysterious trick."],
@@ -638,10 +638,22 @@ M2_SPEC = json.loads(r'''
           ],
           "final_answer": "The claim is wrong: 6 N east and 8 N north are component descriptions of the same 10 N arrow, because they recombine to the original vector rather than adding extra physical forces.",
           "why_it_matters": "This blocks the common mistake of treating components as new forces instead of as a structured redescription."
+        },
+        {
+          "prompt": "A force is shown as 6 N east followed tip-to-tail by 8 N north. What resultant does that make, and why is it still the same original force?",
+          "steps": [
+            "Treat the 6 N east and 8 N north arrows as perpendicular components that belong to one vector story, not as unrelated pushes.",
+            "For tip-to-tail addition, draw the resultant from the start of the first arrow to the end of the second arrow.",
+            "Use the 6-8-10 right triangle: 6^2 + 8^2 = 10^2, so the resultant magnitude is 10 N.",
+            "Because the diagonal resultant connects the same overall start and finish points, it represents the same original force written in component form."
+          ],
+          "final_answer": "The two components make a 10 N northeast resultant, and it is still the same original force because tip-to-tail addition rebuilds the single start-to-finish vector.",
+          "why_it_matters": "This makes vector addition visible and ties the triangle numbers directly to the rebuilt diagonal force."
         }
       ],
       "visual_assets": [
-        {"asset_id": "m2-l6-arrow-split.svg", "purpose": "Show one diagonal arrow, its components, and the rebuilt resultant.", "caption": "The diagram turns vector resolution into visible arrow bookkeeping."}
+        {"asset_id": "m2-l6-arrow-split.svg", "purpose": "Show one diagonal arrow, its components, and the rebuilt resultant.", "caption": "The diagram turns vector resolution into visible arrow bookkeeping."},
+        {"asset_id": "m2-l6-vector-addition.svg", "purpose": "Show tip-to-tail vector addition so students can see the components rebuilding the same diagonal force.", "caption": "The extra visual makes the start-to-finish resultant explicit."}
       ],
       "simulation_contract": {
         "baseline_case": "Start with one diagonal arrow and display its resolved components.",
@@ -857,7 +869,7 @@ M2_EXTRA_DIAGNOSTIC = {
     ],
     "M2_L6": [
         spec_short("M2L6_D6", "In a few words, what are components?", ["one force rewritten on chosen axes", "parts of one vector on axes", "one vector resolved on axes", "one force split into axis parts"], "Components are a cleaner description of one angled force.", ["vector_resolution_component_confusion"]),
-        spec_mcq("M2L6_D7", "A force has components 8 N east and 15 N north. What resultant magnitude does that give?", ["17 N", "7 N", "23 N", "15 N"], 0, "Use the 8-15-17 right triangle.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
+        spec_mcq("M2L6_D7", "A force has components 8 N east and 15 N north. What resultant magnitude does that give?", ["17 N", "7 N", "23 N", "15 N"], 0, "Use the 8-15-17 right triangle: 8 N east and 15 N north rebuild a 17 N resultant.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
         spec_mcq("M2L6_D8", "A force already has 3 N east horizontally. If another 5 N east component is added, the new horizontal total is...", ["8 N east", "2 N east", "8 N west", "15 N east"], 0, "Same-direction components add on the same axis.", ["resultant_force_vector_confusion"]),
     ],
 }
@@ -926,7 +938,7 @@ M2_EXTRA_TRANSFER = {
         spec_mcq("M2L5_T8", "If the base stays the same but the load is lowered, the craft usually becomes...", ["more stable", "less stable", "unchanged", "impossible to compare"], 0, "A lower center of mass usually increases the tipping margin.", ["stability_weight_confusion"]),
     ],
     "M2_L6": [
-        spec_mcq("M2L6_T4", "A force has components 12 N east and 5 N north. What resultant magnitude does that give?", ["13 N", "7 N", "17 N", "12 N"], 0, "Use the 5-12-13 triangle.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
+        spec_mcq("M2L6_T4", "A force has components 12 N east and 5 N north. What resultant magnitude does that give?", ["13 N", "7 N", "17 N", "12 N"], 0, "Use the 5-12-13 right triangle: 12 N east and 5 N north rebuild a 13 N resultant.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
         spec_short("M2L6_T5", "What stays the same after Arrow Split?", ["the original vector", "the same resultant", "the same overall force", "the same diagonal force"], "Resolving into components does not change the original force represented.", ["vector_resolution_component_confusion"]),
         spec_mcq("M2L6_T6", "If the net horizontal component is zero, what remains of the resultant?", ["only the vertical component", "no force at all", "only the original diagonal arrow", "two extra forces"], 0, "With zero horizontal part, the resultant lies fully on the vertical axis.", ["resultant_force_vector_confusion"]),
         spec_short("M2L6_T7", "Two horizontal components are 8 N east and 6 N west. What net horizontal component remains?", ["2 N east", "2 east", "2 N"], "Subtract opposite directions and keep the larger direction.", ["resultant_force_vector_confusion"]),
