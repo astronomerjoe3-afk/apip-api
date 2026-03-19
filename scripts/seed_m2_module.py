@@ -481,7 +481,7 @@ M2_SPEC = json.loads(r'''
       "diagnostic": [
         {"kind": "mcq", "id": "M2L5_D1", "prompt": "What most directly changes the Balance Core location?", "choices": ["moving cargo to a new position", "renaming the craft", "changing the paint color", "waiting longer"], "answer_index": 0, "hint": "Centre of mass depends on mass distribution.", "tags": ["centre_of_mass_material_confusion"]},
         {"kind": "mcq", "id": "M2L5_D2", "prompt": "When is a craft most likely to tip?", "choices": ["when the Balance Core moves outside the Footprint Zone", "when the mass is large", "when the deck is blue", "when time passes"], "answer_index": 0, "hint": "Stability depends on the centre of gravity staying over the base.", "tags": ["stability_weight_confusion"]},
-        {"kind": "short", "id": "M2L5_D3", "prompt": "A crate is moved to the left side of the deck. In which direction does the Balance Core shift?", "accepted_answers": ["left"], "hint": "The balance point shifts toward the moved mass.", "tags": ["centre_of_mass_material_confusion"]}
+        {"kind": "short", "id": "M2L5_D3", "prompt": "A crate is moved to the left side of the deck. In which direction does the Balance Core shift?", "accepted_answers": ["left", "to the left", "toward the moved mass", "towards the moved mass", "toward the cargo", "towards the cargo"], "hint": "The balance point shifts toward the moved mass.", "tags": ["centre_of_mass_material_confusion"]}
       ],
       "inquiry": [
         {"prompt": "Keep the same mass but move it upward and sideways.", "hint": "High and off-centre mass can make tipping easier."},
@@ -496,7 +496,7 @@ M2_SPEC = json.loads(r'''
       "transfer": [
         {"kind": "mcq", "id": "M2L5_T1", "prompt": "Why can the centre of mass lie in empty space for some objects?", "choices": ["because it is a balance point, not a chunk of material", "because matter disappears there", "because only circles have centres of mass", "because mass is measured in newtons"], "answer_index": 0, "hint": "Centre of mass is a balance idea, not always a literal material point.", "tags": ["centre_of_mass_material_confusion"]},
         {"kind": "mcq", "id": "M2L5_T2", "prompt": "What usually happens to stability when the same load is placed higher above the deck?", "choices": ["stability decreases", "stability increases automatically", "nothing changes", "the Footprint Zone disappears"], "answer_index": 0, "hint": "A higher centre of mass makes tipping easier.", "tags": ["stability_weight_confusion"]},
-        {"kind": "short", "id": "M2L5_T3", "prompt": "If the Balance Core moves beyond the right edge of the Footprint Zone, what happens?", "accepted_answers": ["it tips", "the craft tips", "tipping begins"], "hint": "Once the line of action passes outside the base, the craft starts to tip.", "tags": ["stability_weight_confusion"]}
+        {"kind": "short", "id": "M2L5_T3", "prompt": "If the Balance Core moves beyond the right edge of the Footprint Zone, what happens?", "accepted_answers": ["it tips", "the craft tips", "tipping begins", "tipping starts", "it starts to tip", "the craft starts to tip", "it tips over", "the craft tips over", "it topples", "the craft topples", "it falls over", "the craft falls over"], "hint": "Once the line of action passes outside the base, the craft starts to tip.", "tags": ["stability_weight_confusion"]}
       ],
       "contract": {
         "concept_targets": ["Use centre-of-mass location rather than total mass alone to explain stability.", "Connect stability to whether the line of action stays over the support base."],
@@ -851,7 +851,7 @@ M2_EXTRA_DIAGNOSTIC = {
         spec_short("M2L4_D8", "A 10 N push acts 0.3 m from the pivot. What Spin Pull is produced?", ["3 N m", "3"], "Use torque, or moment of a force, = force x perpendicular reach.", ["torque_force_location_confusion"]),
     ],
     "M2_L5": [
-        spec_short("M2L5_D6", "If cargo is moved to the right, which way does the Balance Core shift?", ["right", "to the right"], "The center-of-mass position shifts toward the moved mass.", ["centre_of_mass_material_confusion"]),
+        spec_short("M2L5_D6", "If cargo is moved to the right, which way does the Balance Core shift?", ["right", "to the right", "toward the moved mass", "towards the moved mass", "toward the cargo", "towards the cargo"], "The center-of-mass position shifts toward the moved mass.", ["centre_of_mass_material_confusion"]),
         spec_mcq("M2L5_D7", "If the Balance Core stays in the same place but the base becomes wider, stability usually...", ["increases", "decreases", "stays impossible to judge", "depends only on color"], 0, "A wider support zone gives more margin before tipping.", ["stability_weight_confusion"]),
         spec_mcq("M2L5_D8", "Which event marks the tipping threshold most directly?", ["the weight line reaches or crosses the base edge", "the object becomes heavier", "the object starts moving fast", "the support area changes color"], 0, "Tipping begins when the center-of-mass line leaves the support region.", ["stability_weight_confusion", "centre_of_mass_material_confusion"]),
     ],
