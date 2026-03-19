@@ -580,7 +580,7 @@ M2_SPEC = json.loads(r'''
       "diagnostic": [
         {"kind": "mcq", "id": "M2L6_D1", "prompt": "Why is Arrow Split useful?", "choices": ["it turns one angled push into simpler perpendicular parts", "it creates two new physical forces", "it removes direction from the force", "it makes mass unnecessary"], "answer_index": 0, "hint": "Components are a reasoning tool for one angled vector.", "tags": ["vector_resolution_component_confusion"]},
         {"kind": "mcq", "id": "M2L6_D2", "prompt": "Which statement about components is correct?", "choices": ["they add back to the original vector", "they replace the need for direction", "they are always larger than the original vector", "they only work in one dimension"], "answer_index": 0, "hint": "Components recombine to recover the original vector.", "tags": ["vector_resolution_component_confusion"]},
-        {"kind": "short", "id": "M2L6_D3", "prompt": "A force has components 6 N east and 8 N north. What is the resultant magnitude?", "accepted_answers": ["10 N", "10"], "hint": "Use the 6-8-10 right triangle: 6 N east and 8 N north rebuild a 10 N resultant.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
+        {"kind": "short", "id": "M2L6_D3", "prompt": "A force has components 6 N east and 8 N north. What is the resultant magnitude?", "accepted_answers": ["10 N", "10"], "hint": "Use vector addition: the east and north components are perpendicular, so do not add 6 + 8. Rebuild the diagonal resultant instead.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
       ],
       "inquiry": [
         {"prompt": "Split one diagonal arrow and compare the horizontal and vertical bookkeeping.", "hint": "Work direction by direction before recombining the result."},
@@ -595,7 +595,7 @@ M2_SPEC = json.loads(r'''
       "transfer": [
         {"kind": "mcq", "id": "M2L6_T1", "prompt": "A diagonal arrow is split into east and north components. What must be true?", "choices": ["those components add back to the original arrow", "the original arrow was two separate pushes", "the components are unrelated to direction", "the resultant must be smaller than each component"], "answer_index": 0, "hint": "Components reconstruct the original vector.", "tags": ["vector_resolution_component_confusion"]},
         {"kind": "mcq", "id": "M2L6_T2", "prompt": "Why can component reasoning help with 2D resultants?", "choices": ["it lets you combine one axis at a time", "it removes all angles from physics", "it makes direction irrelevant", "it works only for vertical arrows"], "answer_index": 0, "hint": "Axis-by-axis combination reduces confusion.", "tags": ["vector_resolution_component_confusion"]},
-        {"kind": "short", "id": "M2L6_T3", "prompt": "A force has components 3 N east and 4 N north. What resultant magnitude does that give?", "accepted_answers": ["5 N", "5"], "hint": "Use the 3-4-5 right triangle: 3 N east and 4 N north rebuild a 5 N resultant.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
+        {"kind": "short", "id": "M2L6_T3", "prompt": "A force has components 3 N east and 4 N north. What resultant magnitude does that give?", "accepted_answers": ["5 N", "5"], "hint": "Use vector addition: the components are perpendicular, so rebuild the diagonal resultant rather than adding 3 + 4.", "tags": ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]}
       ],
       "contract": {
         "concept_targets": ["Use components to reason about one angled vector and about multi-force resultants.", "Treat component resolution as structured bookkeeping rather than as a mysterious trick."],
@@ -640,31 +640,31 @@ M2_SPEC = json.loads(r'''
           "why_it_matters": "This blocks the common mistake of treating components as new forces instead of as a structured redescription."
         },
         {
-          "prompt": "A force is shown as 6 N east followed tip-to-tail by 8 N north. What resultant does that make, and why is it still the same original force?",
+          "prompt": "A force has components 8 N east and 15 N north. A learner says the resultant must be 23 N because 8 + 15 = 23. Explain why that is wrong and find the actual resultant.",
           "steps": [
-            "Treat the 6 N east and 8 N north arrows as perpendicular components that belong to one vector story, not as unrelated pushes.",
-            "For tip-to-tail addition, draw the resultant from the start of the first arrow to the end of the second arrow.",
-            "Use the 6-8-10 right triangle: 6^2 + 8^2 = 10^2, so the resultant magnitude is 10 N.",
-            "Because the diagonal resultant connects the same overall start and finish points, it represents the same original force written in component form."
+            "Start by checking directions: 8 N east and 15 N north lie on perpendicular axes, so they are not same-line vectors and cannot be added as 8 + 15.",
+            "Use tip-to-tail vector addition instead: draw the 15 N north component from the tip of the 8 N east component, then read the resultant from the first tail to the final tip.",
+            "That start-to-finish diagonal is the actual resultant. Its magnitude comes from the perpendicular-component triangle: sqrt(8^2 + 15^2) = sqrt(289) = 17 N.",
+            "So 23 N would only make sense for same-axis algebraic addition, while the correct vector resultant here is 17 N northeast."
           ],
-          "final_answer": "The two components make a 10 N northeast resultant, and it is still the same original force because tip-to-tail addition rebuilds the single start-to-finish vector.",
-          "why_it_matters": "This makes vector addition visible and ties the triangle numbers directly to the rebuilt diagonal force."
+          "final_answer": "The learner is wrong: the resultant is 17 N northeast, because perpendicular components combine by vector addition into a diagonal start-to-finish arrow, not by plain algebraic addition to 23 N.",
+          "why_it_matters": "This explicitly separates vector addition from ordinary algebraic addition and removes reliance on a memorized number pattern."
         }
       ],
       "visual_assets": [
         {"asset_id": "m2-l6-arrow-split.svg", "purpose": "Show one diagonal arrow, its components, and the rebuilt resultant.", "caption": "The diagram turns vector resolution into visible arrow bookkeeping."},
-        {"asset_id": "m2-l6-vector-addition.svg", "purpose": "Show tip-to-tail vector addition so students can see the components rebuilding the same diagonal force.", "caption": "The extra visual makes the start-to-finish resultant explicit."}
+        {"asset_id": "m2-l6-vector-addition.svg", "purpose": "Show tip-to-tail vector addition and contrast it with invalid plain-number addition across perpendicular axes.", "caption": "The extra visual makes the start-to-finish resultant explicit and warns against adding perpendicular components as 8 + 15."}
       ],
       "simulation_contract": {
         "baseline_case": "Start with one diagonal arrow and display its resolved components.",
         "comparison_tasks": ["Compare direct vector combination with component-by-component combination.", "Build two different component sets that recreate the same resultant."],
-        "watch_for": "Students should explain that components are not new forces.",
+        "watch_for": "Students should explain that components are not new forces and that perpendicular components must not be added as plain same-line numbers.",
         "takeaway": "Vector resolution is a structured way to understand and combine angled forces."
       },
       "reflection_prompts": ["Explain why Arrow Split is a bookkeeping move rather than a claim that one force has become two separate pushes." ],
       "mastery_skills": ["Resolve an angled vector into components.", "Combine components axis by axis.", "Rebuild resultants from perpendicular parts.", "Distinguish components from separate forces.", "Solve simple 2D resultant magnitudes."],
       "variation_plan": {
-        "diagnostic": "Rotate between conceptual component statements, simple 3-4-5 resultant calculations, and axis-combination questions.",
+        "diagnostic": "Rotate between conceptual component statements, perpendicular-component resultant calculations, and axis-combination questions.",
         "concept_gate": "Swap between one-vector resolution items and multi-component combination items on retries.",
         "mastery": "Vary the axes, component values, and story contexts so students must actively rebuild the vector structure each time."
       }
@@ -869,7 +869,7 @@ M2_EXTRA_DIAGNOSTIC = {
     ],
     "M2_L6": [
         spec_short("M2L6_D6", "In a few words, what are components?", ["one force rewritten on chosen axes", "parts of one vector on axes", "one vector resolved on axes", "one force split into axis parts"], "Components are a cleaner description of one angled force.", ["vector_resolution_component_confusion"]),
-        spec_mcq("M2L6_D7", "A force has components 8 N east and 15 N north. What resultant magnitude does that give?", ["17 N", "7 N", "23 N", "15 N"], 0, "Use the 8-15-17 right triangle: 8 N east and 15 N north rebuild a 17 N resultant.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
+        spec_mcq("M2L6_D7", "A force has components 8 N east and 15 N north. What resultant magnitude does that give?", ["17 N", "7 N", "23 N", "15 N"], 0, "Use vector addition: 8 N east and 15 N north are perpendicular, so 23 N is not the resultant. Rebuild the start-to-finish diagonal instead.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
         spec_mcq("M2L6_D8", "A force already has 3 N east horizontally. If another 5 N east component is added, the new horizontal total is...", ["8 N east", "2 N east", "8 N west", "15 N east"], 0, "Same-direction components add on the same axis.", ["resultant_force_vector_confusion"]),
     ],
 }
@@ -938,7 +938,7 @@ M2_EXTRA_TRANSFER = {
         spec_mcq("M2L5_T8", "If the base stays the same but the load is lowered, the craft usually becomes...", ["more stable", "less stable", "unchanged", "impossible to compare"], 0, "A lower center of mass usually increases the tipping margin.", ["stability_weight_confusion"]),
     ],
     "M2_L6": [
-        spec_mcq("M2L6_T4", "A force has components 12 N east and 5 N north. What resultant magnitude does that give?", ["13 N", "7 N", "17 N", "12 N"], 0, "Use the 5-12-13 right triangle: 12 N east and 5 N north rebuild a 13 N resultant.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
+        spec_mcq("M2L6_T4", "A force has components 12 N east and 5 N north. What resultant magnitude does that give?", ["13 N", "7 N", "17 N", "12 N"], 0, "Use vector addition: 12 N east and 5 N north are perpendicular components, so do not add 12 + 5.", ["vector_resolution_component_confusion", "resultant_force_vector_confusion"]),
         spec_short("M2L6_T5", "What stays the same after Arrow Split?", ["the original vector", "the same resultant", "the same overall force", "the same diagonal force"], "Resolving into components does not change the original force represented.", ["vector_resolution_component_confusion"]),
         spec_mcq("M2L6_T6", "If the net horizontal component is zero, what remains of the resultant?", ["only the vertical component", "no force at all", "only the original diagonal arrow", "two extra forces"], 0, "With zero horizontal part, the resultant lies fully on the vertical axis.", ["resultant_force_vector_confusion"]),
         spec_short("M2L6_T7", "Two horizontal components are 8 N east and 6 N west. What net horizontal component remains?", ["2 N east", "2 east", "2 N"], "Subtract opposite directions and keep the larger direction.", ["resultant_force_vector_confusion"]),
