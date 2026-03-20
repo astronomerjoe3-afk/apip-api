@@ -396,13 +396,15 @@ def lesson_l1() -> Dict[str, Any]:
                 [
                     "Because energy is tracked across stores and leaks rather than disappearing.",
                     "Because energy is accounted for in stores or leak trail.",
+                    "Because energy must be conserved in a closed system.",
+                    "Because total energy is conserved and must still be accounted for.",
                 ],
                 "Answer in terms of energy being stored, transferred, or spread out rather than destroyed.",
                 ["energy_used_up_confusion", "ledger_balance_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("store", "stored", "stores"),
-                    ("leak", "trail", "waste", "spread"),
-                    ("not destroyed", "does not disappear", "accounted for", "balanced"),
+                    ("energy",),
+                    ("conserved", "conservation", "accounted for", "balanced", "tracked"),
+                    ("store", "stored", "stores", "system", "leak", "trail", "waste", "spread", "ledger"),
                 ),
                 skill_tags=["concept_explanation", "energy_accounting"],
             ),
@@ -1169,7 +1171,7 @@ def lesson_l4() -> Dict[str, Any]:
                 "A learner pushes hard on a sealed gate but the gate does not move. What work is done on the gate by that push?",
                 ["0 J", "some work because the push feels hard", "equal to the force only", "it cannot be known"],
                 0,
-                "No displacement means no work done by that force on the gate.",
+                "No displacement in the force direction means no work is done by that force in the simple model.",
                 ["work_hand_off_confusion"],
             ),
             mcq(
