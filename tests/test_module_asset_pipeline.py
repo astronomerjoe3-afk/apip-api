@@ -195,6 +195,22 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("kinetic energy", mastery_text)
 
+    def test_m4_l4_balances_shape_misconception_with_numeric_same_depth_checks(self) -> None:
+        lesson = next(payload for lesson_id, payload in M4_LESSONS if lesson_id == "M4_L4")
+        concept_prompts = " ".join(
+            str(item.get("prompt") or "")
+            for item in lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+        )
+        diagnostic_prompts = " ".join(str(item.get("prompt") or "") for item in lesson["phases"]["diagnostic"]["items"])
+        mastery_prompts = " ".join(str(item.get("prompt") or "") for item in lesson["phases"]["transfer"]["items"])
+
+        self.assertIn("2.5 m below the surface", concept_prompts)
+        self.assertIn("3 m below the surface", diagnostic_prompts)
+        self.assertIn("2 m below the water surface", mastery_prompts)
+        self.assertIn("rho = 1000 kg/m^3", concept_prompts)
+        self.assertIn("rho = 1000 kg/m^3", diagnostic_prompts)
+        self.assertIn("rho = 1000 kg/m^3", mastery_prompts)
+
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
         self.assertEqual(F1_MODULE_DOC["title"], "Physical Quantities & Measurement")

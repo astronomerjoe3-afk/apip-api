@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M4_MODULE_ID = "M4"
-M4_CONTENT_VERSION = "20260321_m4_pressure_intro_v2"
+M4_CONTENT_VERSION = "20260321_m4_pressure_audit_v3"
 M4_MODULE_TITLE = "Pressure"
 M4_ALLOWLIST = [
     "pressure_force_confusion",
@@ -812,6 +812,7 @@ def lesson_l4() -> Dict[str, Any]:
             mcq("M4L4_C4", "Two patches are level, but one liquid is denser. What happens?", ["The pressures stay equal", "The denser liquid gives greater pressure", "The less dense liquid gives greater pressure", "Pressure becomes zero"], 1, "Same depth is not enough if the liquid changes.", ["liquid_density_confusion"]),
             mcq("M4L4_C5", "Which statement best keeps the Patch-Dome analogy true?", ["Shape does not fool the liquid", "Wide tanks always press harder", "Bottom patches always read more because they are on the bottom", "Pressure depends mainly on how much liquid the tank holds"], 0, "Location wins over shape.", ["same_depth_shape_confusion"]),
             mcq("M4L4_C6", "Why is the same-level rule a location rule?", ["Because pressure belongs to the point in the fluid", "Because shape and size always give equal pressure", "Because pressure is a vector", "Because only bottoms matter"], 0, "Pressure is tied to the location in the fluid.", ["fluid_pressure_direction_confusion"]),
+            mcq("M4L4_C7", "Both vessels hold water with rho = 1000 kg/m^3 and g = 10 N/kg. Two windows are each 2.5 m below the surface, one in a narrow tank and one in a wide tank. What pressure does each window read?", ["2500 Pa", "25000 Pa", "50000 Pa", "different pressures because the vessel shapes differ"], 1, "Use p = rhogh after noticing the same liquid and same depth.", ["same_depth_shape_confusion"]),
         ],
         "diagnostic": [
             mcq("M4L4_D1", "Which patch has the greater pressure in the same liquid?", ["the one in the wider container at the same depth", "the one in the narrower container at the same depth", "they are equal if their depths match", "the one closer to the wall"], 2, "Equal depth in the same liquid means equal pressure.", ["same_depth_shape_confusion"]),
@@ -822,6 +823,7 @@ def lesson_l4() -> Dict[str, Any]:
             short("M4L4_D6", "Why is pressure at a point called a location property here?", ["because it belongs to the point in the fluid", "because the point's depth and liquid determine it", "because shape elsewhere does not decide it"], "Use point or location language.", ["fluid_pressure_direction_confusion"], acceptance_rules=acceptance_groups(["point", "location"], ["fluid", "depth", "liquid"], ["determine", "belongs", "not shape"])),
             mcq("M4L4_D7", "A student compares two bottom patches at the same depth in connected water vessels of different width. Which statement is strongest?", ["The wider branch has higher pressure", "The pressures match because the depths and liquid match", "The narrower branch has higher pressure", "Bottom pressure cannot be compared"], 1, "Same water, same depth, same pressure.", ["same_depth_shape_confusion"]),
             mcq("M4L4_D8", "What changes pressure at a patch more directly than vessel shape?", ["depth", "paint color", "window size", "tank width"], 0, "Depth is a real factor.", ["same_depth_shape_confusion"]),
+            short("M4L4_D9", "A window in a wide water tank and a window in a narrow water tube are both 3 m below the surface. If rho = 1000 kg/m^3 and g = 10 N/kg, what pressure does each window read?", ["30000 Pa", "30000"], "Use p = rhogh, then apply the same answer to both because the liquid and depth match.", ["same_depth_shape_confusion"], acceptance_rules=acceptance_groups(["30000"])),
         ],
         "transfer": [
             mcq("M4L4_M1", "Two windows are both 1.5 m below the water surface, one in a narrow tower and one in a wide tank. Which claim is right?", ["The narrow tower gives more pressure", "The wide tank gives more pressure", "They give the same pressure", "The wider tank gives half"], 2, "Equal depth in the same liquid means equal pressure.", ["same_depth_shape_confusion"]),
@@ -832,6 +834,7 @@ def lesson_l4() -> Dict[str, Any]:
             mcq("M4L4_M6", "Why does this lesson matter beyond one formula?", ["It stops students from inventing shape effects that the fluid does not actually have", "It proves all containers have the same volume", "It removes density from the story", "It turns pressure into force only"], 0, "The rule fights a common misconception.", ["same_depth_shape_confusion"]),
             mcq("M4L4_M7", "If two equal-level windows are in different liquids, which quantity must be compared next?", ["the window area", "the liquid density", "the tank width", "the total liquid mass"], 1, "Same depth with different liquids points to density.", ["liquid_density_confusion"]),
             mcq("M4L4_M8", "Which statement best fits the dome model?", ["Pressure belongs to the whole container", "Pressure belongs to the fluid location and equal levels in one liquid match", "Pressure belongs only to bottoms", "Pressure is a direction pointing downward"], 1, "Keep pressure local to the point.", ["fluid_pressure_direction_confusion"]),
+            mcq("M4L4_M9", "Window A is 2 m below the water surface in a narrow vessel. Window B is 2 m below the water surface in a wide vessel. Water has rho = 1000 kg/m^3 and g = 10 N/kg. Which comparison is correct?", ["A = B = 20000 Pa", "A > B because the narrow vessel crowds the liquid more", "B > A because the wide vessel holds more water", "The pressure cannot be compared without the window areas"], 0, "Same liquid and same depth give equal pressure, and p = rhogh gives 20000 Pa for both.", ["same_depth_shape_confusion"]),
         ],
         "contract": contract(
             concept_targets=["Same-depth rule", "Container-shape independence", "Pressure as a location property"],
