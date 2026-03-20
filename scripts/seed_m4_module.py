@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M4_MODULE_ID = "M4"
-M4_CONTENT_VERSION = "20260321_m4_pressure_audit_v3"
+M4_CONTENT_VERSION = "20260321_m4_pressure_units_v4"
 M4_MODULE_TITLE = "Pressure"
 M4_ALLOWLIST = [
     "pressure_force_confusion",
@@ -397,6 +397,7 @@ def lesson_l1() -> Dict[str, Any]:
             prompt_block("What changes if the same push is squeezed onto fewer patches?", "Name what happens to each patch, not to the total push."),
             prompt_block("Why can two objects press with the same force but different pressure?", "Keep the footprint or patch spread visible."),
             prompt_block("What does one sensor patch reading stand for in this lesson?", "Use the phrase push per patch or force per area."),
+            prompt_block("What unit matches pressure, and what does it mean?", "Pressure is measured in pascals: newtons per square metre."),
         ],
         "inquiry": [
             prompt_block("Keep total push fixed and shrink the footprint. What changes?", "Track pressure, not just force."),
@@ -416,6 +417,7 @@ def lesson_l1() -> Dict[str, Any]:
             short("M4L1_C4", "Why can the same total push give different patch loads?", ["because the push can be spread over different areas", "because the number of patches sharing it can change", "because pressure depends on area as well as force"], "Use area or patch-spread language.", ["pressure_area_confusion"], acceptance_rules=acceptance_groups(["same push", "same force", "total push", "same pressure source"], ["area", "surface area", "contact area", "patch", "spread", "footprint"], ["different", "change", "smaller", "larger", "matters", "depends", "shared"])),
             mcq("M4L1_C5", "What does one patch sensor reading represent in this model?", ["total weight of the object", "pressure at that patch", "mass of the whole object", "total force divided by time"], 1, "One patch reads patch load.", ["pressure_force_confusion"]),
             mcq("M4L1_C6", "Which change definitely raises pressure if the total push stays the same?", ["using a smaller contact area", "waiting longer", "turning the object sideways without changing area", "making the object wider and lighter at the same time"], 0, "Fewer sharing patches means higher pressure.", ["pressure_area_confusion"]),
+            mcq("M4L1_C7", "What does 1 Pa mean?", ["1 N acting for 1 second", "1 N spread over 1 m^2", "1 kg spread over 1 m^2", "1 J shared by 1 patch"], 1, "A pascal is one newton per square metre.", ["pressure_force_confusion"]),
         ],
         "diagnostic": [
             mcq("M4L1_D1", "Two objects press on the floor with the same force. Which one gives the greater pressure?", ["the one with the larger area", "the one with the smaller area", "they must give the same pressure", "the one with the brighter color"], 1, "Pressure depends on both force and area.", ["pressure_area_confusion"]),
@@ -527,6 +529,7 @@ def lesson_l1() -> Dict[str, Any]:
                 "The Patch-Dome works because it always asks the same question: how much push reaches each equal patch?",
                 "In the dome, what changes when the same push is squeezed onto fewer patches?",
                 extra_sections=[
+                    extra_section("Pressure units", "Pressure is measured in pascals (Pa). One pascal means one newton of force spread over one square metre, so Pa and N/m^2 describe the same unit relationship."),
                     extra_section("Same push, different crowding", "A force story can stay unchanged while a pressure story changes dramatically, because the number of patches sharing the push may change."),
                     extra_section("Patch-load design thinking", "Real pressure problems often ask how to redesign the footprint so fragile patches survive even when the total push cannot be reduced."),
                 ],
