@@ -1308,15 +1308,15 @@ def lesson_l4() -> Dict[str, Any]:
                     "This keeps students from forcing a force-distance equation onto the wrong kind of problem.",
                 ),
                 worked(
-                    "A constant 35 N push moves a pod 12 m along the track. Find the work done.",
+                    "A lift raises a pod so its Height Store increases from 120 J to 420 J with negligible leak. Find the work done.",
                     [
-                        "Identify the story as force acting through distance in the same direction.",
-                        "Use W = Fd.",
-                        "Calculate 35 x 12.",
+                        "Identify the story as a direct store-change hand-off.",
+                        "Find the energy change first: Delta E = 420 J - 120 J = 300 J.",
+                        "Use W = Delta E because the store increase is the given story.",
                     ],
-                    "Work done = 420 J.",
-                    "The story gives force and distance directly, so W = 35 x 12 = 420 J.",
-                    "This contrasts cleanly with the store-change route and sharpens equation choice.",
+                    "Work done = 300 J.",
+                    "With negligible leak, the lift's work equals the Height Store increase, so W = Delta E = 300 J.",
+                    "This gives students a genuine Delta E example where they must calculate the change before naming the work done.",
                 ),
             ],
             visual_assets=[
