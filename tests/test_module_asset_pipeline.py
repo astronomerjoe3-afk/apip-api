@@ -70,7 +70,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             "/lesson_assets/M3/M3_L1/simulations/m3_lift_launch_ledger_lab/index.html",
         )
 
-    def test_m3_v2_contract_includes_scaffold_support_and_answer_reasons(self) -> None:
+    def test_m3_v3_contract_includes_richer_scaffold_support_and_answer_reasons(self) -> None:
         for _, lesson in M3_LESSONS:
             contract = lesson["authoring_contract"]
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
@@ -79,15 +79,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 6,
-                    "concept_gate_pool_min": 4,
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
                     "mastery_pool_min": 8,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 6)
-            self.assertGreaterEqual(len(concept_checks), 4)
-            self.assertGreaterEqual(len(transfer_items), 6)
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
             scaffold_support = contract["scaffold_support"]
             self.assertTrue(scaffold_support["core_idea"])
             self.assertTrue(scaffold_support["reasoning"])
@@ -95,6 +95,8 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertTrue(scaffold_support["common_trap"])
             self.assertTrue(scaffold_support["analogy_bridge"]["body"])
             self.assertTrue(scaffold_support["analogy_bridge"]["check_for_understanding"])
+            self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
 
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])

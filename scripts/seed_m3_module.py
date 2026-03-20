@@ -18,7 +18,7 @@ except ModuleNotFoundError:
 
 
 M3_MODULE_ID = "M3"
-M3_CONTENT_VERSION = "20260320_m3_lift_launch_v2"
+M3_CONTENT_VERSION = "20260320_m3_lift_launch_v3"
 M3_MODULE_TITLE = "Energy Stores, Hand-offs & Ledger Reasoning"
 M3_ALLOWLIST = [
     "energy_force_confusion",
@@ -2441,12 +2441,622 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
     },
 }
 
+M3_SECONDARY_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
+    "M3_L1": {
+        "diagnostic": [
+            mcq(
+                "M3L1_D7",
+                "A pod stands on a high deck and also moves quickly. Which statement is strongest?",
+                [
+                    "It can hold both Height Store and Motion Store in the same mission state.",
+                    "It must choose one store only.",
+                    "Only the Leak Trail can exist if it is moving.",
+                    "It has no energy because no transfer is happening now.",
+                ],
+                0,
+                "Different stores can coexist in one story.",
+                ["energy_force_confusion", "energy_used_up_confusion"],
+            ),
+            short(
+                "M3L1_D8",
+                "Why is the Leak Trail important in the Lift-Launch analogy?",
+                [
+                    "Because it shows where energy spreads out instead of becoming useful gain.",
+                    "Because it keeps the ledger balanced by tracking wasted spread.",
+                ],
+                "Use leak, waste, spread, or balancing language.",
+                ["energy_used_up_confusion", "ledger_balance_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("leak", "trail", "waste", "spread"),
+                    ("balance", "account", "tracked"),
+                ),
+            ),
+        ],
+        "capsule_checks": [
+            mcq(
+                "M3L1_C5",
+                "Which statement keeps store language and transfer language correctly separated?",
+                [
+                    "A store is what the pod has; a hand-off is how energy moves into or out of it.",
+                    "A store and a hand-off are the same thing described twice.",
+                    "The hand-off is only the force while the store is only the speed.",
+                    "Leak Trail is another name for Motion Store.",
+                ],
+                0,
+                "The lesson separates what energy is doing from where it sits.",
+                ["energy_force_confusion", "work_hand_off_confusion"],
+            ),
+            short(
+                "M3L1_C6",
+                "Finish the idea: input energy = ...",
+                [
+                    "useful gain + leak trail",
+                    "useful output + leak trail",
+                ],
+                "Use the ledger balance sentence.",
+                ["ledger_balance_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("useful", "gain", "output"),
+                    ("leak", "trail", "waste"),
+                ),
+            ),
+        ],
+        "transfer": [
+            mcq(
+                "M3L1_T7",
+                "A machine inputs 900 J. The useful gain is 540 J and 180 J becomes Leak Trail. What must be true?",
+                [
+                    "Another 180 J must be accounted for somewhere else in the ledger.",
+                    "The 180 J difference can be ignored because some energy is useful.",
+                    "The machine created extra energy.",
+                    "The useful gain should be changed to 900 J.",
+                ],
+                0,
+                "Balanced accounting must still track the missing 180 J.",
+                ["ledger_balance_confusion"],
+            ),
+            short(
+                "M3L1_T8",
+                "Why does M3 treat energy problems as ledger problems rather than force problems?",
+                [
+                    "Because it asks where energy is stored, transferred, or leaked rather than what push acts now.",
+                    "Because the module tracks stores and hand-offs instead of confusing energy with force.",
+                ],
+                "Use store-transfer-ledger language against push-force language.",
+                ["energy_force_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("store", "stored", "transfer", "hand-off", "ledger", "leak"),
+                    ("force", "push"),
+                    ("different", "rather than", "not the same"),
+                ),
+            ),
+        ],
+    },
+    "M3_L2": {
+        "diagnostic": [
+            mcq(
+                "M3L2_D7",
+                "If the same Height Store is to be kept while World Grip doubles, what must happen to the lift height if mass stays fixed?",
+                ["It must halve.", "It must double.", "It stays the same.", "It must quadruple."],
+                0,
+                "Keep the product mgh constant.",
+                ["height_store_variable_confusion"],
+            ),
+            mcq(
+                "M3L2_D8",
+                "Which explanation best fits the Lift-Launch analogy?",
+                [
+                    "Height Store belongs to being high in a gravitational field, not to motion itself.",
+                    "Height Store appears only when the pod is moving upward.",
+                    "Height Store depends on time spent on the deck.",
+                    "Height Store is another name for launch force.",
+                ],
+                0,
+                "The analogy still points back to position in a field.",
+                ["height_store_variable_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            mcq(
+                "M3L2_C5",
+                "Which change definitely doubles Height Store while the other two factors stay fixed?",
+                ["doubling the height", "doubling the waiting time", "doubling the pod color brightness", "doubling the leak trail"],
+                0,
+                "Use the direct proportionality of mgh.",
+                ["height_store_variable_confusion"],
+            ),
+            short(
+                "M3L2_C6",
+                "What does the World Grip setting stand for in formal physics?",
+                [
+                    "gravitational field strength",
+                    "g",
+                ],
+                "Use the formal field-strength name or g.",
+                ["height_store_variable_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("gravitational", "field", "strength"),
+                    ("g",),
+                ),
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L2_T7",
+                "A 4 kg pod has 320 J of Height Store on a world where g = 10 N/kg. How high is it above the reference level?",
+                ["8 m", "8"],
+                "Use h = E / mg.",
+                ["height_store_variable_confusion"],
+            ),
+            mcq(
+                "M3L2_T8",
+                "Two worlds give the same Height Store to the same pod at the same deck level. What must be true?",
+                [
+                    "Their World Grip values are the same.",
+                    "Their Motion Stores are the same.",
+                    "Their launchers must be identical.",
+                    "Their Leak Trails must be zero.",
+                ],
+                0,
+                "At fixed mass and height, equal Height Store means equal g.",
+                ["height_store_variable_confusion"],
+            ),
+        ],
+    },
+    "M3_L3": {
+        "diagnostic": [
+            mcq(
+                "M3L3_D7",
+                "If the same pod triples its speed, what happens to its Motion Store?",
+                ["It becomes nine times as large.", "It triples.", "It doubles.", "It stays the same."],
+                0,
+                "Tripling speed multiplies v squared by nine.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            mcq(
+                "M3L3_D8",
+                "Which comparison best shows the stronger speed effect?",
+                [
+                    "same mass, doubled speed",
+                    "same speed, doubled mass",
+                    "same speed, same mass",
+                    "same mass, same color",
+                ],
+                0,
+                "Hold mass fixed if you want to expose the speed-squared effect.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            mcq(
+                "M3L3_C5",
+                "Which statement is correct for equal speeds?",
+                [
+                    "The heavier pod has the larger Motion Store.",
+                    "The lighter pod always has the larger Motion Store.",
+                    "Both must have the same Motion Store regardless of mass.",
+                    "Motion Store depends only on pace.",
+                ],
+                0,
+                "At fixed speed, Motion Store is proportional to mass.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            short(
+                "M3L3_C6",
+                "What formal symbol in the equation explains the sharp growth with pace?",
+                ["v^2", "speed squared"],
+                "Point to the squared speed term.",
+                ["motion_store_speed_squared_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("v^2", "speed squared", "velocity squared", "squared"),
+                ),
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L3_T7",
+                "A 3 kg pod moves at 10 m/s. What Motion Store does it have?",
+                ["150 J", "150"],
+                "Use E_k = 0.5mv^2.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            mcq(
+                "M3L3_T8",
+                "Two pods have the same mass. Pod A has four times the Motion Store of Pod B. What is the best speed comparison?",
+                [
+                    "Pod A is moving twice as fast.",
+                    "Pod A is moving four times as fast.",
+                    "Pod A is moving the same speed.",
+                    "Speed cannot be compared from Motion Store.",
+                ],
+                0,
+                "At fixed mass, a fourfold energy rise means a doubled speed.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+        ],
+    },
+    "M3_L4": {
+        "diagnostic": [
+            mcq(
+                "M3L4_D7",
+                "Which story is most clearly a direct W = Delta E story?",
+                [
+                    "A pod's Motion Store rises by 260 J.",
+                    "A force of 13 N acts through 2 m in the same direction.",
+                    "A machine runs for 4 s at 90 W.",
+                    "A pod is twice as heavy as before.",
+                ],
+                0,
+                "Use the store change directly when it is already given.",
+                ["work_hand_off_confusion"],
+            ),
+            mcq(
+                "M3L4_D8",
+                "If the same aligned force acts through twice the distance, the work done...",
+                ["doubles", "quadruples", "halves", "stays the same"],
+                0,
+                "In the simple aligned case, work is proportional to distance.",
+                ["work_hand_off_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            mcq(
+                "M3L4_C5",
+                "What must be true before you trust the simple W = Fd rule used in this lesson?",
+                [
+                    "The displacement story must be along the force direction.",
+                    "The machine must be 100% efficient.",
+                    "The object must be moving fast already.",
+                    "The force must be the largest one in the problem.",
+                ],
+                0,
+                "The model keeps the aligned-displacement condition explicit.",
+                ["work_hand_off_confusion"],
+            ),
+            short(
+                "M3L4_C6",
+                "What does work measure in one phrase in this module?",
+                [
+                    "energy transferred",
+                    "an energy hand-off",
+                ],
+                "Use transfer or hand-off language.",
+                ["work_hand_off_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("energy",),
+                    ("transfer", "hand-off"),
+                ),
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L4_T7",
+                "A store rises by 240 J with no leak. How much work was done on the pod?",
+                ["240 J", "240"],
+                "With no leak, the work equals the store gain.",
+                ["work_hand_off_confusion"],
+            ),
+            mcq(
+                "M3L4_T8",
+                "Why is work a better idea than 'effort' in advanced energy reasoning?",
+                [
+                    "Because it tracks the actual transfer that changes stores.",
+                    "Because effort always has units of joules.",
+                    "Because effort tells you the useful fraction automatically.",
+                    "Because effort removes the need for displacement.",
+                ],
+                0,
+                "Work belongs to store change and transfer, not how hard something felt.",
+                ["work_hand_off_confusion"],
+            ),
+        ],
+    },
+    "M3_L5": {
+        "diagnostic": [
+            mcq(
+                "M3L5_D7",
+                "Two machines have the same power. Which statement can still be true?",
+                [
+                    "One can be more efficient than the other.",
+                    "They must waste the same amount.",
+                    "They must transfer the same total energy in any time interval.",
+                    "They must have the same Useful Yield and input energy.",
+                ],
+                0,
+                "Equal rate does not force equal useful fraction.",
+                ["efficiency_power_distinction_confusion"],
+            ),
+            mcq(
+                "M3L5_D8",
+                "A machine transfers 2400 J in 8 s. What is its power?",
+                ["300 W", "200 W", "2408 W", "19200 W"],
+                0,
+                "Use P = E / t.",
+                ["power_energy_rate_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            mcq(
+                "M3L5_C5",
+                "Which change raises efficiency without changing power in principle?",
+                [
+                    "A larger fraction of the same input becomes useful output while the transfer rate stays fixed.",
+                    "The transfer time halves while the useful fraction stays fixed.",
+                    "The input energy becomes larger in the same time with the same useful fraction.",
+                    "The machine color changes to green.",
+                ],
+                0,
+                "Useful fraction and transfer rate can be varied separately.",
+                ["efficiency_power_distinction_confusion", "power_energy_rate_confusion"],
+            ),
+            short(
+                "M3L5_C6",
+                "What does power compare in one sentence?",
+                [
+                    "how much energy is transferred each second",
+                    "energy transferred per unit time",
+                ],
+                "Use transfer-per-time language.",
+                ["power_energy_rate_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("energy", "work", "transfer"),
+                    ("time", "second", "per"),
+                ),
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L5_T7",
+                "A machine is 75% efficient and receives 1600 J of input. How much useful output does it deliver?",
+                ["1200 J", "1200"],
+                "Take 75% of the input.",
+                ["efficiency_power_distinction_confusion"],
+            ),
+            mcq(
+                "M3L5_T8",
+                "Which judgment best fits an efficient but low-power machine?",
+                [
+                    "It wastes little energy but may still take a long time.",
+                    "It must transfer more energy each second than every inefficient machine.",
+                    "It cannot do a useful job.",
+                    "Its useful output must exceed its input.",
+                ],
+                0,
+                "Good yield does not guarantee a high rate.",
+                ["efficiency_power_distinction_confusion", "power_energy_rate_confusion"],
+            ),
+        ],
+    },
+    "M3_L6": {
+        "diagnostic": [
+            mcq(
+                "M3L6_D7",
+                "A mission gives the useful lift gain and then asks for the speed after launch. What is the best first judgment?",
+                [
+                    "That useful lift gain is the starting energy for the next stage.",
+                    "That power must be found before every other quantity.",
+                    "That the biggest formula should be used first.",
+                    "That leaks can be ignored because the useful gain is known.",
+                ],
+                0,
+                "Use the previous stage output as the next stage input.",
+                ["energy_equation_choice_confusion"],
+            ),
+            mcq(
+                "M3L6_D8",
+                "Which planner sentence is strongest?",
+                [
+                    "Stores, leaks, and targets must be mapped before equation choice.",
+                    "The formal equation should be chosen before the mission is read.",
+                    "Any energy equation can start the problem if the units match.",
+                    "Long energy problems are just one substitution with more numbers.",
+                ],
+                0,
+                "The planner is there to control the sequence.",
+                ["energy_equation_choice_confusion", "ledger_balance_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            mcq(
+                "M3L6_C5",
+                "If a later stage leaks energy, when should that leak be applied?",
+                [
+                    "At the stage where it occurs, before the final target check.",
+                    "Only after the target check.",
+                    "Only if the mission already fails.",
+                    "Never, because useful gain already includes every later change.",
+                ],
+                0,
+                "Later leaks change the amount that reaches the next stage.",
+                ["ledger_balance_confusion", "energy_equation_choice_confusion"],
+            ),
+            short(
+                "M3L6_C6",
+                "What is the final comparison in many mission problems?",
+                [
+                    "final useful amount against the target",
+                    "compare the final useful energy to the required target",
+                ],
+                "Use final-useful-versus-target language.",
+                ["energy_equation_choice_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("final", "useful"),
+                    ("target", "required", "threshold"),
+                    ("compare", "against", "to"),
+                ),
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L6_T7",
+                "A mission needs 900 J after a stage that keeps only 75% of its incoming energy. How much energy must enter that stage?",
+                ["1200 J", "1200"],
+                "Work backward through the useful fraction.",
+                ["energy_equation_choice_confusion"],
+            ),
+            mcq(
+                "M3L6_T8",
+                "Why is backward planning sometimes the cleanest move in M3_L6?",
+                [
+                    "Because the final target can tell you the earlier required store or input.",
+                    "Because backward steps remove the need for efficiency.",
+                    "Because working backward turns every problem into power only.",
+                    "Because the first stage never matters if the final stage is known.",
+                ],
+                0,
+                "Capstone missions often need the target traced back through earlier stages.",
+                ["energy_equation_choice_confusion", "ledger_balance_confusion"],
+            ),
+        ],
+    },
+}
+
+M3_EXTRA_SCAFFOLD_SECTIONS: Dict[str, List[Dict[str, str]]] = {
+    "M3_L1": [
+        {
+            "heading": "Store versus hand-off test",
+            "body": "Ask whether the sentence is naming energy the pod has now, or energy moving between places now. That single choice keeps stores, hand-offs, and leaks from collapsing into one vague idea.",
+        },
+        {
+            "heading": "Ledger sentence frame",
+            "body": "Train yourself to say: input hand-off = useful gain + Leak Trail. That sentence is the conceptual template underneath the arithmetic.",
+        },
+    ],
+    "M3_L2": [
+        {
+            "heading": "Reference level awareness",
+            "body": "Height Store depends on a chosen reference level. The important move is to track the height difference that actually changes the store, not just to notice that an object is 'high'.",
+        },
+        {
+            "heading": "Proportional check before substitution",
+            "body": "Before calculating, ask what would happen if one factor doubled while the other two stayed fixed. That builds the mgh relationship as a pattern rather than as a memorized string.",
+        },
+    ],
+    "M3_L3": [
+        {
+            "heading": "Why speed is the surprise factor",
+            "body": "Mass changes Motion Store directly, but speed changes it through a squared term. That is why qualitative predictions about fast motion often fail unless the squared effect is kept visible.",
+        },
+        {
+            "heading": "Compare first, calculate second",
+            "body": "Use quick comparisons such as same mass with doubled speed or same speed with doubled mass before you substitute numbers. This keeps the physical meaning ahead of the arithmetic.",
+        },
+    ],
+    "M3_L4": [
+        {
+            "heading": "Two routes to the same hand-off",
+            "body": "Sometimes work is easiest from force and distance; sometimes it is easiest from the store change. Advanced reasoning means choosing the route that matches the information the story actually gives.",
+        },
+        {
+            "heading": "Displacement is not optional",
+            "body": "A large force by itself does not guarantee work. In the simple lesson model, the transfer only counts when there is displacement in the force direction.",
+        },
+    ],
+    "M3_L5": [
+        {
+            "heading": "Rate versus yield split",
+            "body": "Power answers how quickly the hand-off happens. Efficiency answers how much of the input becomes useful. Keep those questions separate even when the same machine problem contains both.",
+        },
+        {
+            "heading": "Machine-comparison habit",
+            "body": "When two machines are compared, decide whether the story is comparing total transfer, time, useful fraction, or some combination. That habit stops 'more powerful' from being used as a synonym for 'better at everything'.",
+        },
+    ],
+    "M3_L6": [
+        {
+            "heading": "Mission map before equations",
+            "body": "Long problems become manageable when you mark the stages, the store changes, the leaks, and the final target before touching the formulas. The map is part of the physics, not an optional note.",
+        },
+        {
+            "heading": "Backward planning is allowed",
+            "body": "If the target is known at the end, work backward through later yields or leaks to find what an earlier stage had to provide. That is more advanced than grabbing the first familiar equation.",
+        },
+    ],
+}
+
+M3_EXTRA_WORKED_EXAMPLES: Dict[str, Dict[str, Any]] = {
+    "M3_L1": worked(
+        "A mission inputs 720 J. The useful store gain is 480 J, split equally between Height Store and Motion Store. Find the Leak Trail and each store amount.",
+        [
+            "Start with the full ledger: input = useful gain + Leak Trail.",
+            "Subtract 480 J from 720 J to find the leaked part.",
+            "Then split the 480 J useful gain equally between the two stores.",
+        ],
+        "Leak Trail = 240 J, Height Store = 240 J, Motion Store = 240 J.",
+        "The leaked part is the difference between total input and useful gain, and the useful gain can then be partitioned between stores without changing the ledger total.",
+        "This pushes the ledger beyond one missing-number step into a fuller accounting story.",
+    ),
+    "M3_L2": worked(
+        "A 3 kg pod on a world where g = 8 N/kg is raised from 2 m to 9 m above the reference level. Find the Height Store gained.",
+        [
+            "Use the height change, not just the final height above the picture.",
+            "Compute the rise: 9 m - 2 m = 7 m.",
+            "Use E_p = mgh with 3 kg, 8 N/kg, and 7 m.",
+        ],
+        "Height Store gained = 168 J.",
+        "The store change depends on the 7 m rise, so E_p = 3 x 8 x 7 = 168 J.",
+        "This keeps reference-level reasoning visible instead of assuming height always starts from zero.",
+    ),
+    "M3_L3": worked(
+        "Pod A has mass 2 kg and speed 12 m/s. Pod B has mass 8 kg and speed 6 m/s. Compare their Motion Stores.",
+        [
+            "Use E_k = 0.5mv^2 for each pod rather than guessing from speed alone.",
+            "Pod A: 0.5 x 2 x 12^2 = 144 J.",
+            "Pod B: 0.5 x 8 x 6^2 = 144 J.",
+        ],
+        "The two pods have equal Motion Store: 144 J each.",
+        "The heavier slower pod can match the lighter faster pod because kinetic energy depends on both mass and the square of speed.",
+        "This prevents students from assuming the faster object must always have more Motion Store.",
+    ),
+    "M3_L4": worked(
+        "A 30 N force acts through 6 m in the force direction, but 25% of the input hand-off becomes Leak Trail. Find the useful store gain.",
+        [
+            "Find the total input work first: W = Fd = 30 x 6 = 180 J.",
+            "Find the leaked part: 25% of 180 J = 45 J.",
+            "Subtract the leak from the total hand-off to get the useful gain.",
+        ],
+        "Useful store gain = 135 J.",
+        "The aligned push supplies 180 J, and after 45 J leaks away, 135 J remains as useful store change.",
+        "This links the force-distance route to the ledger route in one combined example.",
+    ),
+    "M3_L5": worked(
+        "Machine A transfers 2400 J in 8 s at 75% efficiency. Machine B transfers 2400 J in 4 s at 50% efficiency. Compare their power and useful output.",
+        [
+            "Find each power from total transfer and time.",
+            "Machine A power = 2400/8 = 300 W; Machine B power = 2400/4 = 600 W.",
+            "Then find useful output from efficiency: A gives 1800 J useful while B gives 1200 J useful.",
+        ],
+        "Machine B is more powerful, but Machine A produces the larger useful output from the same input.",
+        "Power compares the rate of transfer, while efficiency compares the useful fraction, so different machines can win on different measures.",
+        "This is the cleanest way to stop students from collapsing 'better' into one single machine label.",
+    ),
+    "M3_L6": worked(
+        "A gate needs 1000 J. A launch stage loses 20% of the useful lift energy, and the lift itself is 80% efficient. What minimum lift input is required?",
+        [
+            "Work backward from the gate: if 80% remains after launch, divide 1000 J by 0.80 to find the useful lift energy needed.",
+            "That gives 1250 J useful lift energy before launch losses.",
+            "Now divide 1250 J by the lift efficiency 0.80 to find the required lift input.",
+        ],
+        "Minimum lift input = 1562.5 J.",
+        "The gate target must be traced backward through the launch loss and then through the lift efficiency, so 1000/0.80/0.80 = 1562.5 J.",
+        "This is capstone-level mission planning because the target is used to reconstruct earlier requirements.",
+    ),
+}
+
 for lesson in M3_SPEC["lessons"]:
     extra_bank = M3_BANK_EXPANSIONS.get(lesson["id"], {})
+    secondary_bank = M3_SECONDARY_BANK_EXPANSIONS.get(lesson["id"], {})
     lesson["diagnostic"].extend(deepcopy(extra_bank.get("diagnostic", [])))
+    lesson["diagnostic"].extend(deepcopy(secondary_bank.get("diagnostic", [])))
     lesson["capsule_checks"].extend(deepcopy(extra_bank.get("capsule_checks", [])))
+    lesson["capsule_checks"].extend(deepcopy(secondary_bank.get("capsule_checks", [])))
     lesson["transfer"].extend(deepcopy(extra_bank.get("transfer", [])))
-    lesson["contract"]["assessment_bank_targets"] = assessment_targets(6, 4, 8)
+    lesson["transfer"].extend(deepcopy(secondary_bank.get("transfer", [])))
+    lesson["contract"]["assessment_bank_targets"] = assessment_targets(8, 6, 8)
+    lesson["contract"]["worked_examples"].append(deepcopy(M3_EXTRA_WORKED_EXAMPLES[lesson["id"]]))
+    scaffold_support = lesson["contract"].setdefault("scaffold_support", {})
+    scaffold_support.setdefault("extra_sections", [])
+    scaffold_support["extra_sections"].extend(deepcopy(M3_EXTRA_SCAFFOLD_SECTIONS.get(lesson["id"], [])))
 
 
 RELEASE_CHECKS = [
