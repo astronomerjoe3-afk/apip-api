@@ -1181,7 +1181,7 @@ def lesson_l4() -> Dict[str, Any]:
                     "Does the story give a store change directly or a force-through-distance story?",
                     "Is the pod painted blue or orange?",
                     "How long is the mission soundtrack?",
-                    "What was the previous module title?",
+                    "Is the battery already fully charged?",
                 ],
                 0,
                 "Equation choice should come from the physics story, not from grabbing familiar symbols.",
@@ -2523,10 +2523,10 @@ M3_SECONDARY_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
             ),
             short(
                 "M3L1_T8",
-                "Why does M3 treat energy problems as ledger problems rather than force problems?",
+                "Why is it useful to treat an energy mission as a ledger of stores, hand-offs, and leaks rather than as a force story?",
                 [
-                    "Because it asks where energy is stored, transferred, or leaked rather than what push acts now.",
-                    "Because the module tracks stores and hand-offs instead of confusing energy with force.",
+                    "Because it asks where energy is stored, transferred, or leaked rather than only what push acts now.",
+                    "Because ledger reasoning tracks stores and hand-offs instead of confusing energy with force.",
                 ],
                 "Use store-transfer-ledger language against push-force language.",
                 ["energy_force_confusion"],
@@ -2721,7 +2721,7 @@ M3_SECONDARY_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
             ),
             short(
                 "M3L4_C6",
-                "What does work measure in one phrase in this module?",
+                "What does work measure in one phrase in this energy story?",
                 [
                     "energy transferred",
                     "an energy hand-off",
@@ -2744,7 +2744,7 @@ M3_SECONDARY_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
             ),
             mcq(
                 "M3L4_T8",
-                "Why is work a better idea than 'effort' in advanced energy reasoning?",
+                "Why is work a better idea than 'effort' in this energy story?",
                 [
                     "Because it tracks the actual transfer that changes stores.",
                     "Because effort always has units of joules.",
