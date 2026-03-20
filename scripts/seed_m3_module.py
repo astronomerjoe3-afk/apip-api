@@ -672,7 +672,7 @@ def lesson_l2() -> Dict[str, Any]:
                 "M3L2_C2",
                 "A 2 kg pod gains 60 J of Height Store in a world where g = 10 N/kg. Through what height was it lifted?",
                 ["3 m", "3"],
-                "Rearrange 60 = 2 x 10 x h.",
+                "Rearrange E_p = mgh when height is the unknown.",
                 ["height_store_variable_confusion", "energy_equation_choice_confusion"],
             ),
         ],
@@ -701,7 +701,7 @@ def lesson_l2() -> Dict[str, Any]:
                 "M3L2_T3",
                 "A pod gains 300 J of Height Store when lifted 5 m in a world with g = 10 N/kg. What is its mass?",
                 ["6 kg", "6"],
-                "Rearrange 300 = m x 10 x 5.",
+                "Rearrange E_p = mgh when mass is the unknown.",
                 ["height_store_variable_confusion", "energy_equation_choice_confusion"],
             ),
         ],
@@ -2020,9 +2020,8 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 "Use store-transfer language versus push-interaction language.",
                 ["energy_force_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("store", "stored", "transfer", "hand-off"),
+                    ("store", "stored", "transfer", "hand-off", "ledger", "leak"),
                     ("force", "push", "interaction"),
-                    ("different", "not the same"),
                 ),
             ),
             mcq(
@@ -2066,12 +2065,13 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                     "Because being high gives room to fall in a gravitational field.",
                     "Because height stores energy even when pace is zero.",
                     "Because gravitational potential energy depends on position not motion.",
+                    "Because the pod has energy because of where it is in the gravitational field.",
                 ],
                 "Explain it as position in a field, not as motion.",
                 ["height_store_variable_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("high", "height", "position"),
-                    ("fall", "gravitational", "field"),
+                    ("high", "height", "position", "raised"),
+                    ("fall", "gravitational", "gravity", "field", "potential"),
                 ),
             ),
             mcq(
@@ -2221,8 +2221,7 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 "Use hand-off or energy-transfer language.",
                 ["work_hand_off_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("energy", "transfer", "hand-off"),
-                    ("not effort", "not just trying hard", "not feeling hard"),
+                    ("energy", "transfer", "hand-off", "store change", "change in store"),
                 ),
             ),
             mcq(
@@ -2252,9 +2251,9 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 "Use force-direction displacement language.",
                 ["work_hand_off_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("no movement", "no displacement"),
-                    ("force direction", "same direction"),
-                    ("work", "hand-off"),
+                    ("no movement", "no displacement", "did not move", "wall does not move"),
+                    ("force direction", "same direction", "aligned"),
+                    ("work", "hand-off", "transfer"),
                 ),
             ),
             mcq(
@@ -2307,8 +2306,8 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 "Keep transfer rate and useful fraction separate in your wording.",
                 ["power_energy_rate_confusion", "efficiency_power_distinction_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("fast", "quickly", "high rate", "powerful"),
-                    ("waste", "leak", "low efficiency", "low useful yield"),
+                    ("fast", "quickly", "high rate", "powerful", "high power"),
+                    ("waste", "leak", "low efficiency", "low useful yield", "wasteful"),
                 ),
             ),
             mcq(
@@ -2339,8 +2338,8 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 "Use rate-versus-yield language.",
                 ["efficiency_power_distinction_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("same rate", "same power"),
-                    ("different waste", "different useful fraction", "different efficiency", "different yield"),
+                    ("same rate", "same power", "same transfer rate"),
+                    ("different waste", "different useful fraction", "different efficiency", "different yield", "different useful output"),
                 ),
             ),
             mcq(
@@ -2393,8 +2392,8 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 "Use store-change planning language, not just 'pick a formula'.",
                 ["energy_equation_choice_confusion", "ledger_balance_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("step", "stage", "sequence"),
-                    ("store", "transfer", "hand-off", "leak", "target"),
+                    ("step", "stage", "sequence", "order", "plan"),
+                    ("store", "transfer", "hand-off", "leak", "target", "quantity"),
                 ),
             ),
             mcq(
@@ -2805,8 +2804,8 @@ M3_SECONDARY_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 "Use transfer-per-time language.",
                 ["power_energy_rate_confusion"],
                 acceptance_rules=acceptance_groups(
-                    ("energy", "work", "transfer"),
-                    ("time", "second", "per"),
+                    ("energy", "work", "transfer", "hand-off"),
+                    ("time", "second", "per", "rate", "quickly"),
                 ),
             ),
         ],
@@ -2887,7 +2886,7 @@ M3_SECONDARY_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                 ["energy_equation_choice_confusion"],
                 acceptance_rules=acceptance_groups(
                     ("final", "useful"),
-                    ("target", "required", "threshold"),
+                    ("target", "required", "threshold", "goal"),
                     ("compare", "against", "to"),
                 ),
             ),
