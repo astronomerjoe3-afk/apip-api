@@ -1115,7 +1115,7 @@ def lesson_l4() -> Dict[str, Any]:
             "description": "Decide when a machine is handing energy into a store and which work equation matches the mission story.",
             "instructions": [
                 "Compare a lift that raises a pod with a push that moves the pod along a track.",
-                "Match a store increase to W = Delta E and a force-distance story to W = Fd.",
+                "Match a store increase to W = ΔE and a force-distance story to W = Fd.",
                 "Explain why no displacement means no work done by that force.",
             ],
             "outcomes": [
@@ -1133,7 +1133,7 @@ def lesson_l4() -> Dict[str, Any]:
         },
         "analogy_text": (
             "In Lift-Launch, any increase in Height Store or Motion Store requires an Energy Hand-off. "
-            "When the hand-off is described by a store change, use W = Delta E. When the story gives a steady force through a distance in the force direction, use W = Fd."
+            "When the hand-off is described by a store change, use W = ΔE. When the story gives a steady force through a distance in the force direction, use W = Fd."
         ),
         "commitment_prompt": "Before you calculate, decide whether the story is giving you a store change directly or a force acting through a distance.",
         "micro_prompts": [
@@ -1156,7 +1156,7 @@ def lesson_l4() -> Dict[str, Any]:
                 "A lift increases a pod's Height Store by 300 J with negligible leak. How much work does the lift do?",
                 ["300 J", "150 J", "30 J", "0 J"],
                 0,
-                "Use W = Delta E when the store gain is given directly.",
+                "Use W = ΔE when the store gain is given directly.",
                 ["work_hand_off_confusion", "energy_equation_choice_confusion"],
             ),
             short(
@@ -1176,7 +1176,7 @@ def lesson_l4() -> Dict[str, Any]:
             ),
             mcq(
                 "M3L4_D4",
-                "Which first question helps you choose between W = Delta E and W = Fd?",
+                "Which first question helps you choose between W = ΔE and W = Fd?",
                 [
                     "Does the story give a store change directly or a force-through-distance story?",
                     "Is the pod painted blue or orange?",
@@ -1207,7 +1207,7 @@ def lesson_l4() -> Dict[str, Any]:
             "Explain why choosing the right work equation is a story-interpretation problem before it is an algebra problem.",
         ],
         "capsule_prompt": (
-            "Work is the energy hand-off. Use W = Delta E when the store change is the given story, and W = Fd when a force acts through a distance in the force direction."
+            "Work is the energy hand-off. Use W = ΔE when the store change is the given story, and W = Fd when a force acts through a distance in the force direction."
         ),
         "capsule_checks": [
             mcq(
@@ -1231,7 +1231,7 @@ def lesson_l4() -> Dict[str, Any]:
                 "M3L4_T1",
                 "A pod's Height Store rises by 450 J during a lift, with no leak mentioned. What work is done by the lift?",
                 ["450 J", "450"],
-                "Use W = Delta E when the store change is the given information.",
+                "Use W = ΔE when the store change is the given information.",
                 ["work_hand_off_confusion", "energy_equation_choice_confusion"],
             ),
             short(
@@ -1258,7 +1258,7 @@ def lesson_l4() -> Dict[str, Any]:
         "contract": contract(
             concept_targets=[
                 "Treat work as the energy hand-off that fills or empties stores.",
-                "Choose between W = Delta E and W = Fd from the mission description.",
+                "Choose between W = ΔE and W = Fd from the mission description.",
                 "Reject effort-only and no-displacement work misconceptions.",
             ],
             prerequisite_lessons=["M3_L1", "M3_L2", "M3_L3"],
@@ -1268,7 +1268,7 @@ def lesson_l4() -> Dict[str, Any]:
             ],
             formulas=[
                 formula(
-                    "W = Delta E",
+                    "W = ΔE",
                     "Work done is the change in energy when the hand-off is described through a store gain or loss.",
                     ["J"],
                     "Use when the problem gives the energy change directly.",
@@ -1283,7 +1283,7 @@ def lesson_l4() -> Dict[str, Any]:
             representations=[
                 representation("words", "Explain work as an energy hand-off rather than as effort."),
                 representation("diagram", "Show lift, launcher, and push stories with store changes and track motion."),
-                representation("equation_story", "Match the story type to W = Delta E or W = Fd."),
+                representation("equation_story", "Match the story type to W = ΔE or W = Fd."),
                 representation("formula", "Calculate the work numerically once the story is classified."),
             ],
             analogy_map={
@@ -1300,7 +1300,7 @@ def lesson_l4() -> Dict[str, Any]:
                     "A launcher increases a pod's Motion Store by 520 J, and leaks are negligible. Find the work done by the launcher.",
                     [
                         "Identify the story as a direct store-change hand-off.",
-                        "Use W = Delta E because the energy gain is given directly.",
+                        "Use W = ΔE because the energy gain is given directly.",
                         "Set W = 520 J.",
                     ],
                     "Work done = 520 J.",
@@ -1311,12 +1311,12 @@ def lesson_l4() -> Dict[str, Any]:
                     "A lift raises a pod so its Height Store increases from 120 J to 420 J with negligible leak. Find the work done.",
                     [
                         "Identify the story as a direct store-change hand-off.",
-                        "Find the energy change first: Delta E = 420 J - 120 J = 300 J.",
-                        "Use W = Delta E because the store increase is the given story.",
+                        "Find the energy change first: ΔE = 420 J - 120 J = 300 J.",
+                        "Use W = ΔE because the store increase is the given story.",
                     ],
                     "Work done = 300 J.",
-                    "With negligible leak, the lift's work equals the Height Store increase, so W = Delta E = 300 J.",
-                    "This gives students a genuine Delta E example where they must calculate the change before naming the work done.",
+                    "With negligible leak, the lift's work equals the Height Store increase, so W = ΔE = 300 J.",
+                    "This gives students a genuine ΔE example where they must calculate the change before naming the work done.",
                 ),
             ],
             visual_assets=[
@@ -1333,7 +1333,7 @@ def lesson_l4() -> Dict[str, Any]:
                     "m3-l4-energy-handoff-flow",
                     "energy_handoff",
                     "Hand-off route comparison",
-                    "Animate one mission described by Delta E and another described by Fd so the equation choice becomes visible.",
+                    "Animate one mission described by ΔE and another described by Fd so the equation choice becomes visible.",
                 )
             ],
             simulation_contract={
@@ -1346,30 +1346,30 @@ def lesson_l4() -> Dict[str, Any]:
                     "Hold the push but set distance to zero.",
                 ],
                 "watch_for": "Students should justify equation choice before doing arithmetic.",
-                "takeaway": "Work is the energy hand-off, and the story tells you whether Delta E or Fd is the right entry point.",
+                "takeaway": "Work is the energy hand-off, and the story tells you whether ΔE or Fd is the right entry point.",
             },
             reflection_prompts=[
                 "Why is equation choice in work problems really a question about the type of energy hand-off taking place?"
             ],
             mastery_skills=[
                 "Recognize work as an energy hand-off.",
-                "Choose between W = Delta E and W = Fd.",
+                "Choose between W = ΔE and W = Fd.",
                 "Calculate work from store change.",
                 "Calculate work from force and distance.",
                 "Reject effort-only and no-displacement misconceptions.",
             ],
             variation_plan={
-                "diagnostic": "Rotate between direct Delta E stories, aligned force-distance stories, and no-displacement traps.",
+                "diagnostic": "Rotate between direct ΔE stories, aligned force-distance stories, and no-displacement traps.",
                 "concept_gate": "Swap numerical work calculations with equation-choice explanations.",
                 "mastery": "Use new machine, lift, launcher, and track contexts so students must read the story rather than memorize a stem pattern.",
             },
             scaffold_support=scaffold(
                 "Work is the energy hand-off that fills or empties stores.",
-                "Classify the mission first. If the story gives a store change, use W = Delta E. If it gives a force acting through a distance in the same direction, use W = Fd. Then calculate.",
+                "Classify the mission first. If the story gives a store change, use W = ΔE. If it gives a force acting through a distance in the same direction, use W = Fd. Then calculate.",
                 "If a problem tells you the pod gained 300 J of Motion Store, what should you think about before using any other equation?",
                 "Do not grab W = Fd just because it looks familiar. The story decides the route.",
                 "The Lift-Launch model is powerful here because it makes the 'hand-off' idea common across lifts, launches, and pushes. The equations are just different ways into that same story.",
-                "In the analogy, what clue tells you that Delta E is the cleaner starting point?",
+                "In the analogy, what clue tells you that ΔE is the cleaner starting point?",
             ),
         ),
     }
@@ -1825,7 +1825,7 @@ def lesson_l6() -> Dict[str, Any]:
                     "Use when tracking an entire sequence of energy transfers across several steps.",
                 ),
                 formula(
-                    "Choose mgh, 0.5mv^2, W = Delta E, W = Fd, P = E / t, or efficiency from the story step being described",
+                    "Choose mgh, 0.5mv^2, W = ΔE, W = Fd, P = E / t, or efficiency from the story step being described",
                     "No single equation owns the whole mission; the solver must match each step to the correct relation.",
                     ["J", "W", "%"],
                     "Use in planning before the arithmetic begins.",
@@ -1937,7 +1937,7 @@ M3_SPEC = {
         "Explain energy as stores, hand-offs, leaks, and balanced ledger entries rather than as a disconnected list of formulas.",
         "Use Height Store reasoning and E_p = mgh to compare and calculate gravitational potential energy in different worlds.",
         "Use Motion Store reasoning and E_k = 0.5mv^2 to compare and calculate kinetic energy, including the squared-speed effect.",
-        "Treat work as an energy hand-off and choose correctly between W = Delta E and W = Fd from the mission story.",
+        "Treat work as an energy hand-off and choose correctly between W = ΔE and W = Fd from the mission story.",
         "Distinguish Transfer Rate from Useful Yield by calculating power and efficiency without collapsing them into one idea.",
         "Solve multi-step energy missions by choosing the right relationship at each step and balancing the full Energy Ledger.",
     ],
@@ -2227,7 +2227,7 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
             mcq(
                 "M3L4_C4",
                 "Which choice is usually cleaner if the question already tells you how much a store changed?",
-                ["W = Delta E", "W = Fd first", "P = E / t", "efficiency = output / input"],
+                ["W = ΔE", "W = Fd first", "P = E / t", "efficiency = output / input"],
                 0,
                 "Start from the quantity the story gives directly.",
                 ["work_hand_off_confusion"],
@@ -2684,7 +2684,7 @@ M3_SECONDARY_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
         "diagnostic": [
             mcq(
                 "M3L4_D7",
-                "Which story is most clearly a direct W = Delta E story?",
+                "Which story is most clearly a direct W = ΔE story?",
                 [
                     "A pod's Motion Store rises by 260 J.",
                     "A force of 13 N acts through 2 m in the same direction.",
