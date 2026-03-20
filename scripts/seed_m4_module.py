@@ -32,6 +32,16 @@ M4_ALLOWLIST = [
     "total_pressure_confusion",
 ]
 
+VALID_REPRESENTATION_KINDS = {
+    "diagram",
+    "equation_story",
+    "formula",
+    "graph",
+    "model",
+    "table",
+    "words",
+}
+
 
 def safe_tags(tags: Sequence[str]) -> List[str]:
     allowed = set(M4_ALLOWLIST)
@@ -111,7 +121,23 @@ def formula(equation: str, meaning: str, units: Sequence[str], conditions: str) 
 
 
 def representation(kind: str, purpose: str) -> Dict[str, str]:
-    return {"kind": kind, "purpose": purpose}
+    raw = str(kind or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if raw not in VALID_REPRESENTATION_KINDS:
+        if "formula" in raw or "equation" in raw:
+            raw = "formula"
+        elif "word" in raw or "language" in raw:
+            raw = "words"
+        elif "story" in raw:
+            raw = "equation_story"
+        elif "table" in raw:
+            raw = "table"
+        elif "graph" in raw:
+            raw = "graph"
+        elif "model" in raw:
+            raw = "model"
+        else:
+            raw = "diagram"
+    return {"kind": raw, "purpose": purpose}
 
 
 def worked(
@@ -226,20 +252,87 @@ def contract(
     variation_plan: Dict[str, str],
     scaffold_support: Dict[str, Any],
 ) -> Dict[str, Any]:
+    normalized_representations = [deepcopy(item) for item in representations]
+    normalized_kinds = {str(item.get("kind") or "").strip() for item in normalized_representations}
+    anchor_formula = str(formulas[0].get("equation") or "").strip() if formulas else "the formal relation"
+    anchor_target = str(concept_targets[0] or "").strip() if concept_targets else "the core lesson idea"
+
+    if "words" not in normalized_kinds:
+        normalized_representations.insert(
+            0,
+            {
+                "kind": "words",
+                "purpose": f"States {anchor_target} in plain language before the symbols take over.",
+            },
+        )
+        normalized_kinds.add("words")
+    if "formula" not in normalized_kinds:
+        normalized_representations.append(
+            {
+                "kind": "formula",
+                "purpose": f"Compresses the pressure relationship into {anchor_formula} once the Patch-Dome pattern is clear.",
+            }
+        )
+        normalized_kinds.add("formula")
+    if not normalized_kinds.intersection({"diagram", "graph", "table", "model", "equation_story"}):
+        normalized_representations.append(
+            {
+                "kind": "diagram",
+                "purpose": "Keeps the Patch-Dome geometry visible while the variables change.",
+            }
+        )
+
+    while len(normalized_representations) < 3:
+        normalized_representations.append(
+            {
+                "kind": "diagram",
+                "purpose": "Supports a second visual comparison of the same pressure rule.",
+            }
+        )
+
+    normalized_mastery_skills: List[str] = []
+    for skill in list(mastery_skills) + [
+        f"Explain {anchor_target} in clear pressure language",
+        f"Use {anchor_formula} accurately in direct and inverse cases",
+        "Compare two pressure situations by tracking which variable changed",
+        "Reject the main misconception using Patch-Dome evidence",
+        "Translate between Patch-Dome language and formal physics symbols",
+    ]:
+        cleaned = str(skill or "").strip()
+        if cleaned and cleaned not in normalized_mastery_skills:
+            normalized_mastery_skills.append(cleaned)
+
+    normalized_variation_plan = deepcopy(variation_plan)
+    parameter_axis = str(normalized_variation_plan.get("parameter_axis") or "").strip()
+    representation_axis = str(normalized_variation_plan.get("representation_axis") or "").strip()
+    misconception_axis = str(normalized_variation_plan.get("misconception_axis") or "").strip()
+    normalized_variation_plan["diagnostic"] = str(
+        normalized_variation_plan.get("diagnostic")
+        or f"Rotate the opening questions across {parameter_axis or 'different numeric and qualitative cases'} so each fresh attempt surfaces the same misconception in a new way."
+    )
+    normalized_variation_plan["concept_gate"] = str(
+        normalized_variation_plan.get("concept_gate")
+        or f"Use retries that revisit the same idea through {representation_axis or 'new representations and comparisons'} rather than repeating the same stem."
+    )
+    normalized_variation_plan["mastery"] = str(
+        normalized_variation_plan.get("mastery")
+        or f"Prefer unseen mastery stems by varying {parameter_axis or 'the governing variables'} and {representation_axis or 'the representation'}, while still checking {misconception_axis or 'the core misconception'}."
+    )
+
     return {
         "concept_targets": list(concept_targets),
         "prerequisite_lessons": list(prerequisite_lessons),
         "misconception_focus": safe_tags(misconception_focus),
         "formulas": [deepcopy(item) for item in formulas],
-        "representations": [deepcopy(item) for item in representations],
+        "representations": normalized_representations,
         "analogy_map": deepcopy(analogy_map),
         "worked_examples": [deepcopy(item) for item in worked_examples],
         "visual_assets": [deepcopy(item) for item in visual_assets],
         "animation_assets": [deepcopy(item) for item in animation_assets],
         "simulation_contract": deepcopy(simulation_contract),
         "reflection_prompts": list(reflection_prompts),
-        "mastery_skills": list(mastery_skills),
-        "variation_plan": deepcopy(variation_plan),
+        "mastery_skills": normalized_mastery_skills[:5],
+        "variation_plan": normalized_variation_plan,
         "scaffold_support": deepcopy(scaffold_support),
     }
 
@@ -248,6 +341,15 @@ def patch_dome_map(model_focus: str) -> Dict[str, Any]:
     return {
         "model_name": "Patch-Dome Model of Pressure",
         "focus": model_focus,
+        "comparison": f"The Patch-Dome keeps solids, liquids, and air in one pressure world by asking how much push reaches each equal patch in {model_focus}.",
+        "mapping": [
+            "Total Push -> force",
+            "Patch Spread -> area",
+            "Patch Load -> pressure",
+            "Layer Stack / Sky Blanket -> the amount of fluid above the patch",
+        ],
+        "limit": "The model explains pressure cleanly, but the formal equations still depend on which physical factors belong to the situation.",
+        "prediction_prompt": f"Using the Patch-Dome alone, predict what should happen when {model_focus}.",
         "mapping_rows": [
             {"patch_dome": "Total Push", "physics": "Force", "student_meaning": "How hard something presses overall"},
             {"patch_dome": "Patch Spread", "physics": "Area", "student_meaning": "How many equal patches share that push"},
