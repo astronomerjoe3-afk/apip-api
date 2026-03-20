@@ -2392,12 +2392,14 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                     "Which store or hand-off each step describes.",
                     "The mission stages and ledger changes.",
                     "What changes, what leaks, and what the target is.",
+                    "Which result from one step becomes the input to the next.",
+                    "What output or bridge quantity each stage provides.",
                 ],
                 "Use store-change planning language, not just 'pick a formula'.",
                 ["energy_equation_choice_confusion", "ledger_balance_confusion"],
                 acceptance_rules=acceptance_groups(
                     ("step", "stage", "sequence", "order", "plan"),
-                    ("store", "transfer", "hand-off", "leak", "target", "quantity"),
+                    ("store", "transfer", "hand-off", "leak", "target", "quantity", "result", "output", "input", "bridge"),
                 ),
             ),
             mcq(
@@ -2430,13 +2432,15 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                     "Because you need to know which step creates the next needed quantity.",
                     "Because stores, leaks, and targets must be separated first.",
                     "Because equation choice depends on the story sequence.",
+                    "Because one step provides the input needed by the next.",
+                    "Because later equations depend on earlier results.",
                 ],
                 "Use step-sequence and equation-choice language.",
                 ["energy_equation_choice_confusion", "ledger_balance_confusion"],
                 acceptance_rules=acceptance_groups(
                     ("step", "sequence", "stage"),
-                    ("next quantity", "store", "leak", "target"),
-                    ("equation choice", "which equation"),
+                    ("next quantity", "store", "leak", "target", "result", "output", "input", "bridge quantity"),
+                    ("equation choice", "which equation", "formula", "equation", "depends", "provides", "feeds"),
                 ),
             ),
             short(
