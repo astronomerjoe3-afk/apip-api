@@ -18,7 +18,7 @@ except ModuleNotFoundError:
 
 
 M3_MODULE_ID = "M3"
-M3_CONTENT_VERSION = "20260319_m3_lift_launch_v1"
+M3_CONTENT_VERSION = "20260320_m3_lift_launch_v2"
 M3_MODULE_TITLE = "Energy Stores, Hand-offs & Ledger Reasoning"
 M3_ALLOWLIST = [
     "energy_force_confusion",
@@ -190,6 +190,17 @@ def scaffold(
             "check_for_understanding": analogy_check,
         },
         "extra_sections": list(extra_sections or []),
+    }
+
+
+def assessment_targets(diagnostic_pool_min: int, concept_gate_pool_min: int, mastery_pool_min: int) -> Dict[str, Any]:
+    return {
+        "diagnostic_pool_min": diagnostic_pool_min,
+        "concept_gate_pool_min": concept_gate_pool_min,
+        "mastery_pool_min": mastery_pool_min,
+        "fresh_attempt_policy": (
+            "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem."
+        ),
     }
 
 
@@ -1933,6 +1944,509 @@ M3_SPEC = {
         lesson_l6(),
     ],
 }
+
+
+M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
+    "M3_L1": {
+        "diagnostic": [
+            mcq(
+                "M3L1_D5",
+                "Which mission description shows a hand-off rather than a store?",
+                [
+                    "The launcher transfers 180 J into the pod.",
+                    "The pod currently has 180 J of Motion Store.",
+                    "The pod is on the high deck.",
+                    "The pod is heavier than before.",
+                ],
+                0,
+                "A hand-off is an energy-transfer event, not a stored amount.",
+                ["work_hand_off_confusion"],
+            ),
+            short(
+                "M3L1_D6",
+                "A mission inputs 500 J and 80 J leaks away. How much useful store gain remains?",
+                ["420 J", "420"],
+                "Use the ledger: input = useful gain + leak trail.",
+                ["ledger_balance_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            short(
+                "M3L1_C3",
+                "In a few words, where does the 'missing' energy go if useful gain is smaller than input?",
+                ["into the Leak Trail", "into leaks", "into wasted energy", "into heat or sound"],
+                "Use Leak Trail or wasted-spread language, not disappearance language.",
+                ["energy_used_up_confusion", "ledger_balance_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("leak", "waste", "heat", "sound", "spread"),
+                ),
+            ),
+            mcq(
+                "M3L1_C4",
+                "Why is 'energy is a force' a weak statement?",
+                [
+                    "Because stores and transfers answer different questions from forces.",
+                    "Because forces never matter in physics.",
+                    "Because only motion can have force.",
+                    "Because energy and force are the same unit.",
+                ],
+                0,
+                "Keep energy-accounting language separate from force language.",
+                ["energy_force_confusion"],
+            ),
+        ],
+        "transfer": [
+            mcq(
+                "M3L1_T4",
+                "If useful gain rises while input stays fixed, what must happen to the Leak Trail?",
+                ["It must shrink.", "It must grow.", "It must stay fixed.", "It becomes irrelevant."],
+                0,
+                "Input still equals useful gain plus leak trail.",
+                ["ledger_balance_confusion"],
+            ),
+            short(
+                "M3L1_T5",
+                "Why is energy not the same as force in the Lift-Launch model?",
+                [
+                    "Because energy is stored or transferred while force is a push interaction.",
+                    "Because stores and hand-offs are different from forces.",
+                ],
+                "Use store-transfer language versus push-interaction language.",
+                ["energy_force_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("store", "stored", "transfer", "hand-off"),
+                    ("force", "push", "interaction"),
+                    ("different", "not the same"),
+                ),
+            ),
+            mcq(
+                "M3L1_T6",
+                "A pod is both high and moving. Which claim is strongest?",
+                [
+                    "It can hold both Height Store and Motion Store at once.",
+                    "It must choose only one store.",
+                    "It cannot hold energy while moving.",
+                    "Only the Leak Trail can exist.",
+                ],
+                0,
+                "Different stores can coexist in one mission state.",
+                ["energy_force_confusion"],
+            ),
+        ],
+    },
+    "M3_L2": {
+        "diagnostic": [
+            mcq(
+                "M3L2_D5",
+                "If the same pod is lifted to the same height on a stronger-gravity world, the Height Store is...",
+                ["larger", "smaller", "unchanged", "zero"],
+                0,
+                "World Grip is one of the three factors in the store.",
+                ["height_store_variable_confusion"],
+            ),
+            short(
+                "M3L2_D6",
+                "A 3 kg pod gains 150 J of Height Store on a world with g = 10 N/kg. How high was it raised?",
+                ["5 m", "5"],
+                "Use h = E / mg.",
+                ["height_store_variable_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            short(
+                "M3L2_C3",
+                "Why can a still pod have Height Store?",
+                [
+                    "Because being high gives room to fall in a gravitational field.",
+                    "Because height stores energy even when pace is zero.",
+                    "Because gravitational potential energy depends on position not motion.",
+                ],
+                "Explain it as position in a field, not as motion.",
+                ["height_store_variable_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("high", "height", "position"),
+                    ("fall", "gravitational", "field"),
+                ),
+            ),
+            mcq(
+                "M3L2_C4",
+                "Which formal equation summarizes the Height Store pattern?",
+                ["E_p = mgh", "E_k = 0.5mv^2", "P = E / t", "W = Fd"],
+                0,
+                "Use the load-height-World-Grip equation.",
+                ["height_store_variable_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L2_T4",
+                "A 6 kg pod is raised 5 m on a world where g = 10 N/kg. What Height Store is gained?",
+                ["300 J", "300"],
+                "Use E_p = mgh.",
+                ["height_store_variable_confusion"],
+            ),
+            short(
+                "M3L2_T5",
+                "A pod gains 360 J of Height Store when lifted 9 m on a world where g = 10 N/kg. What is its mass?",
+                ["4 kg", "4"],
+                "Use m = E / gh.",
+                ["height_store_variable_confusion"],
+            ),
+            mcq(
+                "M3L2_T6",
+                "Why is 'gravitational potential energy depends only on height' incomplete?",
+                [
+                    "Because mass and field strength matter too.",
+                    "Because height never matters.",
+                    "Because only speed matters.",
+                    "Because potential energy is only a force story.",
+                ],
+                0,
+                "Keep all three mgh factors visible.",
+                ["height_store_variable_confusion"],
+            ),
+        ],
+    },
+    "M3_L3": {
+        "diagnostic": [
+            mcq(
+                "M3L3_D5",
+                "If a pod's speed doubles while its mass stays the same, the Motion Store becomes...",
+                ["four times as large", "twice as large", "half as large", "unchanged"],
+                0,
+                "The speed term is squared.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            short(
+                "M3L3_D6",
+                "A pod has 100 J of Motion Store and mass 2 kg. What speed does it have?",
+                ["10 m/s", "10"],
+                "Use E_k = 0.5mv^2 and solve for v.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            short(
+                "M3L3_C3",
+                "Why does doubling speed not just double Motion Store?",
+                [
+                    "Because speed is squared.",
+                    "Because kinetic energy depends on v squared.",
+                    "Because doubling speed quadruples the store.",
+                ],
+                "Use the squared-speed idea in your answer.",
+                ["motion_store_speed_squared_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("speed", "v"),
+                    ("squared", "square", "v^2", "quadruple", "four times"),
+                ),
+            ),
+            mcq(
+                "M3L3_C4",
+                "Which formal equation summarizes Motion Store?",
+                ["E_k = 0.5mv^2", "E_p = mgh", "P = E / t", "W = Fd"],
+                0,
+                "Use the load-and-speed-squared equation.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L3_T4",
+                "A 5 kg pod moves at 4 m/s. What Motion Store does it have?",
+                ["40 J", "40"],
+                "Use E_k = 0.5mv^2.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            short(
+                "M3L3_T5",
+                "A pod has 162 J of Motion Store and mass 4 kg. What speed does it have?",
+                ["9 m/s", "9"],
+                "Solve E_k = 0.5mv^2 for v.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+            mcq(
+                "M3L3_T6",
+                "Which explanation best repairs 'fast means a little more energy'?",
+                [
+                    "Because Motion Store rises sharply with speed and can quadruple when speed doubles.",
+                    "Because mass never matters.",
+                    "Because energy depends only on the route shape.",
+                    "Because moving fast removes Height Store automatically.",
+                ],
+                0,
+                "The squared-speed effect is the key repair.",
+                ["motion_store_speed_squared_confusion"],
+            ),
+        ],
+    },
+    "M3_L4": {
+        "diagnostic": [
+            mcq(
+                "M3L4_D5",
+                "A machine increases the pod's store energy by 180 J. What is the cleanest work statement?",
+                [
+                    "The machine did 180 J of work on the pod.",
+                    "The machine had 180 W of power.",
+                    "The machine had 180 N of force.",
+                    "The pod had 180 m of displacement.",
+                ],
+                0,
+                "When store change is known, work matches the energy transferred.",
+                ["work_hand_off_confusion"],
+            ),
+            short(
+                "M3L4_D6",
+                "A launcher transfers 96 J into Motion Store while 24 J leaks away. How much input work did it do?",
+                ["120 J", "120"],
+                "Input work must cover useful gain plus leak.",
+                ["work_hand_off_confusion", "ledger_balance_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            short(
+                "M3L4_C3",
+                "Why is 'work = effort' a poor physics definition?",
+                [
+                    "Because work is energy transferred.",
+                    "Because work measures hand-off not how hard something feels.",
+                    "Because effort language misses the transfer idea.",
+                ],
+                "Use hand-off or energy-transfer language.",
+                ["work_hand_off_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("energy", "transfer", "hand-off"),
+                    ("not effort", "not just trying hard", "not feeling hard"),
+                ),
+            ),
+            mcq(
+                "M3L4_C4",
+                "Which choice is usually cleaner if the question already tells you how much a store changed?",
+                ["W = Delta E", "W = Fd first", "P = E / t", "efficiency = output / input"],
+                0,
+                "Start from the quantity the story gives directly.",
+                ["work_hand_off_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L4_T4",
+                "A 20 N push acts through 3 m in the same direction. What work is done?",
+                ["60 J", "60"],
+                "Use W = Fd in the simple aligned-force case.",
+                ["work_hand_off_confusion"],
+            ),
+            short(
+                "M3L4_T5",
+                "Why is no-displacement pushing not counted as work in the simple model?",
+                [
+                    "Because there is no movement in the force direction.",
+                    "Because work needs displacement in the force direction.",
+                ],
+                "Use force-direction displacement language.",
+                ["work_hand_off_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("no movement", "no displacement"),
+                    ("force direction", "same direction"),
+                    ("work", "hand-off"),
+                ),
+            ),
+            mcq(
+                "M3L4_T6",
+                "Which statement keeps work and power separate?",
+                [
+                    "Work is the total hand-off; power is how fast the hand-off happens.",
+                    "Work is rate and power is amount.",
+                    "Work and power are interchangeable.",
+                    "Power measures useful fraction only.",
+                ],
+                0,
+                "Total transfer and rate are different ideas.",
+                ["work_hand_off_confusion", "power_energy_rate_confusion"],
+            ),
+        ],
+    },
+    "M3_L5": {
+        "diagnostic": [
+            mcq(
+                "M3L5_D5",
+                "Which comparison keeps efficiency the same but changes power?",
+                [
+                    "Same input and useful fraction, shorter time.",
+                    "Same input and time, bigger useful fraction.",
+                    "Same useful output and bigger leak with same input.",
+                    "Same time and lower input.",
+                ],
+                0,
+                "Changing time changes power; changing useful fraction changes efficiency.",
+                ["power_energy_rate_confusion", "efficiency_power_distinction_confusion"],
+            ),
+            short(
+                "M3L5_D6",
+                "A machine runs at 250 W for 8 s. How much energy does it transfer?",
+                ["2000 J", "2000"],
+                "Use E = Pt.",
+                ["power_energy_rate_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            short(
+                "M3L5_C3",
+                "How can a machine be powerful but inefficient?",
+                [
+                    "It can transfer energy quickly but waste a lot of the input.",
+                    "It can have a high rate but a lot of leak trail.",
+                    "It can have high power and low useful yield.",
+                ],
+                "Keep transfer rate and useful fraction separate in your wording.",
+                ["power_energy_rate_confusion", "efficiency_power_distinction_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("fast", "quickly", "high rate", "powerful"),
+                    ("waste", "leak", "low efficiency", "low useful yield"),
+                ),
+            ),
+            mcq(
+                "M3L5_C4",
+                "Which formula matches Transfer Rate?",
+                ["P = E / t", "E_p = mgh", "E_k = 0.5mv^2", "efficiency = output / input x 100%"],
+                0,
+                "Transfer Rate is power.",
+                ["power_energy_rate_confusion"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M3L5_T4",
+                "A machine transfers 1800 J in 6 s. What is its power?",
+                ["300 W", "300"],
+                "Use P = E / t.",
+                ["power_energy_rate_confusion"],
+            ),
+            short(
+                "M3L5_T5",
+                "Why can two machines have the same power but different efficiency?",
+                [
+                    "Because they can transfer energy at the same rate but waste different amounts.",
+                    "Because rate and useful fraction are different ideas.",
+                    "Because the same power does not force the same useful yield.",
+                ],
+                "Use rate-versus-yield language.",
+                ["efficiency_power_distinction_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("same rate", "same power"),
+                    ("different waste", "different useful fraction", "different efficiency", "different yield"),
+                ),
+            ),
+            mcq(
+                "M3L5_T6",
+                "A machine has 80% efficiency but low power. Which statement is strongest?",
+                [
+                    "It is good at avoiding waste but not especially fast at transferring energy.",
+                    "It must be more powerful than every inefficient machine.",
+                    "Its useful output must exceed its input.",
+                    "It cannot do useful work.",
+                ],
+                0,
+                "High yield does not automatically mean high rate.",
+                ["efficiency_power_distinction_confusion", "power_energy_rate_confusion"],
+            ),
+        ],
+    },
+    "M3_L6": {
+        "diagnostic": [
+            mcq(
+                "M3L6_D5",
+                "A gate needs 600 J. The mission delivers 540 J at the final step. Which judgment is correct?",
+                [
+                    "The mission fails by 60 J.",
+                    "The mission succeeds by 60 J.",
+                    "The mission fails by 540 J.",
+                    "The mission succeeds because some energy arrived.",
+                ],
+                0,
+                "Compare the final useful amount with the target threshold.",
+                ["ledger_balance_confusion", "energy_equation_choice_confusion"],
+            ),
+            short(
+                "M3L6_D6",
+                "A mission must supply 800 J of useful output and the final machine is 80% efficient. What input energy is required?",
+                ["1000 J", "1000"],
+                "Required input = useful output / efficiency.",
+                ["efficiency_power_distinction_confusion", "energy_equation_choice_confusion"],
+            ),
+        ],
+        "capsule_checks": [
+            short(
+                "M3L6_C3",
+                "What should you decide before choosing equations in a long energy mission?",
+                [
+                    "Which store or hand-off each step describes.",
+                    "The mission stages and ledger changes.",
+                    "What changes, what leaks, and what the target is.",
+                ],
+                "Use store-change planning language, not just 'pick a formula'.",
+                ["energy_equation_choice_confusion", "ledger_balance_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("step", "stage", "sequence"),
+                    ("store", "transfer", "hand-off", "leak", "target"),
+                ),
+            ),
+            mcq(
+                "M3L6_C4",
+                "Which judgment best fits a final target check?",
+                [
+                    "Compare the final useful amount with the required target.",
+                    "Compare the starting amount with the largest equation.",
+                    "Use the longest equation available.",
+                    "Ignore any leaks after the first step.",
+                ],
+                0,
+                "The final target cares about the final useful amount.",
+                ["energy_equation_choice_confusion", "ledger_balance_confusion"],
+            ),
+        ],
+        "transfer": [
+            mcq(
+                "M3L6_T4",
+                "A lift inputs 2000 J at 70% Useful Yield. The next stage leaks 200 J before the gate. How much energy reaches the gate?",
+                ["1200 J", "1400 J", "1800 J", "600 J"],
+                0,
+                "Find the useful lift gain first, then subtract the later leak.",
+                ["energy_equation_choice_confusion", "ledger_balance_confusion"],
+            ),
+            short(
+                "M3L6_T5",
+                "Why should a long energy problem start with a mission plan instead of a formula guess?",
+                [
+                    "Because you need to know which step creates the next needed quantity.",
+                    "Because stores, leaks, and targets must be separated first.",
+                    "Because equation choice depends on the story sequence.",
+                ],
+                "Use step-sequence and equation-choice language.",
+                ["energy_equation_choice_confusion", "ledger_balance_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ("step", "sequence", "stage"),
+                    ("next quantity", "store", "leak", "target"),
+                    ("equation choice", "which equation"),
+                ),
+            ),
+            short(
+                "M3L6_T6",
+                "A pod loses 900 J from Height Store and gains 720 J of Motion Store by the gate. How much leaked away in that stage?",
+                ["180 J", "180"],
+                "Store lost = useful gain + leak.",
+                ["ledger_balance_confusion"],
+            ),
+        ],
+    },
+}
+
+for lesson in M3_SPEC["lessons"]:
+    extra_bank = M3_BANK_EXPANSIONS.get(lesson["id"], {})
+    lesson["diagnostic"].extend(deepcopy(extra_bank.get("diagnostic", [])))
+    lesson["capsule_checks"].extend(deepcopy(extra_bank.get("capsule_checks", [])))
+    lesson["transfer"].extend(deepcopy(extra_bank.get("transfer", [])))
+    lesson["contract"]["assessment_bank_targets"] = assessment_targets(6, 4, 8)
 
 
 RELEASE_CHECKS = [

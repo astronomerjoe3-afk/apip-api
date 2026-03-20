@@ -73,6 +73,21 @@ class ModuleAssetPipelineTests(unittest.TestCase):
     def test_m3_v2_contract_includes_scaffold_support_and_answer_reasons(self) -> None:
         for _, lesson in M3_LESSONS:
             contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 8,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(transfer_items), 6)
             scaffold_support = contract["scaffold_support"]
             self.assertTrue(scaffold_support["core_idea"])
             self.assertTrue(scaffold_support["reasoning"])
