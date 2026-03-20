@@ -2254,6 +2254,10 @@ M3_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
                     ("no movement", "no displacement", "did not move", "wall does not move"),
                     ("force direction", "same direction", "aligned"),
                     ("work", "hand-off", "transfer"),
+                    ("nothing moves", "nothing moved", "stays still", "stationary"),
+                    ("line of force", "direction of the force", "aligned direction"),
+                    ("required", "needed", "must have", "has to have"),
+                    ("no work", "zero work", "no hand-off", "no transfer"),
                 ),
             ),
             mcq(
