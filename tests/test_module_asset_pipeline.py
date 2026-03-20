@@ -137,7 +137,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m4_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(M4_MODULE_DOC["id"], "M4")
-        self.assertEqual(M4_MODULE_DOC["title"], "Pressure, Patch Loads & Fluid Fields")
+        self.assertEqual(M4_MODULE_DOC["title"], "Pressure")
         self.assertEqual(M4_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v2")
         self.assertEqual(len(M4_LESSONS), 6)
         self.assertEqual(len(M4_SIM_LABS), 6)
@@ -185,9 +185,12 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIn("pressure in solids", mastery_text)
         self.assertIn("liquid pressure", mastery_text)
         self.assertIn("atmospheric pressure", mastery_text)
-        self.assertIn("patch", description_text)
+        self.assertIn("pressure in solids", description_text)
+        self.assertIn("liquid pressure", description_text)
+        self.assertIn("atmospheric pressure", description_text)
         self.assertIn("liquid", description_text)
         self.assertIn("atmospheric", mastery_text)
+        self.assertNotIn("patch-dome", description_text)
         self.assertNotIn("momentum", mastery_text)
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("kinetic energy", mastery_text)

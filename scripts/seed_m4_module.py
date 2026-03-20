@@ -20,8 +20,8 @@ except ModuleNotFoundError:
 
 
 M4_MODULE_ID = "M4"
-M4_CONTENT_VERSION = "20260320_m4_patch_dome_v1"
-M4_MODULE_TITLE = "Pressure, Patch Loads & Fluid Fields"
+M4_CONTENT_VERSION = "20260321_m4_pressure_intro_v2"
+M4_MODULE_TITLE = "Pressure"
 M4_ALLOWLIST = [
     "pressure_force_confusion",
     "pressure_area_confusion",
@@ -1112,10 +1112,8 @@ def lesson_l6() -> Dict[str, Any]:
 M4_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V2,
     "module_description": (
-        "Module 4 turns pressure into one unified Patch-Dome idea: solids crowd push onto footprints, liquids stack patch load "
-        "with depth, and the sky blanket adds atmospheric pressure above every open surface. Students track pressure as push per "
-        "patch, separate it carefully from total force, and solve fluid-pressure problems by keeping location, layer stack, and "
-        "surface response visible together."
+        "Pressure in solids, liquid pressure, and atmospheric pressure. Separate pressure from force, track how area and depth "
+        "matter, and use the main pressure equations carefully."
     ),
     "mastery_outcomes": [
         "Explain pressure in solids as force spread over area rather than force alone.",
