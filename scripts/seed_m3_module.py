@@ -7,9 +7,11 @@ from typing import Any, Dict, List, Sequence, Tuple
 try:
     from scripts.module_asset_pipeline import default_asset_root, render_module_assets
     from scripts.nextgen_module_builder import build_nextgen_module_bundle
+    from scripts.lesson_authoring_contract import AUTHORING_STANDARD_V2
 except ModuleNotFoundError:
     from module_asset_pipeline import default_asset_root, render_module_assets
     from nextgen_module_builder import build_nextgen_module_bundle
+    from lesson_authoring_contract import AUTHORING_STANDARD_V2
 
 try:
     from scripts.seed_m1_module import get_project_id, init_firebase, print_preview, upsert_doc
@@ -51,6 +53,7 @@ def mcq(
     item = {
         "id": qid,
         "question_id": qid,
+        "kind": "mcq",
         "type": "mcq",
         "prompt": prompt,
         "choices": list(choices),
@@ -77,6 +80,7 @@ def short(
     item = {
         "id": qid,
         "question_id": qid,
+        "kind": "short",
         "type": "short",
         "prompt": prompt,
         "accepted_answers": list(accepted_answers),
@@ -1930,7 +1934,7 @@ M3_SPEC = {
     "mastery_outcomes": [
         "Explain energy as stores, hand-offs, leaks, and balanced ledger entries rather than as a disconnected list of formulas.",
         "Use Height Store reasoning and E_p = mgh to compare and calculate gravitational potential energy in different worlds.",
-        "Use Motion Store reasoning and E_k = 0.5mv^2 to compare mass and speed changes, including the squared-speed effect.",
+        "Use Motion Store reasoning and E_k = 0.5mv^2 to compare and calculate kinetic energy, including the squared-speed effect.",
         "Treat work as an energy hand-off and choose correctly between W = Delta E and W = Fd from the mission story.",
         "Distinguish Transfer Rate from Useful Yield by calculating power and efficiency without collapsing them into one idea.",
         "Solve multi-step energy missions by choosing the right relationship at each step and balancing the full Energy Ledger.",
@@ -3077,6 +3081,7 @@ M3_MODULE_DOC, M3_LESSONS, M3_SIM_LABS = build_nextgen_module_bundle(
     sequence=7,
     level="Module 3",
     estimated_minutes=270,
+    authoring_standard=AUTHORING_STANDARD_V2,
     plan_assets=True,
     public_base="/lesson_assets",
 )

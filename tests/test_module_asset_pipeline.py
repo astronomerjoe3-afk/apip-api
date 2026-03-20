@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from scripts.module_asset_pipeline import plan_lesson_assets
+from scripts.nextgen_module_builder import _question
 from scripts.seed_f1_module import F1_LESSONS, F1_MODULE_DOC, F1_SIM_LABS
 from scripts.seed_m1_module import M1_LESSONS, M1_MODULE_DOC, M1_SIM_LABS
 from scripts.seed_m2_module import M2_LESSONS, M2_MODULE_DOC, M2_SIM_LABS
@@ -10,6 +11,24 @@ from scripts.seed_m3_module import M3_LESSONS, M3_MODULE_DOC, M3_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
+    def test_builder_question_accepts_type_field_for_mcq_specs(self) -> None:
+        question = _question(
+            {
+                "id": "M3_LX_D1",
+                "type": "mcq",
+                "prompt": "Which store increases?",
+                "choices": ["Height Store", "Leak Trail", "Nothing", "Charge"],
+                "answer_index": 0,
+                "hint": "Use the lesson story, not random labels.",
+                "misconception_tags": ["energy_force_confusion"],
+            },
+            ["energy_force_confusion"],
+        )
+
+        self.assertEqual(question["type"], "mcq")
+        self.assertEqual(question["choices"][0], "Height Store")
+        self.assertEqual(question["misconception_tags"], ["energy_force_confusion"])
+
     def test_plan_lesson_assets_uses_simulation_contract_concept(self) -> None:
         lesson = {
             "lesson_id": "M3_LX",
@@ -45,7 +64,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         simulation = compiled["generated_assets"]["simulation"]
         self.assertEqual(simulation["concept"], "series_parallel")
         self.assertEqual(
-            simulation["url"],
+            simulation["public_url"],
             "/lesson_assets/M3/M3_LX/simulations/m3_network_rules_lab/index.html",
         )
 

@@ -4,11 +4,11 @@ from copy import deepcopy
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
-    from scripts.lesson_authoring_contract import AUTHORING_STANDARD_V2, validate_nextgen_module
+    from scripts.lesson_authoring_contract import AUTHORING_STANDARD_V1, AUTHORING_STANDARD_V2, validate_nextgen_module
     from scripts.module_asset_pipeline import DEFAULT_PUBLIC_BASE, plan_module_assets
     from scripts.nextgen_module_scaffold import build_nextgen_module_scaffold
 except ModuleNotFoundError:
-    from lesson_authoring_contract import AUTHORING_STANDARD_V2, validate_nextgen_module
+    from lesson_authoring_contract import AUTHORING_STANDARD_V1, AUTHORING_STANDARD_V2, validate_nextgen_module
     from module_asset_pipeline import DEFAULT_PUBLIC_BASE, plan_module_assets
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
@@ -25,10 +25,11 @@ def _safe_tags(tags: Sequence[str], allowlist: Sequence[str]) -> List[str]:
 
 def _question(spec: Dict[str, Any], allowlist: Sequence[str]) -> Dict[str, Any]:
     hint = str(spec["hint"])
-    tags = _safe_tags(list(spec.get("tags") or []), allowlist)
+    tags = _safe_tags(list(spec.get("tags") or spec.get("misconception_tags") or []), allowlist)
     acceptance_rules = deepcopy(dict(spec.get("acceptance_rules") or {}))
     skill_tags = [str(tag) for tag in spec.get("skill_tags") or [] if str(tag).strip()]
-    if str(spec.get("kind") or "") == "mcq":
+    qtype = str(spec.get("kind") or spec.get("type") or "").strip().lower()
+    if qtype == "mcq":
         choices = list(spec["choices"])
         question = {
             "id": str(spec["id"]),
@@ -83,10 +84,13 @@ def build_nextgen_module_bundle(
     sequence: int,
     level: str,
     estimated_minutes: int,
-    authoring_standard: str = AUTHORING_STANDARD_V2,
+    authoring_standard: str | None = None,
     plan_assets: bool = False,
     public_base: str = DEFAULT_PUBLIC_BASE,
 ) -> Tuple[Dict[str, Any], List[Tuple[str, Dict[str, Any]]], List[Tuple[str, Dict[str, Any]]]]:
+    resolved_authoring_standard = str(
+        authoring_standard or module_spec.get("authoring_standard") or AUTHORING_STANDARD_V1
+    )
     module_doc, lessons, sim_labs = build_nextgen_module_scaffold(
         module_id,
         module_title,
@@ -102,7 +106,7 @@ def build_nextgen_module_bundle(
             "content_version": content_version,
             "mastery_outcomes": list(module_spec["mastery_outcomes"]),
             "misconception_tag_allowlist": list(allowlist),
-            "authoring_standard": authoring_standard,
+            "authoring_standard": resolved_authoring_standard,
             "updated_utc": utc_now(),
         }
     )
