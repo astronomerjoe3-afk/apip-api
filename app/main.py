@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -29,8 +31,7 @@ app.add_middleware(
 app.add_middleware(RequestIDMiddleware)
 
 
-@app.on_event("startup")
-def bootstrap_services() -> None:
+def _bootstrap_services_worker() -> None:
     try:
         seeded = ensure_catalog_seeded()
         if seeded:
@@ -44,6 +45,13 @@ def bootstrap_services() -> None:
             print("Monetization bootstrap: seeded launch pricing into Firestore.")
     except Exception as exc:
         print(f"Monetization bootstrap skipped: {exc}")
+
+
+@app.on_event("startup")
+def bootstrap_services() -> None:
+    # Do not block the web server from binding to PORT on Cloud Run while
+    # optional Firestore bootstrap work completes.
+    threading.Thread(target=_bootstrap_services_worker, daemon=True).start()
 
 
 app.include_router(system.router)
