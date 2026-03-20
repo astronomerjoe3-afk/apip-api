@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M6_MODULE_ID = "M6"
-M6_CONTENT_VERSION = "20260321_m6_level_forge_v1"
+M6_CONTENT_VERSION = "20260321_m6_level_forge_v2"
 M6_MODULE_TITLE = "Thermal Properties & Transfer"
 M6_ALLOWLIST = [
     "heat_temperature_confusion",
@@ -296,7 +296,7 @@ def contract(
         "reflection_prompts": list(reflection_prompts),
         "mastery_skills": normalized_skills[:5],
         "variation_plan": deepcopy(variation_plan),
-        "assessment_bank_targets": assessment_targets(8, 6, 8),
+        "assessment_bank_targets": assessment_targets(10, 8, 10),
         "scaffold_support": deepcopy(scaffold_support),
         "visual_clarity_checks": list(visual_clarity_checks),
     }
@@ -1277,6 +1277,537 @@ def lesson_l6() -> Dict[str, Any]:
         ),
     )
 
+M6_BANK_EXPANSIONS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
+    "M6_L1": {
+        "diagnostic": [
+            mcq(
+                "M6L1_D9",
+                "Two 1 kg blocks with the same Level Cost start at the same Warmth Level. Block A receives 400 J and Block B receives 800 J. Which rises more?",
+                [
+                    "Block B, because the larger transfer gives the larger Warmth Level rise for the same kind of block",
+                    "Block A, because smaller numbers always heat faster",
+                    "They rise equally because the starting Warmth Level matched",
+                    "Neither can rise without a Form Gate",
+                ],
+                0,
+                "For the same mass and Level Cost, a larger transfer gives a larger temperature rise.",
+                ["same_energy_same_temp_change_confusion"],
+                skill_tags=["warming_compare"],
+            ),
+            short(
+                "M6L1_D10",
+                "If Transfer Energy leaves a block for cooler surroundings, what can happen to its Warmth Level?",
+                [
+                    "It can decrease because energy is being transferred out of the block.",
+                    "Its temperature can fall when energy leaves the block.",
+                ],
+                "If energy leaves, the temperature reading can drop.",
+                ["heat_temperature_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["energy leaves", "transferred out", "energy transferred out", "loses transfer energy"],
+                    ["warmth level", "temperature"],
+                    ["decrease", "fall", "drop", "go down"],
+                ),
+                skill_tags=["cooling_direction"],
+            ),
+        ],
+        "concept": [
+            mcq(
+                "M6L1_C7",
+                "Two blocks have the same Level Cost and receive the same Transfer Energy. One is 1 kg and one is 3 kg. Which rises more in Warmth Level?",
+                ["The 1 kg block", "The 3 kg block", "They rise equally", "Neither can change"],
+                0,
+                "With the same energy and material, the smaller mass shows the larger temperature rise.",
+                ["mass_heating_confusion"],
+                skill_tags=["mass_effect"],
+            ),
+            short(
+                "M6L1_C8",
+                "Why is knowing only the Warmth Level not enough to know the next heating bill?",
+                [
+                    "Because the energy needed also depends on the mass and the Level Cost.",
+                    "Because temperature alone does not tell you the amount of material or the specific heat capacity.",
+                ],
+                "A heating bill needs more than the current temperature reading.",
+                ["heat_temperature_confusion", "specific_heat_capacity_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["warmth level", "temperature"],
+                    ["mass", "build size", "amount of material"],
+                    ["level cost", "specific heat capacity"],
+                ),
+                skill_tags=["bill_reasoning"],
+            ),
+        ],
+        "transfer": [
+            mcq(
+                "M6L1_M9",
+                "Block A needs 200 J for each Warmth Level rise and Block B needs 400 J for each Warmth Level rise. If each receives 800 J, which gains more levels?",
+                ["Block A", "Block B", "They gain the same number of levels", "Neither can rise"],
+                0,
+                "The lower Level Cost means the same payment buys more level rises.",
+                ["specific_heat_capacity_confusion", "same_energy_same_temp_change_confusion"],
+                skill_tags=["level_cost_compare"],
+            ),
+            short(
+                "M6L1_M10",
+                "Why is 'the hotter object has more heat' a weak comparison between a spark and a bathtub?",
+                [
+                    "Because temperature tells how hot something is, but the total energy story also depends on mass and material.",
+                    "Because a tiny hot object and a large warm object can imply very different energy-transfer stories.",
+                ],
+                "Separate 'how hot' from the amount of material and the transfer needed.",
+                ["heat_temperature_confusion", "mass_heating_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["temperature", "hotter", "how hot"],
+                    ["mass", "amount of material", "size"],
+                    ["different energy", "different transfer", "not the same total energy story", "different energy story"],
+                ),
+                skill_tags=["state_vs_total"],
+            ),
+        ],
+    },
+    "M6_L2": {
+        "diagnostic": [
+            short(
+                "M6L2_D9",
+                "A 2 kg block has c = 400 J/kg degree C and warms by 5 degree C. How much Transfer Energy is needed?",
+                ["4000 J", "4000"],
+                "Use Q = m c delta T.",
+                ["specific_heat_capacity_confusion"],
+                skill_tags=["heating_bill"],
+            ),
+            mcq(
+                "M6L2_D10",
+                "Two 1 kg blocks receive the same Transfer Energy. Block X has a lower specific heat capacity than Block Y. Which shows the larger temperature rise?",
+                [
+                    "Block X, because the same energy buys more degrees when c is lower",
+                    "Block Y, because the higher c always heats faster",
+                    "They rise equally because the masses match",
+                    "Neither rises unless the state changes",
+                ],
+                0,
+                "Lower specific heat capacity means the same energy gives a larger temperature change.",
+                ["specific_heat_capacity_confusion", "same_energy_same_temp_change_confusion"],
+                skill_tags=["material_compare"],
+            ),
+        ],
+        "concept": [
+            short(
+                "M6L2_C7",
+                "A 3 kg block receives 9000 J and has c = 300 J/kg degree C. What temperature rise does that produce?",
+                ["10 degree C", "10 C", "10", "10 degrees"],
+                "Rearrange Q = m c delta T to find delta T.",
+                ["specific_heat_capacity_confusion"],
+                skill_tags=["formula_rearrangement"],
+            ),
+            mcq(
+                "M6L2_C8",
+                "If mass and temperature rise stay the same but specific heat capacity doubles, what happens to the heating bill Q?",
+                ["It doubles", "It halves", "It stays the same", "It becomes zero"],
+                0,
+                "Q is proportional to c when the other factors stay fixed.",
+                ["specific_heat_capacity_confusion"],
+                skill_tags=["heating_bill"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M6L2_M9",
+                "A block receives 5000 J. Its mass is 2 kg and c = 250 J/kg degree C. What temperature rise follows?",
+                ["10 degree C", "10 C", "10", "10 degrees"],
+                "Use delta T = Q / (m c).",
+                ["specific_heat_capacity_confusion"],
+                skill_tags=["formula_rearrangement"],
+            ),
+            mcq(
+                "M6L2_M10",
+                "Two equal masses warm by the same temperature rise. Material X needs 6000 J while Material Y needs 3000 J. Which has the larger specific heat capacity?",
+                [
+                    "Material X",
+                    "Material Y",
+                    "They must have the same specific heat capacity",
+                    "There is not enough information because mass is missing",
+                ],
+                0,
+                "For the same m and delta T, the one that needs more energy has the larger c.",
+                ["specific_heat_capacity_confusion"],
+                skill_tags=["material_compare"],
+            ),
+        ],
+    },
+    "M6_L3": {
+        "diagnostic": [
+            short(
+                "M6L3_D9",
+                "A 2 kg sample melts with L = 150000 J/kg. How much energy is needed for the state-change stage?",
+                ["300000 J", "300000"],
+                "Use Q = m L for the Form Gate stage.",
+                ["phase_change_energy_confusion"],
+                skill_tags=["latent_bill"],
+            ),
+            mcq(
+                "M6L3_D10",
+                "Two samples of the same substance are both at the Form Gate and each receives the same energy. One sample has half the mass of the other. Which finishes melting first?",
+                [
+                    "The smaller-mass sample",
+                    "The larger-mass sample",
+                    "They must finish together",
+                    "Neither can melt at constant temperature",
+                ],
+                0,
+                "The smaller mass has the smaller total Morph Fee.",
+                ["phase_change_energy_confusion", "latent_heat_temperature_rise_confusion"],
+                skill_tags=["gate_compare"],
+            ),
+        ],
+        "concept": [
+            short(
+                "M6L3_C7",
+                "A 0.5 kg sample has L = 200000 J/kg. What Morph Fee is needed in total?",
+                ["100000 J", "100000"],
+                "Multiply mass by latent heat.",
+                ["phase_change_energy_confusion"],
+                skill_tags=["latent_bill"],
+            ),
+            mcq(
+                "M6L3_C8",
+                "Which heating-curve section best represents a pure state-change stage for a pure substance?",
+                [
+                    "A flat temperature section while energy continues to enter",
+                    "A steadily rising temperature line",
+                    "A falling temperature line with no energy transfer",
+                    "A random zigzag of temperature",
+                ],
+                0,
+                "A plateau shows energy entering while temperature stays constant at the change point.",
+                ["latent_heat_temperature_rise_confusion"],
+                skill_tags=["plateau_interpretation"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M6L3_M9",
+                "A 1 kg sample warms by 20 degree C with c = 500 J/kg degree C and then melts with L = 200000 J/kg. What total energy is needed?",
+                ["210000 J", "210000"],
+                "Add the warm-up bill and the gate bill.",
+                ["phase_change_energy_confusion", "multi_stage_heat_calculation_confusion"],
+                skill_tags=["ledger_total"],
+            ),
+            mcq(
+                "M6L3_M10",
+                "Two 1 kg samples are at their melting points. Sample A has a larger latent heat than Sample B. Which needs the larger Morph Fee to melt completely?",
+                ["Sample A", "Sample B", "They need the same fee because the masses match", "Neither needs extra energy at the Form Gate"],
+                0,
+                "With the same mass, the larger latent heat means the larger state-change bill.",
+                ["phase_change_energy_confusion"],
+                skill_tags=["gate_compare"],
+            ),
+        ],
+    },
+    "M6_L4": {
+        "diagnostic": [
+            mcq(
+                "M6L4_D9",
+                "Which setup gives the strongest Touch Relay from hot end to cool end?",
+                [
+                    "A metal bar in direct contact all the way through",
+                    "A plastic bar in direct contact all the way through",
+                    "A metal bar with a gap in the middle",
+                    "Warm air rising above a heater",
+                ],
+                0,
+                "Good conduction needs both a good conductor and an unbroken contact path.",
+                ["conduction_particle_flow_confusion", "metal_conduction_reason_confusion"],
+                skill_tags=["path_compare"],
+            ),
+            short(
+                "M6L4_D10",
+                "Why do saucepans often use wood or plastic handles?",
+                [
+                    "Because those materials are poor conductors, so less thermal energy is relayed to the hand.",
+                    "Because they reduce conduction from the hot pan to the hand.",
+                ],
+                "Explain the safer handle as a weaker conduction path.",
+                ["transfer_route_mixing_confusion", "conduction_particle_flow_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["poor conductor", "insulator", "less conductive"],
+                    ["reduce", "slow", "less"],
+                    ["conduction", "touch relay", "thermal energy"],
+                    ["hand", "handle"],
+                ),
+                skill_tags=["insulation_reasoning"],
+            ),
+        ],
+        "concept": [
+            mcq(
+                "M6L4_C7",
+                "Two identical metal bars stay in full contact. Bar A has a 20 degree C end-to-end difference and Bar B has a 60 degree C difference. Which has the stronger conduction drive?",
+                [
+                    "Bar B, because the larger temperature difference drives the stronger relay",
+                    "Bar A, because a smaller difference is easier to conduct",
+                    "They conduct equally because the material matches",
+                    "Neither conducts unless the solid moves",
+                ],
+                0,
+                "A larger temperature difference gives a stronger push for conduction.",
+                ["conduction_particle_flow_confusion"],
+                skill_tags=["path_compare"],
+            ),
+            short(
+                "M6L4_C8",
+                "Why can an air gap reduce conduction in a mug wall or lunch box?",
+                [
+                    "Because it weakens the direct contact path and air is a poor conductor.",
+                    "Because conduction falls when the contact path is interrupted or replaced by a poorer conductor.",
+                ],
+                "Use both the weakened path and the poor-conductor idea if you can.",
+                ["conduction_particle_flow_confusion", "transfer_route_mixing_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["air gap", "gap", "air"],
+                    ["breaks", "weakens", "interrupts", "reduces"],
+                    ["contact path", "direct contact"],
+                    ["poor conductor", "insulator", "conduction"],
+                ),
+                skill_tags=["insulation_reasoning"],
+            ),
+        ],
+        "transfer": [
+            mcq(
+                "M6L4_M9",
+                "Pins fixed with wax drop off a heated metal rod one after another from the hot end. What is the best explanation?",
+                [
+                    "Energy is relayed through the rod by conduction, with particle contact and metal electrons carrying it along",
+                    "Hot metal flows along the rod toward the pins",
+                    "Convection currents inside the solid carry the energy to the pins",
+                    "The cooler end becomes hottest first because cold attracts heat",
+                ],
+                0,
+                "The rod stays in place while the energy passes through it.",
+                ["conduction_particle_flow_confusion", "metal_conduction_reason_confusion"],
+                skill_tags=["mechanism_explanation"],
+            ),
+            short(
+                "M6L4_M10",
+                "Why can a metal bench and a wooden bench at the same outdoor temperature feel different to your hand?",
+                [
+                    "Because the metal conducts thermal energy away from the hand faster than the wood.",
+                    "Because the metal relays energy from your hand more quickly even when the temperature reading matches.",
+                ],
+                "Use transfer rate, not just temperature, in the explanation.",
+                ["metal_conduction_reason_confusion", "heat_temperature_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["metal", "conducts", "conduction"],
+                    ["away from the hand", "from your hand", "faster"],
+                    ["same temperature", "same outdoor temperature", "same reading"],
+                ),
+                skill_tags=["metal_explanation"],
+            ),
+        ],
+    },
+    "M6_L5": {
+        "diagnostic": [
+            mcq(
+                "M6L5_D9",
+                "Which setup most strongly supports a Carrier Loop convection current?",
+                [
+                    "Heating a liquid from below so the warmed fluid can rise",
+                    "Heating a solid metal block evenly from all sides",
+                    "Keeping a fluid at one uniform temperature",
+                    "Placing the heater above the fluid so no cooler fluid can sink underneath",
+                ],
+                0,
+                "Convection current needs a fluid and a temperature difference that can drive circulation.",
+                ["convection_heat_rises_confusion", "transfer_route_mixing_confusion"],
+                skill_tags=["loop_setup"],
+            ),
+            short(
+                "M6L5_D10",
+                "Why does smoke above a candle rise and then spread?",
+                [
+                    "Because the warmed air becomes less dense and rises, then cooler air moves in and the flow spreads out.",
+                    "Because warm air rises in a convection current while surrounding cooler air replaces it.",
+                ],
+                "Explain the motion as a moving fluid loop, not as floating heat.",
+                ["convection_heat_rises_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["warm air", "warmed air", "warmer fluid"],
+                    ["less dense", "lower density", "rises", "moves up"],
+                    ["cooler air", "cool air", "cooler fluid"],
+                    ["moves in", "replaces it", "sinks", "spreads"],
+                ),
+                skill_tags=["current_sequence"],
+            ),
+        ],
+        "concept": [
+            mcq(
+                "M6L5_C7",
+                "Which change would weaken a Carrier Loop most?",
+                [
+                    "Replacing the fluid with a solid block",
+                    "Increasing the temperature contrast",
+                    "Cooling the top of the liquid",
+                    "Allowing the warm parcel to rise freely",
+                ],
+                0,
+                "Convection needs bulk fluid motion, so a solid blocks the route entirely.",
+                ["transfer_route_mixing_confusion"],
+                skill_tags=["medium_reasoning"],
+            ),
+            short(
+                "M6L5_C8",
+                "Why does cooling the top of a liquid help the convection loop continue?",
+                [
+                    "Because the cooled fluid becomes denser and sinks, helping the return flow.",
+                    "Because cooler fluid at the top can move downward and complete the circulation.",
+                ],
+                "Use density and return-flow language together.",
+                ["convection_heat_rises_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["cool", "cooled", "cooler fluid"],
+                    ["denser", "more dense", "higher density"],
+                    ["sinks", "moves down", "returns"],
+                    ["loop", "circulation", "current"],
+                ),
+                skill_tags=["current_sequence"],
+            ),
+        ],
+        "transfer": [
+            mcq(
+                "M6L5_M9",
+                "Which explanation best fits a daytime sea breeze?",
+                [
+                    "Land warms nearby air, that air rises, and cooler sea air moves in toward the land",
+                    "Sea water conducts through the sand and pushes the air sideways",
+                    "Radiation alone carries the warm air across the beach with no fluid motion",
+                    "Only the warm air moves; cooler air does not take part",
+                ],
+                0,
+                "A breeze is a moving-air loop caused by uneven heating.",
+                ["convection_heat_rises_confusion"],
+                skill_tags=["current_sequence"],
+            ),
+            short(
+                "M6L5_M10",
+                "Why are high vents useful for removing warm air from a room?",
+                [
+                    "Because warmer air rises and collects higher up, so the vent lets it leave while cooler air can replace it.",
+                    "Because convection tends to carry the warmer, less dense air upward toward the vent.",
+                ],
+                "Use warm-air rise plus replacement flow if you can.",
+                ["convection_heat_rises_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["warm air", "warmer air", "less dense air"],
+                    ["rises", "moves up", "collects higher"],
+                    ["vent", "leave", "escape"],
+                    ["cooler air", "replacement air", "moves in", "replace"],
+                ),
+                skill_tags=["loop_setup"],
+            ),
+        ],
+    },
+    "M6_L6": {
+        "diagnostic": [
+            short(
+                "M6L6_D9",
+                "A 2 kg block warms by 10 degree C with c = 400 J/kg degree C. How much energy is needed for that warm-up stage?",
+                ["8000 J", "8000"],
+                "Use Q = m c delta T for the temperature-change stage.",
+                ["multi_stage_heat_calculation_confusion"],
+                skill_tags=["stage_calculation"],
+            ),
+            short(
+                "M6L6_D10",
+                "A 1 kg sample warms by 4 degree C with c = 500 J/kg degree C and then melts with L = 100000 J/kg. What total energy is needed?",
+                ["102000 J", "102000"],
+                "Add the warm-up stage and the gate stage.",
+                ["multi_stage_heat_calculation_confusion", "phase_change_energy_confusion"],
+                skill_tags=["ledger_total"],
+            ),
+        ],
+        "concept": [
+            mcq(
+                "M6L6_C7",
+                "Two targets face the same radiant beam. Which usually absorbs more of it?",
+                ["The dark, dull target", "The shiny silver target", "They always absorb exactly the same amount", "Only the colder target can absorb radiation"],
+                0,
+                "Dark, dull surfaces are usually better absorbers than shiny ones.",
+                ["radiation_medium_confusion"],
+                skill_tags=["surface_reasoning"],
+            ),
+            short(
+                "M6L6_C8",
+                "Why should route choice come before equation choice in a thermal mission?",
+                [
+                    "Because the context tells you whether the transfer is conduction, convection, or radiation before you start the energy bookkeeping.",
+                    "Because you first need to identify the transfer route and the stages before choosing the correct calculation rule.",
+                ],
+                "Name the route first, then choose the stage rule.",
+                ["transfer_route_mixing_confusion", "multi_stage_heat_calculation_confusion"],
+                acceptance_rules=acceptance_groups(
+                    ["route", "conduction", "convection", "radiation"],
+                    ["before", "first", "come before"],
+                    ["equation", "stage rule", "calculation"],
+                    ["stage", "bookkeeping", "mission"],
+                ),
+                skill_tags=["formula_selection"],
+            ),
+        ],
+        "transfer": [
+            short(
+                "M6L6_M9",
+                "A 2 kg sample warms by 15 degree C with c = 200 J/kg degree C and then melts with L = 150000 J/kg. What total energy is needed?",
+                ["306000 J", "306000"],
+                "Find the warm-up bill, find the gate bill, then add them.",
+                ["multi_stage_heat_calculation_confusion", "phase_change_energy_confusion"],
+                skill_tags=["ledger_total"],
+            ),
+            mcq(
+                "M6L6_M10",
+                "Which full solution sequence is strongest for a block heated across a vacuum gap and then melted?",
+                [
+                    "Identify radiation across the gap, calculate any warm-up stages with Q = m c delta T, calculate the melting stage with Q = m L, then add the stage totals",
+                    "Use Q = m L for the whole problem because melting appears somewhere in it",
+                    "Use only Q = m c delta T because the block warms before melting",
+                    "Ignore the route and add the temperatures first",
+                ],
+                0,
+                "A strong solution chooses the route and then totals the relevant stages one by one.",
+                ["radiation_medium_confusion", "multi_stage_heat_calculation_confusion"],
+                skill_tags=["formula_selection"],
+            ),
+        ],
+    },
+}
+
+
+def enrich_m6_lesson(lesson: Dict[str, Any]) -> Dict[str, Any]:
+    lesson_copy = deepcopy(lesson)
+    extras = M6_BANK_EXPANSIONS.get(str(lesson_copy.get("id") or ""), {})
+    if not extras:
+        return lesson_copy
+
+    phases = dict(lesson_copy.get("phases") or {})
+
+    diagnostic_phase = dict(phases.get("diagnostic") or {})
+    diagnostic_phase["items"] = list(diagnostic_phase.get("items") or []) + [deepcopy(item) for item in extras.get("diagnostic", [])]
+    phases["diagnostic"] = diagnostic_phase
+
+    concept_phase = dict(phases.get("concept_reconstruction") or {})
+    capsules = list(concept_phase.get("capsules") or [])
+    if capsules:
+        first_capsule = deepcopy(dict(capsules[0] or {}))
+        first_capsule["checks"] = list(first_capsule.get("checks") or []) + [deepcopy(item) for item in extras.get("concept", [])]
+        capsules[0] = first_capsule
+        concept_phase["capsules"] = capsules
+    phases["concept_reconstruction"] = concept_phase
+
+    transfer_phase = dict(phases.get("transfer") or {})
+    transfer_phase["items"] = list(transfer_phase.get("items") or []) + [deepcopy(item) for item in extras.get("transfer", [])]
+    phases["transfer"] = transfer_phase
+
+    lesson_copy["phases"] = phases
+    return lesson_copy
+
 
 M6_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
@@ -1294,8 +1825,16 @@ M6_SPEC = {
         "Distinguish conduction, convection, and radiation clearly and identify when each route applies.",
         "Explain why radiation can cross a vacuum while conduction and convection cannot.",
         "Solve multi-stage thermal problems by summing the separate stage energies.",
+        "Apply the same thermal-bookkeeping rules across new materials, route contexts, and staged heating missions.",
     ],
-    "lessons": [lesson_l1(), lesson_l2(), lesson_l3(), lesson_l4(), lesson_l5(), lesson_l6()],
+    "lessons": [
+        enrich_m6_lesson(lesson_l1()),
+        enrich_m6_lesson(lesson_l2()),
+        enrich_m6_lesson(lesson_l3()),
+        enrich_m6_lesson(lesson_l4()),
+        enrich_m6_lesson(lesson_l5()),
+        enrich_m6_lesson(lesson_l6()),
+    ],
 }
 
 
@@ -1304,6 +1843,8 @@ RELEASE_CHECKS = [
     "Every lesson uses the Level-Forge analogy to support the formal thermal relationships instead of replacing them with slogans.",
     "Every worked example states why the answer follows, not just the classification or arithmetic.",
     "Every stage-based calculation keeps ordinary warming and state change as separate ledger entries before the total is added.",
+    "Every Try It in Action explorer is backed by lesson-specific simulation copy and contracts rather than generic fallback wording.",
+    "Every lesson-owned assessment bank is broad enough to prefer unseen questions on fresh attempts before repeating earlier stems.",
 ]
 
 
