@@ -15,15 +15,15 @@ from app.repositories.catalog_repository import (
     list_lessons_for_module_unordered,
     list_modules,
 )
-from app.services.catalog_bootstrap import CATALOG_MODULES, ensure_catalog_seeded
+from app.services.catalog_bootstrap import ensure_catalog_seeded, get_catalog_module_ids
 from app.services.content_normalizer import to_student_lesson_view, to_student_lessons_view
 from app.services.monetization_service import enrich_module_for_student
 
 
 _BOOTSTRAP_MODULE_IDS = {
-    normalize_module_id(module.get("module_id"))
-    for module in CATALOG_MODULES
-    if normalize_module_id(module.get("module_id"))
+    normalize_module_id(module_id)
+    for module_id in get_catalog_module_ids()
+    if normalize_module_id(module_id)
 }
 
 

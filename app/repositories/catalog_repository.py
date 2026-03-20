@@ -35,9 +35,9 @@ def _with_id(snap: firestore.DocumentSnapshot) -> Dict[str, Any]:
 
 
 def _catalog_modules() -> List[Dict[str, Any]]:
-    from app.services.catalog_bootstrap import CATALOG_MODULES
+    from app.services.catalog_bootstrap import get_catalog_modules
 
-    return list(CATALOG_MODULES)
+    return list(get_catalog_modules())
 
 
 def _bootstrap_module_bundle(module_id: str) -> Optional[Dict[str, Any]]:
