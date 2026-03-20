@@ -13,6 +13,7 @@ from google.cloud.firestore_v1 import DELETE_FIELD
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
+from app.services.catalog_bootstrap import get_catalog_module_row
 from app.services.monetization_service import (
     FREE_ACCESS_TIER,
     MODULE_UNLOCK_ACCESS_DAYS,
@@ -281,6 +282,8 @@ def _ensure_customer(uid: str, email: Optional[str]) -> str:
 
 def _module_access_or_error(uid: str, role: Optional[str], module_id: str) -> Dict[str, Any]:
     module = get_module_by_id(module_id)
+    if not module:
+        module = get_catalog_module_row(module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found.")
 
@@ -976,6 +979,8 @@ def confirm_checkout_session_for_student(
     normalized_module_id = _string(module_id) or _string((_obj_get(session, "metadata", {}) or {}).get("module_id"))
     if normalized_module_id:
         module = get_module_by_id(normalized_module_id)
+        if not module:
+            module = get_catalog_module_row(normalized_module_id)
         if module:
             response["module_access"] = build_module_access(module, resolved_uid, role=role)
 

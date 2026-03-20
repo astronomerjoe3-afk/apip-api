@@ -9,7 +9,7 @@ from app.common import normalize_module_id, parse_iso_utc
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
-from app.services.catalog_bootstrap import ensure_catalog_seeded
+from app.services.catalog_bootstrap import ensure_catalog_seeded, get_catalog_module_row
 
 MONETIZATION_VERSION = "20260315_module_pass_v3"
 FREE_ACCESS_TIER = "free"
@@ -360,6 +360,8 @@ def require_module_access(uid: str, module_id: str, role: Optional[str] = None) 
     if not module:
         ensure_catalog_seeded()
         module = get_module_by_id(normalized_module_id)
+    if not module:
+        module = get_catalog_module_row(normalized_module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
 

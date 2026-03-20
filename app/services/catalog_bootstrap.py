@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from functools import lru_cache
 from importlib import import_module
-from typing import Iterable, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
+from app.common import normalize_module_id
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
@@ -52,6 +54,38 @@ def get_catalog_modules() -> Tuple[dict, ...]:
         if bundle:
             bundles.append(bundle)
     return tuple(bundles)
+
+
+def get_catalog_module_row(module_id: str) -> Dict[str, Any] | None:
+    normalized_module_id = normalize_module_id(module_id)
+    if not normalized_module_id:
+        return None
+
+    bundle = get_catalog_module(normalized_module_id)
+    if not bundle:
+        return None
+
+    row = deepcopy(bundle["module_doc"])
+    row["id"] = row.get("id") or row.get("module_id") or normalized_module_id
+    return row
+
+
+def get_catalog_lessons_for_module(module_id: str) -> List[Dict[str, Any]]:
+    normalized_module_id = normalize_module_id(module_id)
+    if not normalized_module_id:
+        return []
+
+    bundle = get_catalog_module(normalized_module_id)
+    if not bundle:
+        return []
+
+    lessons: List[Dict[str, Any]] = []
+    for doc_id, payload in bundle["lessons"]:
+        row = deepcopy(payload)
+        row["id"] = row.get("id") or doc_id
+        lessons.append(row)
+
+    return lessons
 
 
 def _top_level_doc_count(collection: str, field: str, module_id: str) -> int:

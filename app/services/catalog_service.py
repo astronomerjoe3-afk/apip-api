@@ -15,7 +15,7 @@ from app.repositories.catalog_repository import (
     list_lessons_for_module_unordered,
     list_modules,
 )
-from app.services.catalog_bootstrap import ensure_catalog_seeded, get_catalog_module_ids
+from app.services.catalog_bootstrap import ensure_catalog_seeded, get_catalog_module_ids, get_catalog_module_row
 from app.services.content_normalizer import to_student_lesson_view, to_student_lessons_view
 from app.services.monetization_service import enrich_module_for_student
 
@@ -57,6 +57,8 @@ def fetch_module(module_id: str, uid: Optional[str] = None, role: Optional[str] 
     if not module and normalized_module_id in _BOOTSTRAP_MODULE_IDS:
         ensure_catalog_seeded()
         module = get_module_by_id(normalized_module_id)
+    if not module and normalized_module_id in _BOOTSTRAP_MODULE_IDS:
+        module = get_catalog_module_row(normalized_module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
     return enrich_module_for_student(module, uid, role=role)

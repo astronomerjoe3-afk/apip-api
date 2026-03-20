@@ -42,6 +42,12 @@ def _catalog_modules() -> List[Dict[str, Any]]:
 
 def _bootstrap_module_bundle(module_id: str) -> Optional[Dict[str, Any]]:
     normalized_module_id = normalize_module_id(module_id)
+    from app.services.catalog_bootstrap import get_catalog_module
+
+    direct_bundle = get_catalog_module(normalized_module_id)
+    if direct_bundle:
+        return direct_bundle
+
     for bundle in _catalog_modules():
         if normalize_module_id(bundle.get("module_id")) == normalized_module_id:
             return bundle
@@ -49,6 +55,12 @@ def _bootstrap_module_bundle(module_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _bootstrap_module_row(module_id: str) -> Optional[Dict[str, Any]]:
+    from app.services.catalog_bootstrap import get_catalog_module_row
+
+    row = get_catalog_module_row(module_id)
+    if row:
+        return row
+
     bundle = _bootstrap_module_bundle(module_id)
     if not bundle:
         return None
@@ -59,15 +71,18 @@ def _bootstrap_module_row(module_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _bootstrap_lessons_for_module(module_id: str) -> List[Dict[str, Any]]:
-    bundle = _bootstrap_module_bundle(module_id)
-    if not bundle:
-        return []
+    from app.services.catalog_bootstrap import get_catalog_lessons_for_module
 
-    lessons: List[Dict[str, Any]] = []
-    for doc_id, payload in bundle["lessons"]:
-        row = deepcopy(payload)
-        row["id"] = row.get("id") or doc_id
-        lessons.append(row)
+    lessons = get_catalog_lessons_for_module(module_id)
+    if not lessons:
+        bundle = _bootstrap_module_bundle(module_id)
+        if not bundle:
+            return []
+
+        for doc_id, payload in bundle["lessons"]:
+            row = deepcopy(payload)
+            row["id"] = row.get("id") or doc_id
+            lessons.append(row)
 
     lessons.sort(key=lambda row: _safe_int(row.get("sequence")))
     return lessons
