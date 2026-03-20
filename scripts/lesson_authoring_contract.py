@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from copy import deepcopy
+import re
 from typing import Any, Dict, List, Sequence
 
 NEXTGEN_REQUIRED_PHASES = (
@@ -13,6 +14,8 @@ NEXTGEN_REQUIRED_PHASES = (
 
 AUTHORING_STANDARD_V1 = "lesson_authoring_spec_v1"
 AUTHORING_STANDARD_V2 = "lesson_authoring_spec_v2"
+AUTHORING_STANDARD_V3 = "lesson_authoring_spec_v3"
+LATEST_AUTHORING_STANDARD = AUTHORING_STANDARD_V3
 
 QUESTION_TYPES = {"mcq", "short"}
 CORE_REPRESENTATION_KINDS = {"words", "formula"}
@@ -47,8 +50,32 @@ def _require(condition: bool, message: str, errors: List[str]) -> None:
         errors.append(message)
 
 
-def _uses_v2(authoring_standard: str) -> bool:
-    return _text(authoring_standard).lower() == AUTHORING_STANDARD_V2
+def _uses_v2_plus(authoring_standard: str) -> bool:
+    return _text(authoring_standard).lower() in {AUTHORING_STANDARD_V2, AUTHORING_STANDARD_V3}
+
+
+def _uses_v3(authoring_standard: str) -> bool:
+    return _text(authoring_standard).lower() == AUTHORING_STANDARD_V3
+
+
+_NUMERIC_SHORT_ANSWER_RE = re.compile(
+    r"^\s*[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:\s*[a-zA-Z0-9/%^_+\-*/.=()]+)?\s*$"
+)
+
+
+def _looks_numeric_short_answer(value: Any) -> bool:
+    raw = _text(value)
+    return bool(raw) and bool(_NUMERIC_SHORT_ANSWER_RE.fullmatch(raw))
+
+
+def _question_needs_authored_phrase_groups(item: Dict[str, Any]) -> bool:
+    accepted = [_text(answer) for answer in _items(item.get("accepted_answers")) if _text(answer)]
+    return bool(accepted) and not all(_looks_numeric_short_answer(answer) for answer in accepted)
+
+
+def _validate_skill_tags(item: Dict[str, Any], errors: List[str], label: str) -> None:
+    skill_tags = [_text(tag) for tag in _items(item.get("skill_tags")) if _text(tag)]
+    _require(bool(skill_tags), f"{label}: at least one skill tag is required for spec v3 question coverage checks.", errors)
 
 
 def _validate_tags(tags: Sequence[Any], allowlist: Sequence[str], errors: List[str], label: str) -> None:
@@ -59,14 +86,24 @@ def _validate_tags(tags: Sequence[Any], allowlist: Sequence[str], errors: List[s
             errors.append(f"{label}: tag '{tag}' is not in the module allowlist.")
 
 
-def _validate_question(item: Dict[str, Any], allowlist: Sequence[str], errors: List[str], label: str) -> None:
+def _validate_question(
+    item: Dict[str, Any],
+    allowlist: Sequence[str],
+    errors: List[str],
+    label: str,
+    *,
+    authoring_standard: str = AUTHORING_STANDARD_V1,
+) -> None:
     qtype = _text(item.get("type"))
+    use_v3 = _uses_v3(authoring_standard)
     _require(qtype in QUESTION_TYPES, f"{label}: question type must be one of {sorted(QUESTION_TYPES)}.", errors)
     _require(bool(_text(item.get("id")) or _text(item.get("question_id"))), f"{label}: missing question id.", errors)
     _require(bool(_text(item.get("prompt"))), f"{label}: missing prompt.", errors)
     _require(bool(_text(item.get("hint"))), f"{label}: missing hint.", errors)
     _require(bool(_items(item.get("feedback"))), f"{label}: feedback must not be empty.", errors)
     _validate_tags(_items(item.get("misconception_tags")), allowlist, errors, label)
+    if use_v3:
+        _validate_skill_tags(item, errors, label)
     acceptance_rules = _record(item.get("acceptance_rules"))
     if qtype == "mcq":
         choices = [_text(choice) for choice in _items(item.get("choices")) if _text(choice)]
@@ -87,6 +124,12 @@ def _validate_question(item: Dict[str, Any], allowlist: Sequence[str], errors: L
                     f"{label}: acceptance_rules.phrase_groups[{group_index}] needs at least one phrase.",
                     errors,
                 )
+        if use_v3 and _question_needs_authored_phrase_groups(item):
+            _require(
+                bool(acceptance_rules.get("phrase_groups")),
+                f"{label}: spec v3 conceptual short answers need acceptance_rules.phrase_groups so valid student wording can score.",
+                errors,
+            )
 
 
 def _validate_prompt_block(item: Dict[str, Any], errors: List[str], label: str) -> None:
@@ -147,10 +190,85 @@ def _validate_scaffold_support(item: Dict[str, Any], errors: List[str], label: s
         _require(bool(_text(section.get("body"))), f"{label}: extra section {index} needs a body.", errors)
 
 
+def _validate_simulation_contract(
+    item: Dict[str, Any],
+    errors: List[str],
+    label: str,
+    *,
+    require_v3_fields: bool = False,
+) -> None:
+    _require(bool(_text(item.get("baseline_case"))), f"{label}: baseline_case is required.", errors)
+    comparison_tasks = [_text(entry) for entry in _items(item.get("comparison_tasks")) if _text(entry)]
+    _require(len(comparison_tasks) >= 2, f"{label}: comparison_tasks needs at least 2 comparisons.", errors)
+    _require(bool(_text(item.get("watch_for"))), f"{label}: watch_for is required.", errors)
+    _require(bool(_text(item.get("takeaway"))), f"{label}: takeaway is required.", errors)
+
+    if not require_v3_fields:
+        return
+
+    _require(bool(_text(item.get("asset_id"))), f"{label}: asset_id is required for spec v3 lesson-specific explorers.", errors)
+    _require(bool(_text(item.get("concept"))), f"{label}: concept is required for spec v3 lesson-specific explorers.", errors)
+    _require(bool(_text(item.get("focus_prompt"))), f"{label}: focus_prompt is required for spec v3 lesson-specific explorers.", errors)
+
+    controls = [_record(entry) for entry in _items(item.get("controls"))]
+    _require(len(controls) >= 2, f"{label}: controls should describe at least 2 adjustable variables in spec v3.", errors)
+    for index, control in enumerate(controls, start=1):
+        _require(bool(_text(control.get("variable"))), f"{label}: control {index} needs a variable key.", errors)
+        _require(bool(_text(control.get("label"))), f"{label}: control {index} needs a learner-facing label.", errors)
+        _require(bool(_text(control.get("why_it_matters"))), f"{label}: control {index} needs a why_it_matters note.", errors)
+
+    readouts = [_record(entry) for entry in _items(item.get("readouts"))]
+    _require(len(readouts) >= 2, f"{label}: readouts should describe at least 2 learner-facing outputs in spec v3.", errors)
+    for index, readout in enumerate(readouts, start=1):
+        _require(bool(_text(readout.get("label"))), f"{label}: readout {index} needs a label.", errors)
+        _require(bool(_text(readout.get("meaning"))), f"{label}: readout {index} needs a meaning statement.", errors)
+
+
+def _looks_example_specific_core_concept(value: str) -> bool:
+    cleaned = _text(value).lower()
+    if not cleaned:
+        return False
+    specific_patterns = (
+        r"^rearrange\s+\d",
+        r"^substitute\s+into\s+.*\d",
+        r"^find\s+total\s+energy\s+with\s+.*\d",
+        r"^take\s+\d+(?:\.\d+)?%",
+        r"^\w+\s*=\s*[\d.]+\s*[x*]",
+        r"^\d+(?:\.\d+)?\s*[a-z/%^_]+\s*(?:=|vs)",
+    )
+    return any(re.search(pattern, cleaned) for pattern in specific_patterns)
+
+
+def _validate_core_concepts(items: Sequence[Any], errors: List[str], label: str) -> None:
+    concepts = [_text(item) for item in items if _text(item)]
+    _require(len(concepts) >= 4, f"{label}: core_concepts needs at least 4 general lesson anchors.", errors)
+    for index, concept in enumerate(concepts, start=1):
+        _require(
+            not _looks_example_specific_core_concept(concept),
+            f"{label}: core concept {index} looks like a frozen one-off example rather than a general teaching statement.",
+            errors,
+        )
+
+
+def _validate_phase_skill_coverage(items: Sequence[Dict[str, Any]], errors: List[str], label: str, minimum: int) -> None:
+    unique_tags = {
+        _text(tag)
+        for item in items
+        for tag in _items(item.get("skill_tags"))
+        if _text(tag)
+    }
+    _require(
+        len(unique_tags) >= minimum,
+        f"{label}: spec v3 requires at least {minimum} distinct skill tags to keep attempts broad and conceptually varied.",
+        errors,
+    )
+
+
 def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], authoring_standard: str = AUTHORING_STANDARD_V1) -> List[str]:
     errors: List[str] = []
     lesson_id = _text(lesson.get("lesson_id") or lesson.get("id") or "lesson")
-    use_v2 = _uses_v2(authoring_standard)
+    use_v2_plus = _uses_v2_plus(authoring_standard)
+    use_v3 = _uses_v3(authoring_standard)
     _require(bool(_text(lesson.get("id"))), f"{lesson_id}: missing top-level id.", errors)
     _require(bool(_text(lesson.get("lesson_id"))), f"{lesson_id}: missing top-level lesson_id.", errors)
     _require(bool(_text(lesson.get("module_id")) or _text(lesson.get("moduleId"))), f"{lesson_id}: missing module id.", errors)
@@ -164,7 +282,7 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
     diagnostic_items = [_record(item) for item in _items(diagnostic.get("items"))]
     _require(len(diagnostic_items) >= 3, f"{lesson_id}: diagnostic needs at least 3 items for fresh-attempt variation.", errors)
     for index, item in enumerate(diagnostic_items, start=1):
-        _validate_question(item, allowlist, errors, f"{lesson_id} diagnostic item {index}")
+        _validate_question(item, allowlist, errors, f"{lesson_id} diagnostic item {index}", authoring_standard=authoring_standard)
 
     grounding = _record(phases.get("analogical_grounding"))
     _require(bool(_text(grounding.get("analogy_text"))), f"{lesson_id}: analogy text is required.", errors)
@@ -191,13 +309,19 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
         checks = [_record(item) for item in _items(capsule.get("checks"))]
         _require(bool(checks), f"{lesson_id} capsule {index}: needs at least one check.", errors)
         for check_index, item in enumerate(checks, start=1):
-            _validate_question(item, allowlist, errors, f"{lesson_id} capsule {index} check {check_index}")
+            _validate_question(
+                item,
+                allowlist,
+                errors,
+                f"{lesson_id} capsule {index} check {check_index}",
+                authoring_standard=authoring_standard,
+            )
 
     transfer = _record(phases.get("transfer"))
     transfer_items = [_record(item) for item in _items(transfer.get("items"))]
     _require(len(transfer_items) >= 3, f"{lesson_id}: transfer needs at least 3 items.", errors)
     for index, item in enumerate(transfer_items, start=1):
-        _validate_question(item, allowlist, errors, f"{lesson_id} transfer item {index}")
+        _validate_question(item, allowlist, errors, f"{lesson_id} transfer item {index}", authoring_standard=authoring_standard)
 
     authoring = _record(lesson.get("authoring_contract"))
     _require(bool(authoring), f"{lesson_id}: missing authoring_contract block for next-generation lessons.", errors)
@@ -229,7 +353,7 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
     worked_examples = [_record(item) for item in _items(authoring.get("worked_examples"))]
     _require(len(worked_examples) >= 2, f"{lesson_id}: provide at least 2 worked examples, including a contrast or non-example.", errors)
     for index, item in enumerate(worked_examples, start=1):
-        _validate_worked_example(item, errors, f"{lesson_id} worked example {index}", require_answer_reason=use_v2)
+        _validate_worked_example(item, errors, f"{lesson_id} worked example {index}", require_answer_reason=use_v2_plus)
 
     visual_assets = [_record(item) for item in _items(authoring.get("visual_assets"))]
     _require(bool(visual_assets), f"{lesson_id}: at least one visual asset is required.", errors)
@@ -237,11 +361,7 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
         _validate_visual(item, errors, f"{lesson_id} visual {index}")
 
     simulation_contract = _record(authoring.get("simulation_contract"))
-    _require(bool(_text(simulation_contract.get("baseline_case"))), f"{lesson_id}: simulation_contract.baseline_case is required.", errors)
-    comparison_tasks = [_text(item) for item in _items(simulation_contract.get("comparison_tasks")) if _text(item)]
-    _require(len(comparison_tasks) >= 2, f"{lesson_id}: simulation_contract.comparison_tasks needs at least 2 comparison tasks.", errors)
-    _require(bool(_text(simulation_contract.get("watch_for"))), f"{lesson_id}: simulation_contract.watch_for is required.", errors)
-    _require(bool(_text(simulation_contract.get("takeaway"))), f"{lesson_id}: simulation_contract.takeaway is required.", errors)
+    _validate_simulation_contract(simulation_contract, errors, lesson_id, require_v3_fields=use_v3)
 
     reflection_prompts = [_text(item) for item in _items(authoring.get("reflection_prompts")) if _text(item)]
     _require(bool(reflection_prompts), f"{lesson_id}: add at least one reflection prompt.", errors)
@@ -283,6 +403,8 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
             f"{lesson_id}: assessment_bank_targets.fresh_attempt_policy is required when assessment_bank_targets is declared.",
             errors,
         )
+    if use_v3:
+        _require(bool(assessment_targets), f"{lesson_id}: spec v3 requires authoring_contract.assessment_bank_targets.", errors)
 
     visual_clarity_checks = [_text(item) for item in _items(authoring.get("visual_clarity_checks")) if _text(item)]
     if authoring.get("visual_clarity_checks") is not None:
@@ -291,11 +413,22 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
             f"{lesson_id}: visual_clarity_checks should describe at least 3 concrete readability checks when present.",
             errors,
         )
+    if use_v3:
+        _require(bool(visual_clarity_checks), f"{lesson_id}: spec v3 requires visual_clarity_checks for deliberate readability review.", errors)
+        _validate_core_concepts(authoring.get("core_concepts") or [], errors, lesson_id)
+        _validate_phase_skill_coverage(diagnostic_items, errors, f"{lesson_id} diagnostic", 2)
+        _validate_phase_skill_coverage(
+            [item for capsule in capsules for item in [_record(check) for check in _items(capsule.get("checks"))]],
+            errors,
+            f"{lesson_id} concept gate",
+            2,
+        )
+        _validate_phase_skill_coverage(transfer_items, errors, f"{lesson_id} transfer", 3)
 
     release_checks = [_text(item) for item in _items(authoring.get("release_checks")) if _text(item)]
     _require(len(release_checks) >= 4, f"{lesson_id}: authoring_contract.release_checks needs at least 4 release checks.", errors)
 
-    if use_v2:
+    if use_v2_plus:
         scaffold_support = _record(authoring.get("scaffold_support"))
         _require(bool(scaffold_support), f"{lesson_id}: authoring_contract.scaffold_support is required for spec v2 lessons.", errors)
         if scaffold_support:
@@ -343,9 +476,9 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
             "diagnostic": {
                 "two_tier": True,
                 "items": [
-                    {"id": f"{lesson_id}_D1", "question_id": f"{lesson_id}_D1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"]},
-                    {"id": f"{lesson_id}_D2", "question_id": f"{lesson_id}_D2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"]},
-                    {"id": f"{lesson_id}_D3", "question_id": f"{lesson_id}_D3", "type": "short", "prompt": "", "accepted_answers": [""], "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"]},
+                    {"id": f"{lesson_id}_D1", "question_id": f"{lesson_id}_D1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
+                    {"id": f"{lesson_id}_D2", "question_id": f"{lesson_id}_D2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
+                    {"id": f"{lesson_id}_D3", "question_id": f"{lesson_id}_D3", "type": "short", "prompt": "", "accepted_answers": [""], "acceptance_rules": {"phrase_groups": [[""], [""]]}, "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
                 ],
             },
             "analogical_grounding": {
@@ -369,21 +502,22 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
                     {
                         "prompt": "",
                         "checks": [
-                            {"id": f"{lesson_id}_C1", "question_id": f"{lesson_id}_C1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"]}
+                            {"id": f"{lesson_id}_C1", "question_id": f"{lesson_id}_C1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]}
                         ],
                     }
                 ],
             },
             "transfer": {
                 "items": [
-                    {"id": f"{lesson_id}_T1", "question_id": f"{lesson_id}_T1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"]},
-                    {"id": f"{lesson_id}_T2", "question_id": f"{lesson_id}_T2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"]},
-                    {"id": f"{lesson_id}_T3", "question_id": f"{lesson_id}_T3", "type": "short", "prompt": "", "accepted_answers": [""], "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"]},
+                    {"id": f"{lesson_id}_T1", "question_id": f"{lesson_id}_T1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
+                    {"id": f"{lesson_id}_T2", "question_id": f"{lesson_id}_T2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
+                    {"id": f"{lesson_id}_T3", "question_id": f"{lesson_id}_T3", "type": "short", "prompt": "", "accepted_answers": [""], "acceptance_rules": {"phrase_groups": [[""], [""]]}, "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
                 ],
             },
         },
         "authoring_contract": {
             "concept_targets": ["", ""],
+            "core_concepts": ["", "", "", ""],
             "prerequisite_lessons": [],
             "misconception_focus": ["REPLACE_TAG"],
             "formulas": [
@@ -408,7 +542,18 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
                 {"asset_id": f"{lesson_id.lower()}-visual.svg", "purpose": "", "caption": ""},
             ],
             "simulation_contract": {
+                "asset_id": f"{lesson_id.lower()}-lab",
+                "concept": "REPLACE_CONCEPT",
                 "baseline_case": "",
+                "focus_prompt": "",
+                "controls": [
+                    {"variable": "", "label": "", "why_it_matters": ""},
+                    {"variable": "", "label": "", "why_it_matters": ""},
+                ],
+                "readouts": [
+                    {"label": "", "meaning": ""},
+                    {"label": "", "meaning": ""},
+                ],
                 "comparison_tasks": ["", ""],
                 "watch_for": "",
                 "takeaway": "",
@@ -437,6 +582,11 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
                 "At least one non-text representation is used and checked.",
                 "Visuals are readable on desktop and mobile.",
             ],
+            "visual_clarity_checks": [
+                "No label, caption, or equation is clipped on desktop.",
+                "No label, caption, or equation is clipped on mobile.",
+                "The most important quantity is readable without overlapping arrows or shapes.",
+            ],
         },
     }
 
@@ -453,7 +603,7 @@ def nextgen_module_doc_template(module_id: str, title: str, description: str, al
         "mastery_outcomes": ["", "", "", ""],
         "misconception_tag_allowlist": list(allowlist),
         "content_version": "REPLACE_WITH_VERSION",
-        "authoring_standard": AUTHORING_STANDARD_V2,
+        "authoring_standard": LATEST_AUTHORING_STANDARD,
         "updated_utc": "REPLACE_WITH_UTC_TIMESTAMP",
     }
 

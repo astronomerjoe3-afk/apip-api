@@ -21,12 +21,14 @@ class StudentQuestionItem(BaseModel):
 
 
 class StudentAuthoringContractOut(BaseModel):
+    core_concepts: List[str] = Field(default_factory=list)
     worked_examples: List[Dict[str, Any]] = Field(default_factory=list)
     visual_assets: List[Dict[str, Any]] = Field(default_factory=list)
     animation_assets: List[Dict[str, Any]] = Field(default_factory=list)
     simulation_contract: Dict[str, Any] = Field(default_factory=dict)
     assessment_bank_targets: Dict[str, Any] = Field(default_factory=dict)
     scaffold_support: Dict[str, Any] = Field(default_factory=dict)
+    visual_clarity_checks: List[str] = Field(default_factory=list)
 
     model_config = {"extra": "ignore"}
 

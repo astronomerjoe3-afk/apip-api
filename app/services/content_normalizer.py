@@ -210,12 +210,14 @@ def _student_authoring_contract(authoring: Any) -> Dict[str, Any]:
     if not isinstance(authoring, dict):
         return {}
     return {
+        "core_concepts": deepcopy(authoring.get("core_concepts") or []),
         "worked_examples": deepcopy(authoring.get("worked_examples") or []),
         "visual_assets": deepcopy(authoring.get("visual_assets") or []),
         "animation_assets": deepcopy(authoring.get("animation_assets") or []),
         "simulation_contract": deepcopy(authoring.get("simulation_contract") or {}),
         "assessment_bank_targets": deepcopy(authoring.get("assessment_bank_targets") or {}),
         "scaffold_support": deepcopy(authoring.get("scaffold_support") or {}),
+        "visual_clarity_checks": deepcopy(authoring.get("visual_clarity_checks") or []),
     }
 
 

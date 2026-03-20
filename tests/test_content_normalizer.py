@@ -51,6 +51,12 @@ class ContentNormalizerTests(unittest.TestCase):
                 "transfer": {"items": []},
             },
             "authoring_contract": {
+                "core_concepts": [
+                    "Work depends on force and displacement together.",
+                    "No displacement in the force direction means no work in the simple model.",
+                    "The same work can be described as an energy transfer.",
+                    "Choose the equation that matches the story before calculating.",
+                ],
                 "worked_examples": [
                     {
                         "prompt": "A 4 N force moves a box 5 m. Find the work done.",
@@ -74,6 +80,11 @@ class ContentNormalizerTests(unittest.TestCase):
                         "check_for_understanding": "When does the ledger change?",
                     },
                 },
+                "visual_clarity_checks": [
+                    "The force arrow label is fully visible.",
+                    "The equation callout is visible on mobile.",
+                    "The readout text does not overlap the diagram.",
+                ],
             },
         }
 
@@ -91,8 +102,16 @@ class ContentNormalizerTests(unittest.TestCase):
             "Work needs force and displacement together.",
         )
         self.assertEqual(
+            payload["authoring_contract"]["core_concepts"][0],
+            "Work depends on force and displacement together.",
+        )
+        self.assertEqual(
             payload["authoring_contract"]["worked_examples"][0]["answer_reason"],
             "Force and displacement act together, so W = 4 x 5 = 20 J.",
+        )
+        self.assertEqual(
+            payload["authoring_contract"]["visual_clarity_checks"][1],
+            "The equation callout is visible on mobile.",
         )
 
 
