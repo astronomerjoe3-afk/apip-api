@@ -223,11 +223,14 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             ["M5_L1", "M5_L2", "M5_L3", "M5_L4", "M5_L5", "M5_L6"],
         )
 
+        simulation_concepts = set()
+        focus_prompts = set()
         for _, lesson in M5_LESSONS:
             contract = lesson["authoring_contract"]
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
@@ -248,6 +251,11 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
             self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
 
             scaffold_support = contract["scaffold_support"]
             self.assertTrue(scaffold_support["core_idea"])
@@ -258,12 +266,18 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])
 
+            skill_tags = set()
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":
                     accepted = question.get("accepted_answers") or []
                     if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
                         self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
                 self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 3)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
 
     def test_m5_curriculum_scope_stays_on_particle_model(self) -> None:
         mastery_text = " ".join(M5_MODULE_DOC.get("mastery_outcomes") or []).lower()
