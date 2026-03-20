@@ -8,6 +8,7 @@ from scripts.seed_f1_module import F1_LESSONS, F1_MODULE_DOC, F1_SIM_LABS
 from scripts.seed_m1_module import M1_LESSONS, M1_MODULE_DOC, M1_SIM_LABS
 from scripts.seed_m2_module import M2_LESSONS, M2_MODULE_DOC, M2_SIM_LABS
 from scripts.seed_m3_module import M3_LESSONS, M3_MODULE_DOC, M3_SIM_LABS
+from scripts.seed_m4_module import M4_LESSONS, M4_MODULE_DOC, M4_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -133,6 +134,63 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("resistance", mastery_text)
         self.assertNotIn("circuit", mastery_text)
         self.assertNotIn("momentum", mastery_text)
+
+    def test_m4_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
+        self.assertEqual(M4_MODULE_DOC["id"], "M4")
+        self.assertEqual(M4_MODULE_DOC["title"], "Pressure, Patch Loads & Fluid Fields")
+        self.assertEqual(M4_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v2")
+        self.assertEqual(len(M4_LESSONS), 6)
+        self.assertEqual(len(M4_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M4_LESSONS],
+            ["M4_L1", "M4_L2", "M4_L3", "M4_L4", "M4_L5", "M4_L6"],
+        )
+
+        for _, lesson in M4_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+
+            scaffold_support = contract["scaffold_support"]
+            self.assertTrue(scaffold_support["core_idea"])
+            self.assertTrue(scaffold_support["reasoning"])
+            self.assertTrue(scaffold_support["common_trap"])
+            self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
+
+            for example in contract["worked_examples"]:
+                self.assertTrue(example["answer_reason"])
+
+    def test_m4_curriculum_scope_stays_on_pressure(self) -> None:
+        mastery_text = " ".join(M4_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M4_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("pressure in solids", mastery_text)
+        self.assertIn("liquid pressure", mastery_text)
+        self.assertIn("atmospheric pressure", mastery_text)
+        self.assertIn("patch", description_text)
+        self.assertIn("liquid", description_text)
+        self.assertIn("atmospheric", mastery_text)
+        self.assertNotIn("momentum", mastery_text)
+        self.assertNotIn("current", mastery_text)
+        self.assertNotIn("kinetic energy", mastery_text)
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
