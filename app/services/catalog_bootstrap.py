@@ -14,6 +14,7 @@ from scripts.seed_m2_module import M2_CONTENT_VERSION, M2_LESSONS, M2_MODULE_DOC
 from scripts.seed_m3_module import M3_CONTENT_VERSION, M3_LESSONS, M3_MODULE_DOC, M3_MODULE_ID, M3_SIM_LABS
 from scripts.seed_m4_module import M4_CONTENT_VERSION, M4_LESSONS, M4_MODULE_DOC, M4_MODULE_ID, M4_SIM_LABS
 from scripts.seed_m5_module import M5_CONTENT_VERSION, M5_LESSONS, M5_MODULE_DOC, M5_MODULE_ID, M5_SIM_LABS
+from scripts.seed_m6_module import M6_CONTENT_VERSION, M6_LESSONS, M6_MODULE_DOC, M6_MODULE_ID, M6_SIM_LABS
 
 
 CATALOG_MODULES = [
@@ -79,6 +80,13 @@ CATALOG_MODULES = [
         "module_doc": M5_MODULE_DOC,
         "lessons": M5_LESSONS,
         "sim_labs": M5_SIM_LABS,
+    },
+    {
+        "module_id": M6_MODULE_ID,
+        "content_version": M6_CONTENT_VERSION,
+        "module_doc": M6_MODULE_DOC,
+        "lessons": M6_LESSONS,
+        "sim_labs": M6_SIM_LABS,
     },
 ]
 

@@ -10,6 +10,7 @@ from scripts.seed_m2_module import M2_LESSONS, M2_MODULE_DOC, M2_SIM_LABS
 from scripts.seed_m3_module import M3_LESSONS, M3_MODULE_DOC, M3_SIM_LABS
 from scripts.seed_m4_module import M4_LESSONS, M4_MODULE_DOC, M4_SIM_LABS
 from scripts.seed_m5_module import M5_LESSONS, M5_MODULE_DOC, M5_SIM_LABS
+from scripts.seed_m6_module import M6_LESSONS, M6_MODULE_DOC, M6_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -289,6 +290,90 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIn("brownian motion", mastery_text)
         self.assertIn("temperature", mastery_text)
         self.assertIn("internal energy", mastery_text)
+        self.assertNotIn("pressure", mastery_text)
+        self.assertNotIn("current", mastery_text)
+        self.assertNotIn("momentum", mastery_text)
+
+    def test_m6_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(M6_MODULE_DOC["id"], "M6")
+        self.assertEqual(M6_MODULE_DOC["title"], "Thermal Properties & Transfer")
+        self.assertEqual(M6_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(M6_LESSONS), 6)
+        self.assertEqual(len(M6_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M6_LESSONS],
+            ["M6_L1", "M6_L2", "M6_L3", "M6_L4", "M6_L5", "M6_L6"],
+        )
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in M6_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            scaffold_support = contract["scaffold_support"]
+            self.assertTrue(scaffold_support["core_idea"])
+            self.assertTrue(scaffold_support["reasoning"])
+            self.assertTrue(scaffold_support["common_trap"])
+            self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
+
+            for example in contract["worked_examples"]:
+                self.assertTrue(example["answer_reason"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 3)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
+    def test_m6_curriculum_scope_stays_on_thermal_properties_and_transfer(self) -> None:
+        mastery_text = " ".join(M6_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M6_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("specific heat capacity", description_text)
+        self.assertIn("latent heat", description_text)
+        self.assertIn("conduction", description_text)
+        self.assertIn("convection", description_text)
+        self.assertIn("radiation", description_text)
+        self.assertIn("specific heat capacity", mastery_text)
+        self.assertIn("latent heat", mastery_text)
+        self.assertIn("conduction", mastery_text)
+        self.assertIn("convection", mastery_text)
+        self.assertIn("radiation", mastery_text)
         self.assertNotIn("pressure", mastery_text)
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("momentum", mastery_text)
