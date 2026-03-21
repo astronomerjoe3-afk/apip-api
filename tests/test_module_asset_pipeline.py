@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from app.services.catalog_bootstrap import get_catalog_module_ids, get_catalog_module_row
 from scripts.module_asset_pipeline import plan_lesson_assets
 from scripts.nextgen_module_builder import _question
 from scripts.seed_f1_module import F1_LESSONS, F1_MODULE_DOC, F1_SIM_LABS
@@ -16,9 +17,18 @@ from scripts.seed_m8_module import M8_LESSONS, M8_MODULE_DOC, M8_SIM_LABS
 from scripts.seed_m9_module import M9_LESSONS, M9_MODULE_DOC, M9_SIM_LABS
 from scripts.seed_m10_module import M10_LESSONS, M10_MODULE_DOC, M10_SIM_LABS
 from scripts.seed_m11_module import M11_LESSONS, M11_MODULE_DOC, M11_SIM_LABS
+from scripts.seed_m12_module import M12_LESSONS, M12_MODULE_DOC, M12_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
+    def test_catalog_bootstrap_includes_m12_bundle(self) -> None:
+        self.assertIn("M12", get_catalog_module_ids())
+
+        row = get_catalog_module_row("M12")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["id"], "M12")
+        self.assertEqual(row["title"], "Magnetism & Electromagnetic Effects")
+
     def test_builder_question_accepts_type_field_for_mcq_specs(self) -> None:
         question = _question(
             {
@@ -837,6 +847,69 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("brownian", mastery_text)
         self.assertNotIn("pressure", mastery_text)
         self.assertNotIn("ultrasound", mastery_text)
+
+    def test_m12_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(M12_MODULE_DOC["id"], "M12")
+        self.assertEqual(M12_MODULE_DOC["title"], "Magnetism & Electromagnetic Effects")
+        self.assertEqual(M12_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(M12_LESSONS), 6)
+        self.assertEqual(len(M12_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M12_LESSONS],
+            ["M12_L1", "M12_L2", "M12_L3", "M12_L4", "M12_L5", "M12_L6"],
+        )
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in M12_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
+    def test_m12_curriculum_scope_stays_on_field_weave_electromagnetism(self) -> None:
+        mastery_text = " ".join(M12_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M12_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("magnetic fields", mastery_text)
+        self.assertIn("electromagnets", mastery_text)
+        self.assertIn("motor effect", mastery_text)
+        self.assertIn("induction", mastery_text)
+        self.assertIn("transformers", mastery_text)
+        self.assertIn("field-weave", description_text)
+        self.assertNotIn("ultrasound", mastery_text)
+        self.assertNotIn("pressure", mastery_text)
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")

@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M8_MODULE_ID = "M8"
-M8_CONTENT_VERSION = "20260321_m8_glow_route_v2"
+M8_CONTENT_VERSION = "20260321_m8_glow_route_v3"
 M8_MODULE_TITLE = "Light"
 M8_ALLOWLIST = [
     "angle_from_surface_confusion",
@@ -144,6 +144,37 @@ def visual(
     return item
 
 
+def wave_visual(
+    asset_id: str,
+    title: str,
+    purpose: str,
+    caption: str,
+    *,
+    wave_type: str,
+    subtitle: str,
+    width: int = 1280,
+    height: int = 720,
+    meta: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "wave_type": wave_type,
+        "subtitle": subtitle,
+    }
+    if meta:
+        payload.update(deepcopy(meta))
+    return visual(
+        asset_id,
+        "wave_diagram",
+        title,
+        purpose,
+        caption,
+        template="wave_diagram",
+        width=width,
+        height=height,
+        meta=payload,
+    )
+
+
 def optics_visual(
     asset_id: str,
     title: str,
@@ -186,6 +217,41 @@ def optics_visual(
         caption,
         template="optics_ray_diagram",
         meta=meta,
+    )
+
+
+def lens_visual(
+    asset_id: str,
+    title: str,
+    purpose: str,
+    caption: str,
+    *,
+    system_type: str,
+    subtitle: str,
+    object_distance: float,
+    focal_length: float,
+    object_height: float = 1.0,
+    principal_rays: int = 3,
+    show_image: bool = True,
+    show_focal_labels: bool = True,
+) -> Dict[str, Any]:
+    return visual(
+        asset_id,
+        "optics_ray_diagram",
+        title,
+        purpose,
+        caption,
+        template="optics_ray_diagram",
+        meta={
+            "system_type": system_type,
+            "object_distance": object_distance,
+            "focal_length": focal_length,
+            "object_height": object_height,
+            "principal_rays": principal_rays,
+            "subtitle": subtitle,
+            "show_image": show_image,
+            "show_focal_labels": show_focal_labels,
+        },
     )
 
 
@@ -259,6 +325,115 @@ def m8_l1_optics_visuals() -> List[Dict[str, Any]]:
     ]
 
 
+def m8_l2_visuals() -> List[Dict[str, Any]]:
+    return [
+        wave_visual(
+            "m8-l2-bend-gate",
+            "Bend Gate boundary turn",
+            "Shows one route entering a slower zone and bending toward the Guide Line because the new medium lowers the light speed.",
+            "The boundary, Guide Line, medium labels, and refracted route stay visually separate so the bend direction can be explained causally.",
+            wave_type="refraction",
+            subtitle="Toward the Guide Line in a slower zone, away from it in a faster zone",
+        )
+    ]
+
+
+def m8_l3_visuals() -> List[Dict[str, Any]]:
+    return [
+        lens_visual(
+            "m8-l3-gather-lens",
+            "Gather Lens to a True Meeting Point",
+            "Shows the parallel route, the center route, the far focus, and the real image that forms when actual refracted routes meet.",
+            "The focus marker, selected routes, and real image stay readable so the true meeting point is not mistaken for a construction guess.",
+            system_type="converging_lens",
+            subtitle="A parallel route goes through the far focus while the center route stays undeviated",
+            object_distance=3.0,
+            focal_length=1.2,
+            object_height=1.05,
+            principal_rays=3,
+        )
+    ]
+
+
+def m8_l4_visuals() -> List[Dict[str, Any]]:
+    return [
+        lens_visual(
+            "m8-l4-spread-lens",
+            "Spread Lens and the Ghost Image",
+            "Shows real routes spreading after a diverging lens while dashed backward extensions locate the upright virtual image on the object side.",
+            "The real routes and the dashed extensions remain visually distinct so the image is read as virtual for the right reason.",
+            system_type="diverging_lens",
+            subtitle="Parallel routes spread as if they came from the near focus",
+            object_distance=2.7,
+            focal_length=1.1,
+            object_height=1.0,
+            principal_rays=3,
+        )
+    ]
+
+
+def m8_l5_visuals() -> List[Dict[str, Any]]:
+    return [
+        wave_visual(
+            "m8-l5-critical-angle",
+            "Escape edge and critical-angle limit",
+            "Compares the below-critical escape case, the exact skimming case, and the above-critical lock-bounce case at one boundary.",
+            "The three boundary states stay separated so the critical angle reads as the last possible escape rather than as just a memorized number.",
+            wave_type="critical_angle",
+            subtitle="Below the limit light escapes, at the limit it skims, above the limit it lock-bounces",
+        ),
+        wave_visual(
+            "m8-l5-optical-fiber",
+            "Optical fiber lock-bounce path",
+            "Shows repeated total internal reflection trapping the route inside a slower core surrounded by faster cladding.",
+            "The zigzag route and the core-cladding labels stay readable so fiber guidance is linked to repeated failed escape, not to a hollow pipe story.",
+            wave_type="optical_fiber",
+            subtitle="Repeated total internal reflection keeps the route inside the core",
+        ),
+    ]
+
+
+def m8_l6_visuals() -> List[Dict[str, Any]]:
+    return [
+        optics_visual(
+            "m8-l6-plane-mirror-ghost",
+            "Plane-mirror Ghost Meeting Point",
+            "Shows a ghost image behind a mirror so backward extensions, the mirror surface, and the Guide Line can be read as different line roles.",
+            "The dashed backward extensions and the real reflected routes stay separate so the mirror image is recognized as virtual.",
+            subtitle="Only the backward extensions meet behind the mirror",
+            annotation_mode="ghost_image",
+            object_distance=2.6,
+            object_height=1.1,
+            incident_angle_deg=34.0,
+            principal_rays=3,
+        ),
+        lens_visual(
+            "m8-l6-converging-real",
+            "Converging-lens True Meeting Point",
+            "Shows a real image from a converging lens so learners can contrast actual route crossings with dashed-extension cases.",
+            "Real refracted routes cross on the far side, so this sketch supports the screen test for a real image.",
+            system_type="converging_lens",
+            subtitle="Actual routes cross to form a real image that a screen could catch",
+            object_distance=2.8,
+            focal_length=1.1,
+            object_height=1.0,
+            principal_rays=3,
+        ),
+        lens_visual(
+            "m8-l6-diverging-ghost",
+            "Diverging-lens Ghost Meeting Point",
+            "Shows a virtual image from a diverging lens so real routes, focus markers, and dashed extensions can be contrasted with the real-image case.",
+            "The image is located by backward extensions rather than by actual route crossings, so the line-role contrast stays explicit.",
+            system_type="diverging_lens",
+            subtitle="Real routes spread, but backward extensions still locate the ghost image",
+            object_distance=2.5,
+            focal_length=1.0,
+            object_height=1.0,
+            principal_rays=3,
+        ),
+    ]
+
+
 def animation(asset_id: str, concept: str, title: str, description: str) -> Dict[str, Any]:
     return {
         "asset_id": asset_id,
@@ -287,9 +462,9 @@ def scaffold(core_idea: str, reasoning: str, check: str, trap: str, analogy_body
 
 def assessment_targets() -> Dict[str, Any]:
     return {
-        "diagnostic_pool_min": 8,
-        "concept_gate_pool_min": 6,
-        "mastery_pool_min": 8,
+        "diagnostic_pool_min": 10,
+        "concept_gate_pool_min": 8,
+        "mastery_pool_min": 10,
         "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
     }
 
@@ -299,6 +474,7 @@ def visual_checks(topic: str) -> List[str]:
         f"The main {topic} labels stay fully visible on desktop and mobile.",
         "The Guide Line, rays, and focal markers do not overlap the explanation text.",
         "Every caption, angle label, and dashed extension remains readable without clipping.",
+        "Reference lines, real routes, and dashed extensions are visually distinct enough that they cannot be mistaken for one another at a glance.",
     ]
 
 

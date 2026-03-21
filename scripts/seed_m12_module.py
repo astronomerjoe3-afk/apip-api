@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M12_MODULE_ID = "M12"
-M12_CONTENT_VERSION = "20260321_m12_field_weave_v1"
+M12_CONTENT_VERSION = "20260321_m12_field_weave_v2"
 M12_MODULE_TITLE = "Magnetism & Electromagnetic Effects"
 M12_ALLOWLIST = [
     "current_magnetism_separate_confusion",
@@ -113,6 +113,48 @@ def relation(equation: str, meaning: str, units: Sequence[str], conditions: str)
 
 def representation(kind: str, purpose: str) -> Dict[str, str]:
     return {"kind": kind, "purpose": purpose}
+
+
+VALID_REPRESENTATION_KINDS = {"diagram", "equation_story", "formula", "graph", "model", "table", "words"}
+
+
+def canonical_representation_kind(kind: str) -> str:
+    normalized = str(kind).strip().lower()
+    if normalized in VALID_REPRESENTATION_KINDS:
+        return normalized
+    if "table" in normalized:
+        return "table"
+    if "equation" in normalized or "formula" in normalized:
+        return "formula"
+    if "model" in normalized:
+        return "model"
+    if any(token in normalized for token in ["diagram", "sketch", "map", "flow", "cycle", "comparison", "pole"]):
+        return "diagram"
+    return "words"
+
+
+def normalize_representations(
+    representations: Sequence[Dict[str, Any]],
+    formulas: Sequence[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    normalized_items: List[Dict[str, Any]] = []
+    for item in representations:
+        normalized_item = deepcopy(item)
+        original_kind = str(normalized_item.get("kind") or "words")
+        normalized_item["kind"] = canonical_representation_kind(original_kind)
+        if normalized_item["kind"] != original_kind:
+            normalized_item.setdefault("label", original_kind)
+        normalized_items.append(normalized_item)
+
+    kinds = {str(item.get("kind") or "") for item in normalized_items}
+    if "words" not in kinds:
+        normalized_items.append(representation("words", "States the idea in clear lesson language before any diagram or calculation."))
+    if formulas and "formula" not in kinds:
+        normalized_items.append(representation("formula", "Connects the lesson's key relationship to the field-weave reasoning."))
+    if not any(kind in {"diagram", "graph", "table", "model"} for kind in kinds):
+        normalized_items.append(representation("diagram", "Adds a spatial or comparison view so the lesson is not text-only."))
+
+    return normalized_items
 
 
 def worked(prompt: str, steps: Sequence[str], final_answer: str, answer_reason: str, why_it_matters: str) -> Dict[str, Any]:
@@ -257,13 +299,14 @@ def contract(
     scaffold_support: Dict[str, Any],
     visual_clarity_checks: Sequence[str],
 ) -> Dict[str, Any]:
+    normalized_representations = normalize_representations(representations, formulas)
     return {
         "concept_targets": list(concept_targets),
         "core_concepts": list(core_concepts),
         "prerequisite_lessons": list(prerequisite_lessons),
         "misconception_focus": safe_tags(misconception_focus),
         "formulas": [deepcopy(item) for item in formulas],
-        "representations": [deepcopy(item) for item in representations],
+        "representations": [deepcopy(item) for item in normalized_representations],
         "analogy_map": deepcopy(analogy_map),
         "worked_examples": [deepcopy(item) for item in worked_examples],
         "visual_assets": [deepcopy(item) for item in visual_assets],
@@ -874,7 +917,7 @@ def induction_lesson() -> Dict[str, Any]:
         short("M12L5_C1", "What does the Change-Thread idea stand for in formal physics?", ["It stands for changing magnetic flux through a loop or conductor.", "It means that the amount of magnetic field threading the loop is changing."], "Flux change is the core formal idea.", ["induction_static_field_confusion"], skill_tags=["flux_change"], acceptance_rules=acceptance_groups(["change-thread", "changing"], ["magnetic flux", "field through the loop"], ["coil", "loop", "conductor"])),
         mcq("M12L5_C2", "A magnet is held still inside a coil after being pushed in. The induced emf then is best described as...", ["no sustained induced emf", "largest possible", "always step-down", "equal to the battery voltage"], 0, "The change has stopped, so sustained induction stops.", ["induction_static_field_confusion"], skill_tags=["need_change"]),
         mcq("M12L5_C3", "Which setup should produce the largest induced emf?", ["fastest flux change with the greatest turn count", "static magnet and single turn", "no field change and zero turns", "slowest motion and fewest turns"], 0, "Largest change and more turns give the largest induced effect.", ["induction_static_field_confusion"], skill_tags=["induction_strength"]),
-        short("M12L5_C4", "Why does reversing the magnet motion reverse the induced emf direction?", ["Because the magnetic flux change reverses, so the induced effect reverses too.", "Because the coil is now experiencing the opposite change-thread."], "Tie direction to the sign of the change.", ["lenz_law_confusion"], skill_tags=["reverse_change"]),
+        short("M12L5_C4", "Why does reversing the magnet motion reverse the induced emf direction?", ["Because the magnetic flux change reverses, so the induced effect reverses too.", "Because the coil is now experiencing the opposite change-thread."], "Tie direction to the sign of the change.", ["lenz_law_confusion"], skill_tags=["reverse_change"], acceptance_rules=acceptance_groups(["reversing", "opposite"], ["magnet motion", "motion"], ["magnetic flux change", "change-thread", "flux"], ["induced emf", "induced effect"], ["reverses", "opposite direction"])),
         mcq("M12L5_C5", "Which statement is strongest?", ["A generator is repeated induction produced by continuous flux change.", "A generator is just a motor with no field.", "A generator works best when the field is perfectly static.", "A generator does not involve magnetic flux."], 0, "Keep the generator inside the induction story.", ["generator_current_type_confusion", "motor_effect_vs_induction_confusion"], skill_tags=["generator_principle"]),
         short("M12L5_C6", "How does Lenz's law help you describe induction without equations?", ["It says the induced effect acts to oppose the change that caused it.", "It says the induced current or emf resists the changing magnetic situation that produced it."], "Use opposition-to-change language.", ["lenz_law_confusion"], skill_tags=["lenz_law"], acceptance_rules=acceptance_groups(["oppose", "resist"], ["change"], ["induced current", "induced emf", "induced effect"])),
         mcq("M12L5_C7", "Which energy-conversion story fits an a.c. generator?", ["mechanical motion into electrical output", "electrical input into rotation", "static field into resistance", "charge into mass"], 0, "Generators use motion to produce electrical output.", ["generator_current_type_confusion", "motor_effect_vs_induction_confusion"], skill_tags=["generator_energy"]),
