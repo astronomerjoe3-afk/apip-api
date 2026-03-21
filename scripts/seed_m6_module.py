@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M6_MODULE_ID = "M6"
-M6_CONTENT_VERSION = "20260321_m6_level_forge_v2"
+M6_CONTENT_VERSION = "20260321_m6_level_forge_v3"
 M6_MODULE_TITLE = "Thermal Properties & Transfer"
 M6_ALLOWLIST = [
     "heat_temperature_confusion",
@@ -1812,9 +1812,8 @@ def enrich_m6_lesson(lesson: Dict[str, Any]) -> Dict[str, Any]:
 M6_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
     "module_description": (
-        "Specific heat capacity, latent heat, conduction, convection, radiation, and staged thermal calculations. "
-        "Separate temperature from heat transferred, explain why different materials respond differently to energy transfer, "
-        "and solve thermal processes by choosing the correct route and adding the correct stage energies."
+        "Specific heat capacity, latent heat, and the three thermal transfer routes. "
+        "Separate temperature from heat transferred and use stage-by-stage energy bookkeeping for warming and phase changes."
     ),
     "mastery_outcomes": [
         "Explain the difference between temperature and heat transferred.",
