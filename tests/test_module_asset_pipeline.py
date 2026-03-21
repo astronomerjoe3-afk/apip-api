@@ -526,6 +526,22 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("momentum", mastery_text)
 
+    def test_m8_l6_route_sketch_keeps_line_roles_and_image_types_explicit(self) -> None:
+        lesson = next(payload for lesson_id, payload in M8_LESSONS if lesson_id == "M8_L6")
+        contract = lesson["authoring_contract"]
+        simulation_contract = contract["simulation_contract"]
+        mastery_prompts = " ".join(str(item.get("prompt") or "") for item in lesson["phases"]["transfer"]["items"]).lower()
+        reflection_text = " ".join(contract.get("reflection_prompts") or []).lower()
+
+        self.assertEqual(simulation_contract["concept"], "ray_diagram")
+        self.assertIn("guide lines", simulation_contract["focus_prompt"].lower())
+        self.assertIn("ghost meeting points", simulation_contract["focus_prompt"].lower())
+        self.assertIn("backward extensions", simulation_contract["takeaway"].lower())
+        self.assertIn("screen", reflection_text)
+        self.assertIn("plane mirror", mastery_prompts)
+        self.assertIn("converging lens", mastery_prompts)
+        self.assertIn("diverging-lens", mastery_prompts)
+
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
         self.assertEqual(F1_MODULE_DOC["title"], "Physical Quantities & Measurement")
