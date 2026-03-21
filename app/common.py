@@ -84,6 +84,8 @@ def normalize_module_id(value: Any) -> str:
     collapsed = re.sub(r"[^A-Za-z0-9]+", "", raw).upper()
     if re.fullmatch(r"F[1-9]\d*", collapsed):
         return collapsed
+    if re.fullmatch(r"A[1-9]\d*", collapsed):
+        return collapsed
     module_match = re.fullmatch(r"(?:MODULE)?(\d+)", collapsed)
     if module_match:
         return "M" + module_match.group(1)

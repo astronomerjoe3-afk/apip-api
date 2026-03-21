@@ -6,6 +6,7 @@ from app.services.catalog_bootstrap import get_catalog_module_ids, get_catalog_m
 from scripts.module_asset_pipeline import plan_lesson_assets
 from scripts.nextgen_module_builder import _question
 from scripts.seed_f1_module import F1_LESSONS, F1_MODULE_DOC, F1_SIM_LABS
+from scripts.seed_f4_module import F4_LESSONS, F4_MODULE_DOC, F4_SIM_LABS
 from scripts.seed_m1_module import M1_LESSONS, M1_MODULE_DOC, M1_SIM_LABS
 from scripts.seed_m2_module import M2_LESSONS, M2_MODULE_DOC, M2_SIM_LABS
 from scripts.seed_m3_module import M3_LESSONS, M3_MODULE_DOC, M3_SIM_LABS
@@ -19,6 +20,7 @@ from scripts.seed_m10_module import M10_LESSONS, M10_MODULE_DOC, M10_SIM_LABS
 from scripts.seed_m11_module import M11_LESSONS, M11_MODULE_DOC, M11_SIM_LABS
 from scripts.seed_m12_module import M12_LESSONS, M12_MODULE_DOC, M12_SIM_LABS
 from scripts.seed_m13_module import M13_LESSONS, M13_MODULE_DOC, M13_SIM_LABS
+from scripts.seed_a1_module import A1_LESSONS, A1_MODULE_DOC, A1_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -29,6 +31,14 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "M12")
         self.assertEqual(row["title"], "Magnetism & Electromagnetic Effects")
+
+    def test_catalog_bootstrap_includes_a1_bundle(self) -> None:
+        self.assertIn("A1", get_catalog_module_ids())
+
+        row = get_catalog_module_row("A1")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["id"], "A1")
+        self.assertEqual(row["title"], "Advanced Mechanics")
 
     def test_builder_question_accepts_type_field_for_mcq_specs(self) -> None:
         question = _question(
@@ -1017,6 +1027,14 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
 
+    def test_m13_half_life_visual_uses_physics_graph_contract(self) -> None:
+        lesson = next(payload for lesson_id, payload in M13_LESSONS if lesson_id == "M13_L4")
+        visual = lesson["authoring_contract"]["visual_assets"][0]
+        self.assertEqual(visual["template"], "physics_graph")
+        self.assertEqual(visual["meta"]["graph_type"], "generic_xy")
+        self.assertEqual(visual["meta"]["x_label"], "Time (half-life intervals)")
+        self.assertEqual(visual["meta"]["y_label"], "Undecayed nuclei")
+
     def test_m13_curriculum_scope_stays_on_radioactivity(self) -> None:
         mastery_text = " ".join(M13_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(M13_MODULE_DOC.get("description") or "").lower()
@@ -1030,6 +1048,86 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("lens", mastery_text)
         self.assertNotIn("ultrasound", mastery_text)
+
+    def test_a1_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(A1_MODULE_DOC["id"], "A1")
+        self.assertEqual(A1_MODULE_DOC["title"], "Advanced Mechanics")
+        self.assertEqual(A1_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(A1_LESSONS), 6)
+        self.assertEqual(len(A1_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in A1_LESSONS],
+            ["A1_L1", "A1_L2", "A1_L3", "A1_L4", "A1_L5", "A1_L6"],
+        )
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in A1_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            representation_kinds = {item["kind"] for item in contract["representations"]}
+            self.assertIn("words", representation_kinds)
+            self.assertIn("formula", representation_kinds)
+            self.assertTrue(any(kind in {"diagram", "graph", "table", "model"} for kind in representation_kinds))
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
+    def test_a1_curriculum_scope_stays_on_advanced_mechanics(self) -> None:
+        mastery_text = " ".join(A1_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(A1_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("suvat", mastery_text)
+        self.assertIn("projectile motion", mastery_text)
+        self.assertIn("circular motion", mastery_text)
+        self.assertIn("gravitational fields", mastery_text)
+        self.assertIn("probe-field", description_text)
+        self.assertNotIn("ultrasound", mastery_text)
+        self.assertNotIn("radioactivity", mastery_text)
+        self.assertNotIn("current", mastery_text)
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
@@ -1061,6 +1159,18 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("series circuit", mastery_text)
 
+    def test_f4_iv_visual_uses_physics_graph_contract(self) -> None:
+        self.assertEqual(F4_MODULE_DOC["id"], "F4")
+        self.assertEqual(len(F4_LESSONS), 6)
+        self.assertEqual(len(F4_SIM_LABS), 6)
+
+        lesson = next(payload for lesson_id, payload in F4_LESSONS if lesson_id == "F4_L3")
+        visual = lesson["authoring_contract"]["visual_assets"][0]
+        self.assertEqual(visual["template"], "physics_graph")
+        self.assertEqual(visual["meta"]["graph_type"], "generic_xy")
+        self.assertEqual(visual["meta"]["x_label"], "Voltage (V)")
+        self.assertEqual(visual["meta"]["y_label"], "Current (A)")
+
     def test_m1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(M1_MODULE_DOC["id"], "M1")
         self.assertEqual(M1_MODULE_DOC["title"], "Kinematics, Graphs & Constant Acceleration")
@@ -1088,11 +1198,31 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(diagnostic_items), 7)
             self.assertGreaterEqual(len(concept_checks), 5)
             self.assertGreaterEqual(len(transfer_items), 10)
-            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertGreaterEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
-            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), len(contract["visual_assets"]))
             self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+
+    def test_m1_graph_lessons_use_physics_graph_assets(self) -> None:
+        expected_visual_counts = {
+            "M1_L1": 1,
+            "M1_L2": 1,
+            "M1_L3": 1,
+            "M1_L4": 1,
+            "M1_L5": 2,
+            "M1_L6": 1,
+        }
+
+        for lesson_id, lesson in M1_LESSONS:
+            visuals = lesson["authoring_contract"]["visual_assets"]
+            self.assertEqual(len(visuals), expected_visual_counts[lesson_id])
+            for visual in visuals:
+                self.assertEqual(visual["template"], "physics_graph")
+                self.assertIn(visual["meta"]["graph_type"], {"generic_xy", "kinematics_time_series"})
+
+        lesson_l6 = next(payload for lesson_id, payload in M1_LESSONS if lesson_id == "M1_L6")
+        self.assertTrue(lesson_l6["authoring_contract"]["visual_assets"][0]["meta"]["fill_under_series"])
 
     def test_m1_curriculum_scope_stays_graph_and_kinematics_focused(self) -> None:
         mastery_text = " ".join(M1_MODULE_DOC.get("mastery_outcomes") or []).lower()
