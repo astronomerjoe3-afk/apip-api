@@ -15,6 +15,7 @@ from scripts.seed_m7_module import M7_LESSONS, M7_MODULE_DOC, M7_SIM_LABS
 from scripts.seed_m8_module import M8_LESSONS, M8_MODULE_DOC, M8_SIM_LABS
 from scripts.seed_m9_module import M9_LESSONS, M9_MODULE_DOC, M9_SIM_LABS
 from scripts.seed_m10_module import M10_LESSONS, M10_MODULE_DOC, M10_SIM_LABS
+from scripts.seed_m11_module import M11_LESSONS, M11_MODULE_DOC, M11_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -773,6 +774,68 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("pressure", mastery_text)
         self.assertNotIn("brownian", mastery_text)
         self.assertNotIn("reflection", mastery_text)
+        self.assertNotIn("ultrasound", mastery_text)
+
+    def test_m11_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(M11_MODULE_DOC["id"], "M11")
+        self.assertEqual(M11_MODULE_DOC["title"], "Circuits")
+        self.assertEqual(M11_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(M11_LESSONS), 6)
+        self.assertEqual(len(M11_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M11_LESSONS],
+            ["M11_L1", "M11_L2", "M11_L3", "M11_L4", "M11_L5", "M11_L6"],
+        )
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in M11_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
+    def test_m11_curriculum_scope_stays_on_circuit_networks(self) -> None:
+        mastery_text = " ".join(M11_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M11_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("series", mastery_text)
+        self.assertIn("parallel", mastery_text)
+        self.assertIn("power", mastery_text)
+        self.assertIn("circuit diagram", mastery_text)
+        self.assertIn("combined resistance", mastery_text)
+        self.assertIn("switchyard-loop", description_text)
+        self.assertNotIn("brownian", mastery_text)
+        self.assertNotIn("pressure", mastery_text)
         self.assertNotIn("ultrasound", mastery_text)
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:

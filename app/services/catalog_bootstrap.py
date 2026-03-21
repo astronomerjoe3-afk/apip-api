@@ -24,6 +24,7 @@ _MODULE_IMPORT_SPECS = (
     ("M8", "scripts.seed_m8_module", "M8_CONTENT_VERSION", "M8_MODULE_DOC", "M8_LESSONS", "M8_SIM_LABS"),
     ("M9", "scripts.seed_m9_module", "M9_CONTENT_VERSION", "M9_MODULE_DOC", "M9_LESSONS", "M9_SIM_LABS"),
     ("M10", "scripts.seed_m10_module", "M10_CONTENT_VERSION", "M10_MODULE_DOC", "M10_LESSONS", "M10_SIM_LABS"),
+    ("M11", "scripts.seed_m11_module", "M11_CONTENT_VERSION", "M11_MODULE_DOC", "M11_LESSONS", "M11_SIM_LABS"),
 )
 
 _MODULE_IMPORT_INDEX = {module_id: spec for module_id, *spec in _MODULE_IMPORT_SPECS}
