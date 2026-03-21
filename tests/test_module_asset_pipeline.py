@@ -1129,6 +1129,27 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("radioactivity", mastery_text)
         self.assertNotIn("current", mastery_text)
 
+    def test_a1_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
+        quantitative_tokens = ("m/s", "m/s^2", "radius", "angle", "speed", "field strength", "orbit", "launch", "displacement", "acceleration")
+        explanation_tokens = ("why", "explain", "describe", "which statement", "best summary", "correction")
+
+        for lesson_id, lesson in A1_LESSONS:
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            mastery_items = lesson["phases"]["transfer"]["items"]
+            all_items = [*diagnostic_items, *concept_checks, *mastery_items]
+            prompts = [str(item.get("prompt") or "").lower() for item in all_items]
+
+            short_count = sum(1 for item in all_items if item.get("type") == "short")
+            quantitative_count = sum(1 for prompt in prompts if any(token in prompt for token in quantitative_tokens) or any(ch.isdigit() for ch in prompt))
+            explanation_count = sum(1 for prompt in prompts if any(token in prompt for token in explanation_tokens))
+            mastery_short_count = sum(1 for item in mastery_items if item.get("type") == "short")
+
+            self.assertGreaterEqual(short_count, 2, lesson_id)
+            self.assertGreaterEqual(quantitative_count, 4, lesson_id)
+            self.assertGreaterEqual(explanation_count, 3, lesson_id)
+            self.assertGreaterEqual(mastery_short_count, 1, lesson_id)
+
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
         self.assertEqual(F1_MODULE_DOC["title"], "Physical Quantities & Measurement")
