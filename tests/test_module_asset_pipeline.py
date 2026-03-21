@@ -886,6 +886,11 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             simulation_concepts.add(simulation_contract["concept"])
             focus_prompts.add(simulation_contract["focus_prompt"])
 
+            representation_kinds = {item["kind"] for item in contract["representations"]}
+            self.assertIn("words", representation_kinds)
+            self.assertIn("formula", representation_kinds)
+            self.assertTrue(any(kind in {"diagram", "graph", "table", "model"} for kind in representation_kinds))
+
             skill_tags = set()
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":

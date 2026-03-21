@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M12_MODULE_ID = "M12"
-M12_CONTENT_VERSION = "20260321_m12_field_weave_v2"
+M12_CONTENT_VERSION = "20260321_m12_field_weave_v3"
 M12_MODULE_TITLE = "Magnetism & Electromagnetic Effects"
 M12_ALLOWLIST = [
     "current_magnetism_separate_confusion",
