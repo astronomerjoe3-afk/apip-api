@@ -195,6 +195,8 @@ def _draw_bounce_chamber_pressure(spec: ThermalStatMechDiagramSpec, width: int, 
     chamber_y = 180
     chamber_w = 460
     chamber_h = 300
+    callout_x = chamber_x + chamber_w + 150
+    callout_y = chamber_y + 245
     parts = [
         _rect(chamber_x, chamber_y, chamber_w, chamber_h, fill="#111827", stroke="#38bdf8", stroke_width=5),
         _text(chamber_x + chamber_w / 2, chamber_y - 26, "Bounce chamber", size=24, fill="#bae6fd"),
@@ -202,10 +204,11 @@ def _draw_bounce_chamber_pressure(spec: ThermalStatMechDiagramSpec, width: int, 
         _line(chamber_x + chamber_w, chamber_y + 80, chamber_x + chamber_w + 110, chamber_y + 80, stroke="#f97316", stroke_width=6, marker_end="thermal-arrow"),
         _line(chamber_x + chamber_w, chamber_y + 150, chamber_x + chamber_w + 110, chamber_y + 150, stroke="#f97316", stroke_width=6, marker_end="thermal-arrow"),
         _line(chamber_x + chamber_w, chamber_y + 220, chamber_x + chamber_w + 110, chamber_y + 220, stroke="#f97316", stroke_width=6, marker_end="thermal-arrow"),
-        _text(chamber_x + chamber_w + 160, chamber_y + 156, "wall-hit load = pressure", fill="#fdba74", size=22),
-        _text(950, 245, "More dashers", fill="#cbd5e1", size=20),
-        _text(950, 285, "+ more energetic dashers", fill="#cbd5e1", size=20),
-        _text(950, 325, "= more wall momentum change", fill="#cbd5e1", size=20),
+        _rect(callout_x, callout_y, 280, 56, fill="#111827", stroke="#f97316", stroke_width=3, rx=18),
+        _text(callout_x + 140, callout_y + 36, "wall-hit load = pressure", fill="#fdba74", size=22),
+        _text(1015, 245, "More dashers", fill="#cbd5e1", size=20, anchor="start"),
+        _text(965, 285, "+ more energetic dashers", fill="#cbd5e1", size=20, anchor="start"),
+        _text(940, 325, "= more wall momentum change", fill="#cbd5e1", size=20, anchor="start"),
         _text(width / 2, 560, "Pressure comes from countless momentum-changing collisions with the walls.", fill="#93c5fd", size=22),
     ]
     return "".join(parts)
