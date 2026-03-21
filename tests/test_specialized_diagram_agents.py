@@ -1,0 +1,168 @@
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+
+from app.agents.electric_circuit_diagram_agent import generate_electric_circuit_diagram
+from app.agents.electromagnetism_diagram_agent import generate_electromagnetism_diagram
+from app.agents.wave_diagram_agent import generate_wave_diagram
+
+
+class SpecializedDiagramAgentsTests(unittest.TestCase):
+    def test_generates_electric_circuit_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="circuit_series_01",
+            phase_key="guided_concept_building",
+            concept="electric_circuit_diagram",
+            template="electric_circuit_diagram",
+            title="Simple Series Circuit",
+            description="Battery, switch, lamp, and resistor in series.",
+            width=1280,
+            height=720,
+            meta={
+                "circuit_type": "simple_series",
+                "closed_switch": True,
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_electric_circuit_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="ELEC",
+                lesson_id="ELEC_L1",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("<svg", svg)
+            self.assertIn("Simple Series Circuit", svg)
+            self.assertIn("Lamp", svg)
+            self.assertIn("Resistor", svg)
+
+    def test_generates_wave_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="wave_transverse_01",
+            phase_key="analogical_grounding",
+            concept="wave_diagram",
+            template="wave_diagram",
+            title="Transverse Wave",
+            description="Amplitude and wavelength diagram.",
+            width=1280,
+            height=720,
+            meta={
+                "wave_type": "transverse_wave",
+                "wavelength_count": 2,
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_wave_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="WAVES",
+                lesson_id="WAVES_L1",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("<svg", svg)
+            self.assertIn("Transverse Wave", svg)
+            self.assertIn("Wavelength", svg)
+
+    def test_generates_electromagnetism_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="em_bar_magnet_01",
+            phase_key="guided_concept_building",
+            concept="electromagnetism_diagram",
+            template="electromagnetism_diagram",
+            title="Bar Magnet Field",
+            description="Magnetic field around a bar magnet.",
+            width=1280,
+            height=720,
+            meta={
+                "diagram_type": "bar_magnet_field",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_electromagnetism_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="EM",
+                lesson_id="EM_L1",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("<svg", svg)
+            self.assertIn("Bar Magnet Field", svg)
+            self.assertIn("N", svg)
+            self.assertIn("S", svg)
+
+    def test_generates_reflection_wave_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="wave_reflection_01",
+            phase_key="guided_concept_building",
+            concept="wave_diagram",
+            template="wave_diagram",
+            title="Wave Reflection",
+            description="Reflection at a flat wall.",
+            width=1280,
+            height=720,
+            meta={
+                "wave_type": "reflection",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_wave_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="WAVES",
+                lesson_id="WAVES_L4",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("Wave Reflection", svg)
+            self.assertIn("incident", svg)
+            self.assertIn("reflected", svg)
+
+    def test_generates_loop_ledger_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="loop_ledger_01",
+            phase_key="guided_concept_building",
+            concept="electric_circuit_diagram",
+            template="electric_circuit_diagram",
+            title="Loop Ledger",
+            description="Compare two loops with the same source.",
+            width=1280,
+            height=720,
+            meta={
+                "circuit_type": "loop_ledger",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_electric_circuit_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="ELEC",
+                lesson_id="ELEC_L6",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("Loop Ledger", svg)
+            self.assertIn("Loop A", svg)
+            self.assertIn("Loop B", svg)
+
+
+if __name__ == "__main__":
+    unittest.main()

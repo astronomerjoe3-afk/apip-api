@@ -11,9 +11,11 @@ from google.cloud import firestore
 
 try:
     from scripts.lesson_authoring_contract import validate_nextgen_module
+    from scripts.module_asset_pipeline import default_asset_root, render_module_assets
     from scripts.nextgen_module_scaffold import build_nextgen_module_scaffold
 except ModuleNotFoundError:
     from lesson_authoring_contract import validate_nextgen_module
+    from module_asset_pipeline import default_asset_root, render_module_assets
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 F4_MODULE_ID = "F4"
@@ -92,8 +94,37 @@ def example(prompt: str, steps: List[str], final_answer: str, why: str) -> Dict[
     return {"prompt": prompt, "steps": steps, "final_answer": final_answer, "why_it_matters": why}
 
 
-def vis(asset_id: str, purpose: str, caption: str) -> Dict[str, Any]:
-    return {"asset_id": asset_id, "purpose": purpose, "caption": caption}
+def vis(
+    asset_id: str,
+    purpose: str,
+    caption: str,
+    *,
+    template: str = "auto",
+    meta: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    normalized_asset_id = asset_id[:-4] if asset_id.endswith(".svg") else asset_id
+    circuit_type_map = {
+        "f4-l1-charge-current": "charge_current_loop",
+        "f4-l2-potential-difference": "potential_difference",
+        "f4-l3-resistance-iv": "resistance_iv",
+        "f4-l4-series-circuit": "simple_series",
+        "f4-l5-parallel-circuit": "parallel_lamps",
+        "f4-l6-power-safety": "power_safety",
+    }
+    resolved_meta = dict(meta or {})
+    resolved_template = template
+    circuit_type = circuit_type_map.get(normalized_asset_id)
+    if resolved_template == "auto" and circuit_type:
+        resolved_template = "electric_circuit_diagram"
+    if circuit_type and "circuit_type" not in resolved_meta:
+        resolved_meta["circuit_type"] = circuit_type
+    return {
+        "asset_id": normalized_asset_id,
+        "purpose": purpose,
+        "caption": caption,
+        "template": resolved_template,
+        "meta": resolved_meta,
+    }
 
 
 RELEASE_CHECKS = [
@@ -308,21 +339,31 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Seed Module F4 into Firestore")
     parser.add_argument("--project", default=None)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--compile-assets", action="store_true")
+    parser.add_argument("--asset-root", default="")
+    parser.add_argument("--public-base", default="/lesson_assets")
     args = parser.parse_args()
 
     project = get_project_id(args.project)
     db = init_firebase(project)
     apply = bool(args.apply)
+    asset_root = args.asset_root or default_asset_root()
 
-    plan: List[Tuple[str, str]] = [("modules", F4_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in F4_LESSONS] + [("sim_labs", doc_id) for doc_id, _ in F4_SIM_LABS]
+    lesson_pairs = [(doc_id, payload) for doc_id, payload in F4_LESSONS]
+    sim_pairs = [(doc_id, payload) for doc_id, payload in F4_SIM_LABS]
+
+    if args.compile_assets:
+        render_module_assets(lesson_pairs, sim_pairs, asset_root=asset_root, public_base=args.public_base)
+
+    plan: List[Tuple[str, str]] = [("modules", F4_MODULE_ID)] + [("lessons", doc_id) for doc_id, _ in lesson_pairs] + [("sim_labs", doc_id) for doc_id, _ in sim_pairs]
     print(f"Project: {project}")
     print(f"Mode: {'APPLY (writes enabled)' if apply else 'DRY RUN (no writes)'}")
     print_preview("Planned upserts", plan)
 
     upsert_doc(db, "modules", F4_MODULE_ID, F4_MODULE_DOC, apply)
-    for doc_id, payload in F4_LESSONS:
+    for doc_id, payload in lesson_pairs:
         upsert_doc(db, "lessons", doc_id, payload, apply)
-    for doc_id, payload in F4_SIM_LABS:
+    for doc_id, payload in sim_pairs:
         upsert_doc(db, "sim_labs", doc_id, payload, apply)
 
     print("DONE")

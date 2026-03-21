@@ -3,7 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from app.agents.electric_circuit_diagram_agent import generate_electric_circuit_diagram
+from app.agents.electromagnetism_diagram_agent import generate_electromagnetism_diagram
 from app.agents.optics_ray_diagram_agent import generate_optics_ray_diagram
+from app.agents.wave_diagram_agent import generate_wave_diagram
 from app.lesson_pipeline.contracts import DiagramRequest, GeneratedAsset
 
 
@@ -493,6 +496,45 @@ def generate_diagram(
 
     if getattr(req, "template", "") == "optics_ray_diagram" or req.concept == "optics_ray_diagram":
         return generate_optics_ray_diagram(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "electric_circuit_diagram" or req.concept in {
+        "electric_circuit_diagram",
+        "electric_circuit",
+        "circuit",
+    }:
+        return generate_electric_circuit_diagram(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "wave_diagram" or req.concept in {
+        "wave_diagram",
+        "wave",
+        "waves",
+    }:
+        return generate_wave_diagram(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "electromagnetism_diagram" or req.concept in {
+        "electromagnetism_diagram",
+        "electromagnetism",
+        "magnetic_field",
+    }:
+        return generate_electromagnetism_diagram(
             req=req,
             output_dir=output_dir,
             public_base=public_base,

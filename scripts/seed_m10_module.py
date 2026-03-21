@@ -126,7 +126,30 @@ def worked(
     }
 
 
-def visual(asset_id: str, concept: str, title: str, purpose: str, caption: str) -> Dict[str, Any]:
+def visual(
+    asset_id: str,
+    concept: str,
+    title: str,
+    purpose: str,
+    caption: str,
+    *,
+    template: str = "auto",
+    meta: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    circuit_type_map = {
+        "charge_carriers": "carrier_loop",
+        "current_rate": "checkpoint_rate",
+        "voltage_boost": "voltage_boost",
+        "resistance_drag": "resistance_route",
+        "ohms_law": "ohmic_rule",
+        "quantity_ledger": "loop_ledger",
+    }
+    resolved_meta = deepcopy(meta or {})
+    resolved_template = template
+    if resolved_template == "auto" and concept in circuit_type_map:
+        resolved_template = "electric_circuit_diagram"
+    if concept in circuit_type_map and "circuit_type" not in resolved_meta:
+        resolved_meta["circuit_type"] = circuit_type_map[concept]
     return {
         "asset_id": asset_id,
         "concept": concept,
@@ -134,6 +157,8 @@ def visual(asset_id: str, concept: str, title: str, purpose: str, caption: str) 
         "title": title,
         "purpose": purpose,
         "caption": caption,
+        "template": resolved_template,
+        "meta": resolved_meta,
     }
 
 
