@@ -18,11 +18,32 @@ from app.middleware.request_id import RequestIDMiddleware
 from app.services.catalog_bootstrap import ensure_catalog_seeded
 from app.services.monetization_service import ensure_monetization_seeded
 
+
+def _allowed_origins() -> list[str]:
+    origins = {
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+        "https://127.0.0.1:3000",
+        "https://localhost:3000",
+    }
+
+    app_base_url = str(settings.app_base_url or "").strip().rstrip("/")
+    if app_base_url:
+        origins.add(app_base_url)
+
+    for raw in str(settings.allowed_app_origins or "").split(","):
+        origin = str(raw or "").strip().rstrip("/")
+        if origin:
+            origins.add(origin)
+
+    return sorted(origins)
+
+
 app = FastAPI(title="APIP API", version="0.5.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
