@@ -27,6 +27,10 @@ _BOOTSTRAP_MODULE_IDS = {
 }
 
 
+def _lesson_module_id(lesson: Dict[str, Any]) -> str:
+    return normalize_module_id(lesson.get("module_id") or lesson.get("moduleId"))
+
+
 def _retry_seeded_modules_if_missing(modules: List[Dict[str, Any]], curriculum_id: Optional[str] = None) -> List[Dict[str, Any]]:
     returned_ids = {
         normalize_module_id(module.get("id") or module.get("module_id"))
@@ -88,12 +92,12 @@ def fetch_module_lesson(module_id: str, lesson_id: str) -> Dict[str, Any]:
     normalized_module_id = normalize_module_id(module_id)
     normalized_lesson_id = lesson_id.replace("-", "_")
 
-    lesson = get_lesson_by_doc_id(normalized_lesson_id)
-    if lesson and normalize_module_id(lesson.get("module_id")) == normalized_module_id:
-        return to_student_lesson_view(lesson)
-
     lesson = get_lesson_by_fields(normalized_module_id, normalized_lesson_id)
     if lesson:
+        return to_student_lesson_view(lesson)
+
+    lesson = get_lesson_by_doc_id(normalized_lesson_id)
+    if lesson and _lesson_module_id(lesson) == normalized_module_id:
         return to_student_lesson_view(lesson)
 
     raise HTTPException(status_code=404, detail="Lesson not found")

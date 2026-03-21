@@ -14,16 +14,20 @@ MASTERY_MIN_QUESTIONS = 5
 MASTERY_MAX_QUESTIONS = 10
 
 
+def _lesson_module_id(lesson: Dict[str, Any]) -> str:
+    return normalize_module_id(lesson.get("module_id") or lesson.get("moduleId"))
+
+
 def _load_lesson(module_id: str, lesson_id: str) -> Dict[str, Any] | None:
     normalized_module_id = normalize_module_id(module_id)
     normalized = str(lesson_id).replace("-", "_")
 
-    lesson = get_lesson_by_doc_id(normalized)
-    if lesson and normalize_module_id(lesson.get("module_id")) == normalized_module_id:
-        return lesson
-
     lesson = get_lesson_by_fields(normalized_module_id, normalized)
     if lesson:
+        return lesson
+
+    lesson = get_lesson_by_doc_id(normalized)
+    if lesson and _lesson_module_id(lesson) == normalized_module_id:
         return lesson
 
     return None
