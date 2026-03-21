@@ -1,9 +1,17 @@
-import tempfile
+import shutil
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
 from app.agents.radioactivity_diagram_agent import generate_radioactivity_diagram
+
+
+def _writable_temp_dir(name: str) -> Path:
+    root = Path(__file__).resolve().parents[1] / ".codex_tmp_assets" / "radioactivity_tests"
+    path = root / name
+    shutil.rmtree(path, ignore_errors=True)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 class RadioactivityDiagramAgentTests(unittest.TestCase):
@@ -24,7 +32,8 @@ class RadioactivityDiagramAgentTests(unittest.TestCase):
             },
         )
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = _writable_temp_dir("vault_house_case")
+        try:
             asset = generate_radioactivity_diagram(
                 req=req,
                 output_dir=tmpdir,
@@ -37,6 +46,8 @@ class RadioactivityDiagramAgentTests(unittest.TestCase):
             self.assertIn("Build the Vault-House", svg)
             self.assertIn("Core Vault", svg)
             self.assertIn("Orbit Ring", svg)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_generates_decay_ledger_svg(self) -> None:
         req = SimpleNamespace(
@@ -53,7 +64,8 @@ class RadioactivityDiagramAgentTests(unittest.TestCase):
             },
         )
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = _writable_temp_dir("decay_ledger_case")
+        try:
             asset = generate_radioactivity_diagram(
                 req=req,
                 output_dir=tmpdir,
@@ -66,6 +78,8 @@ class RadioactivityDiagramAgentTests(unittest.TestCase):
             self.assertIn("Vault Ledger Boss", svg)
             self.assertIn("alpha", svg)
             self.assertIn("gamma", svg)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 if __name__ == "__main__":
