@@ -419,15 +419,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 8,
-                    "concept_gate_pool_min": 6,
-                    "mastery_pool_min": 8,
-                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery on every fresh attempt before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 8)
-            self.assertGreaterEqual(len(concept_checks), 6)
-            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
             expected_visual_count = 5 if lesson["lesson_id"] == "M8_L1" else 1
             self.assertEqual(len(contract["visual_assets"]), expected_visual_count)
             self.assertEqual(len(contract["animation_assets"]), 1)
@@ -436,7 +436,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 5)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
