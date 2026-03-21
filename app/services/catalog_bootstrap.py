@@ -20,6 +20,7 @@ _MODULE_IMPORT_SPECS = (
     ("M4", "scripts.seed_m4_module", "M4_CONTENT_VERSION", "M4_MODULE_DOC", "M4_LESSONS", "M4_SIM_LABS"),
     ("M5", "scripts.seed_m5_module", "M5_CONTENT_VERSION", "M5_MODULE_DOC", "M5_LESSONS", "M5_SIM_LABS"),
     ("M6", "scripts.seed_m6_module", "M6_CONTENT_VERSION", "M6_MODULE_DOC", "M6_LESSONS", "M6_SIM_LABS"),
+    ("M7", "scripts.seed_m7_module", "M7_CONTENT_VERSION", "M7_MODULE_DOC", "M7_LESSONS", "M7_SIM_LABS"),
     ("M8", "scripts.seed_m8_module", "M8_CONTENT_VERSION", "M8_MODULE_DOC", "M8_LESSONS", "M8_SIM_LABS"),
 )
 

@@ -11,6 +11,7 @@ from scripts.seed_m3_module import M3_LESSONS, M3_MODULE_DOC, M3_SIM_LABS
 from scripts.seed_m4_module import M4_LESSONS, M4_MODULE_DOC, M4_SIM_LABS
 from scripts.seed_m5_module import M5_LESSONS, M5_MODULE_DOC, M5_SIM_LABS
 from scripts.seed_m6_module import M6_LESSONS, M6_MODULE_DOC, M6_SIM_LABS
+from scripts.seed_m7_module import M7_LESSONS, M7_MODULE_DOC, M7_SIM_LABS
 from scripts.seed_m8_module import M8_LESSONS, M8_MODULE_DOC, M8_SIM_LABS
 
 
@@ -382,6 +383,65 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("pressure", mastery_text)
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("momentum", mastery_text)
+
+    def test_m7_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(M7_MODULE_DOC["id"], "M7")
+        self.assertEqual(M7_MODULE_DOC["title"], "General Wave Properties")
+        self.assertEqual(M7_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(M7_LESSONS), 6)
+        self.assertEqual(len(M7_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M7_LESSONS],
+            ["M7_L1", "M7_L2", "M7_L3", "M7_L4", "M7_L5", "M7_L6"],
+        )
+
+        for _, lesson in M7_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+
+            scaffold_support = contract["scaffold_support"]
+            self.assertTrue(scaffold_support["core_idea"])
+            self.assertTrue(scaffold_support["reasoning"])
+            self.assertTrue(scaffold_support["common_trap"])
+            self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
+
+            for example in contract["worked_examples"]:
+                self.assertTrue(example["answer_reason"])
+
+    def test_m7_curriculum_scope_stays_on_general_wave_properties(self) -> None:
+        mastery_text = " ".join(M7_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M7_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("transverse", mastery_text)
+        self.assertIn("longitudinal", mastery_text)
+        self.assertIn("reflection", mastery_text)
+        self.assertIn("refraction", mastery_text)
+        self.assertIn("diffraction", mastery_text)
+        self.assertIn("traveling pattern", description_text)
+        self.assertNotIn("pressure", mastery_text)
+        self.assertNotIn("internal energy", mastery_text)
+        self.assertNotIn("current", mastery_text)
 
     def test_m8_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(M8_MODULE_DOC["id"], "M8")
