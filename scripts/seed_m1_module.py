@@ -25,7 +25,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M1_MODULE_ID = "M1"
-M1_CONTENT_VERSION = "20260317_m1_graph_reasoning_v4"
+M1_CONTENT_VERSION = "20260321_m1_graph_reasoning_v5"
 M1_ALLOWLIST = [
     "distance_time_story_confusion",
     "graph_shape_path_confusion",
@@ -2575,6 +2575,10 @@ def vis(
     concept: str = "",
     title: str = "",
     phase_key: str = "analogical_grounding",
+    template: str = "auto",
+    meta: Dict[str, Any] | None = None,
+    width: int = 1280,
+    height: int = 720,
 ) -> Dict[str, Any]:
     return {
         "asset_id": asset_id,
@@ -2583,6 +2587,10 @@ def vis(
         "concept": concept,
         "title": title,
         "phase_key": phase_key,
+        "template": template,
+        "meta": dict(meta or {}),
+        "width": width,
+        "height": height,
     }
 
 
@@ -2671,6 +2679,228 @@ def apply_m1_enhancements() -> None:
         "M1_L5": "Gradient Meaning Comparator",
         "M1_L6": "Area-to-Distance Builder",
     }
+    lesson_visual_assets = {
+        "M1_L1": [
+            vis(
+                "m1_l1_distance_time_graph",
+                "Show a distance-time graph with a pause and a faster section so the graph is clearly a record of motion rather than a map of the path.",
+                "Distance-time graph: slope gives speed and flat sections show no motion.",
+                concept="distance_time_story",
+                title="Distance-Time Story Board",
+                template="physics_graph",
+                meta={
+                    "graph_type": "generic_xy",
+                    "title": "Distance-Time Story Board",
+                    "subtitle": "The graph records the journey. It is not the route shape itself.",
+                    "x_label": "Time (s)",
+                    "y_label": "Distance from start (m)",
+                    "show_legend": False,
+                    "x_min": 0,
+                    "x_max": 8,
+                    "y_min": 0,
+                    "y_max": 24,
+                    "series": [
+                        {
+                            "label": "Journey log",
+                            "points": [[0, 0], [2, 6], [4, 6], [6, 18], [8, 24]],
+                        }
+                    ],
+                    "annotations": [
+                        {"x": 3.1, "y": 7.8, "text": "flat = stopped", "color": "#fde68a"},
+                        {"x": 6.1, "y": 20.0, "text": "steeper = faster", "color": "#86efac", "anchor": "start"},
+                    ],
+                },
+            )
+        ],
+        "M1_L2": [
+            vis(
+                "m1_l2_speed_time_graph",
+                "Show a speed-time graph where graph height gives speed now and slope shows whether the speed is changing.",
+                "Speed-time graph: height gives speed, slope gives acceleration.",
+                concept="speed_time_change",
+                title="Pace Log Reasoning Board",
+                template="physics_graph",
+                meta={
+                    "graph_type": "kinematics_time_series",
+                    "title": "Pace Log Reasoning Board",
+                    "subtitle": "Height answers speed now. Tilt answers how quickly speed changes.",
+                    "x_label": "Time (s)",
+                    "y_label": "Speed (m/s)",
+                    "show_legend": False,
+                    "x_min": 0,
+                    "x_max": 8,
+                    "y_min": 0,
+                    "y_max": 12,
+                    "series": [
+                        {
+                            "label": "Speed log",
+                            "points": [[0, 4], [2, 4], [4, 10], [6, 10], [8, 6]],
+                        }
+                    ],
+                    "annotations": [
+                        {"x": 1.5, "y": 5.3, "text": "flat = constant speed", "color": "#fde68a"},
+                        {"x": 4.3, "y": 9.8, "text": "rising slope = speeding up", "color": "#86efac", "anchor": "start"},
+                    ],
+                },
+            )
+        ],
+        "M1_L3": [
+            vis(
+                "m1_l3_signed_acceleration_graph",
+                "Show a velocity-time graph crossing the axis so learners can separate the sign of velocity from the sign of acceleration.",
+                "Velocity-time graph: positive slope can act on motion below or above the axis.",
+                concept="signed_acceleration",
+                title="Signed Velocity and Acceleration Board",
+                template="physics_graph",
+                meta={
+                    "graph_type": "kinematics_time_series",
+                    "title": "Signed Velocity and Acceleration Board",
+                    "subtitle": "Velocity sign comes from the axis. Acceleration sign comes from the slope.",
+                    "x_label": "Time (s)",
+                    "y_label": "Velocity (m/s)",
+                    "show_legend": False,
+                    "x_min": 0,
+                    "x_max": 6,
+                    "y_min": -6,
+                    "y_max": 10,
+                    "series": [
+                        {
+                            "label": "v(t)",
+                            "points": [[0, -4], [2, -1], [4, 3], [6, 8]],
+                        }
+                    ],
+                    "annotations": [
+                        {"x": 0.9, "y": -4.6, "text": "negative velocity", "color": "#fda4af"},
+                        {"x": 3.4, "y": 1.6, "text": "positive slope = positive acceleration", "color": "#86efac", "anchor": "start"},
+                    ],
+                },
+            )
+        ],
+        "M1_L4": [
+            vis(
+                "m1_l4_constant_acceleration_graph",
+                "Show one straight velocity-time forecast so constant acceleration appears as one steady gradient rather than as a slogan.",
+                "Velocity-time graph: a straight line means one steady acceleration all the way through.",
+                concept="constant_acceleration_forecast",
+                title="Constant-Acceleration Forecast Board",
+                template="physics_graph",
+                meta={
+                    "graph_type": "kinematics_time_series",
+                    "title": "Constant-Acceleration Forecast Board",
+                    "subtitle": "A straight velocity-time line keeps the same acceleration everywhere.",
+                    "x_label": "Time (s)",
+                    "y_label": "Velocity (m/s)",
+                    "show_legend": False,
+                    "x_min": 0,
+                    "x_max": 4,
+                    "y_min": 0,
+                    "y_max": 16,
+                    "series": [
+                        {
+                            "label": "Forecast",
+                            "points": [[0, 2], [1, 5], [2, 8], [3, 11], [4, 14]],
+                        }
+                    ],
+                    "annotations": [
+                        {"x": 2.3, "y": 10.0, "text": "same slope all the way", "color": "#fde68a", "anchor": "start"},
+                    ],
+                },
+            )
+        ],
+        "M1_L5": [
+            vis(
+                "m1_l5_distance_gradient_graph",
+                "Show a distance-time example so the gradient meaning is fixed as speed before comparing it with another graph type.",
+                "Distance-time example: slope means speed on these axes.",
+                concept="graph_gradient_context",
+                title="Gradient Meaning Comparator A",
+                template="physics_graph",
+                meta={
+                    "graph_type": "generic_xy",
+                    "title": "Gradient Meaning Comparator A",
+                    "subtitle": "On a distance-time graph, slope means speed.",
+                    "x_label": "Time (s)",
+                    "y_label": "Distance (m)",
+                    "show_legend": False,
+                    "x_min": 0,
+                    "x_max": 6,
+                    "y_min": 0,
+                    "y_max": 24,
+                    "series": [
+                        {
+                            "label": "Distance-time",
+                            "points": [[0, 0], [2, 8], [4, 16], [6, 24]],
+                        }
+                    ],
+                    "annotations": [
+                        {"x": 3.2, "y": 14.0, "text": "slope = 4 m/s", "color": "#86efac", "anchor": "start"},
+                    ],
+                },
+            ),
+            vis(
+                "m1_l5_speed_gradient_graph",
+                "Show a speed-time example with a matching-looking tilt so learners must use the axes to decide that the slope now means acceleration.",
+                "Speed-time example: slope means acceleration on these axes.",
+                concept="graph_gradient_context",
+                title="Gradient Meaning Comparator B",
+                template="physics_graph",
+                meta={
+                    "graph_type": "generic_xy",
+                    "title": "Gradient Meaning Comparator B",
+                    "subtitle": "On a speed-time graph, slope means acceleration.",
+                    "x_label": "Time (s)",
+                    "y_label": "Speed (m/s)",
+                    "show_legend": False,
+                    "x_min": 0,
+                    "x_max": 6,
+                    "y_min": 0,
+                    "y_max": 14,
+                    "series": [
+                        {
+                            "label": "Speed-time",
+                            "points": [[0, 0], [2, 4], [4, 8], [6, 12]],
+                        }
+                    ],
+                    "annotations": [
+                        {"x": 3.2, "y": 8.0, "text": "slope = 2 m/s^2", "color": "#fbbf24", "anchor": "start"},
+                    ],
+                },
+            ),
+        ],
+        "M1_L6": [
+            vis(
+                "m1_l6_area_distance_graph",
+                "Show a speed-time graph with deliberate shaded area so the accumulated distance is tied to the whole region under the graph.",
+                "Speed-time graph: shaded area gives total distance traveled.",
+                concept="speed_time_area",
+                title="Area-to-Distance Builder",
+                template="physics_graph",
+                meta={
+                    "graph_type": "generic_xy",
+                    "title": "Area-to-Distance Builder",
+                    "subtitle": "On a speed-time graph, the shaded region builds total distance.",
+                    "x_label": "Time (s)",
+                    "y_label": "Speed (m/s)",
+                    "show_legend": False,
+                    "x_min": 0,
+                    "x_max": 7,
+                    "y_min": 0,
+                    "y_max": 8,
+                    "fill_under_series": True,
+                    "fill_opacity": 0.24,
+                    "series": [
+                        {
+                            "label": "Speed-time",
+                            "points": [[0, 0], [1, 6], [4, 6], [6, 2], [7, 0]],
+                        }
+                    ],
+                    "annotations": [
+                        {"x": 3.1, "y": 3.0, "text": "area = distance", "color": "#fde68a"},
+                    ],
+                },
+            )
+        ],
+    }
     lesson_analogies = {
         "M1_L1": (
             "Quest-Log is a two-layer telemetry system: the lane is the physical run, while the mission log is the time-stamped score sheet. "
@@ -2708,16 +2938,7 @@ def apply_m1_enhancements() -> None:
         lesson["commitment_prompt"] = lesson_commitments[lesson_id]
         contract = lesson["contract"]
         contract["assessment_bank_targets"] = assessment_targets(7, 5, 10)
-        contract["visual_assets"] = [
-            {
-                "asset_id": f"{lesson_id.lower()}_diagram",
-                "concept": lesson_concepts[lesson_id],
-                "phase_key": "analogical_grounding",
-                "title": lesson_titles[lesson_id],
-                "purpose": f"Show the key representation distinction for {lesson['title']} with a clean graph-first physics diagram.",
-                "caption": f"{lesson['title']} visual summary",
-            }
-        ]
+        contract["visual_assets"] = lesson_visual_assets[lesson_id]
         contract["animation_assets"] = [
             {
                 "asset_id": f"{lesson_id.lower()}_animation",
@@ -3215,6 +3436,10 @@ def build_visuals(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             concept=str(item.get("concept") or ""),
             title=str(item.get("title") or ""),
             phase_key=str(item.get("phase_key") or "analogical_grounding"),
+            template=str(item.get("template") or "auto"),
+            meta=dict(item.get("meta") or {}),
+            width=int(item.get("width") or 1280),
+            height=int(item.get("height") or 720),
         )
         for item in items
     ]

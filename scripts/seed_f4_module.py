@@ -5,9 +5,14 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
-import firebase_admin
-from firebase_admin import credentials
-from google.cloud import firestore
+try:
+    import firebase_admin
+    from firebase_admin import credentials
+    from google.cloud import firestore
+except ModuleNotFoundError:
+    firebase_admin = None
+    credentials = None
+    firestore = None
 
 try:
     from scripts.lesson_authoring_contract import validate_nextgen_module
@@ -19,7 +24,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 F4_MODULE_ID = "F4"
-F4_CONTENT_VERSION = "20260314_f4_flow_grid_v3"
+F4_CONTENT_VERSION = "20260321_f4_flow_grid_v4"
 F4_ALLOWLIST = [
     "charge_current_rate_confusion",
     "current_used_up_confusion",
@@ -43,6 +48,8 @@ def get_project_id(cli_project: str | None) -> str:
 
 
 def init_firebase(project_id: str) -> firestore.Client:
+    if firebase_admin is None or credentials is None or firestore is None:
+        raise RuntimeError("firebase_admin is required to seed F4 into Firestore.")
     if not firebase_admin._apps:
         firebase_admin.initialize_app(credentials.ApplicationDefault(), {"projectId": project_id})
     return firestore.Client(project=project_id)
@@ -103,6 +110,35 @@ def vis(
     meta: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     normalized_asset_id = asset_id[:-4] if asset_id.endswith(".svg") else asset_id
+    graph_spec_map = {
+        "f4-l3-resistance-iv": {
+            "graph_type": "generic_xy",
+            "title": "Resistance and I-V Graph Reasoning",
+            "subtitle": "A steeper straight I-V line means more current per volt and therefore lower resistance.",
+            "x_label": "Voltage (V)",
+            "y_label": "Current (A)",
+            "show_legend": True,
+            "x_min": 0,
+            "x_max": 8,
+            "y_min": 0,
+            "y_max": 4.5,
+            "series": [
+                {
+                    "label": "Line A: lower resistance",
+                    "points": [[0, 0], [2, 1.4], [4, 2.8], [6, 4.2]],
+                    "color": "#38bdf8",
+                },
+                {
+                    "label": "Line B: higher resistance",
+                    "points": [[0, 0], [2, 0.8], [4, 1.6], [6, 2.4]],
+                    "color": "#f97316",
+                },
+            ],
+            "annotations": [
+                {"x": 4.8, "y": 3.5, "text": "steeper = lower R", "color": "#86efac", "anchor": "start"},
+            ],
+        }
+    }
     circuit_type_map = {
         "f4-l1-charge-current": "charge_current_loop",
         "f4-l2-potential-difference": "potential_difference",
@@ -111,12 +147,15 @@ def vis(
         "f4-l5-parallel-circuit": "parallel_lamps",
         "f4-l6-power-safety": "power_safety",
     }
-    resolved_meta = dict(meta or {})
+    resolved_meta = dict(graph_spec_map.get(normalized_asset_id) or {})
+    resolved_meta.update(dict(meta or {}))
     resolved_template = template
+    if resolved_template == "auto" and normalized_asset_id in graph_spec_map:
+        resolved_template = "physics_graph"
     circuit_type = circuit_type_map.get(normalized_asset_id)
     if resolved_template == "auto" and circuit_type:
         resolved_template = "electric_circuit_diagram"
-    if circuit_type and "circuit_type" not in resolved_meta:
+    if normalized_asset_id not in graph_spec_map and circuit_type and "circuit_type" not in resolved_meta:
         resolved_meta["circuit_type"] = circuit_type
     return {
         "asset_id": normalized_asset_id,
