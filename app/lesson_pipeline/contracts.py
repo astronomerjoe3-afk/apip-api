@@ -6,6 +6,38 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 
+DIAGRAM_REQUEST_TEMPLATE_CONTRACTS: Dict[str, Dict[str, Any]] = {
+    "space_astrophysics_diagram": {
+        "description": "Deterministic SVG space and astrophysics diagrams for authored lesson assets.",
+        "concept_aliases": [
+            "space_astrophysics_diagram",
+            "space_diagram",
+            "astrophysics_diagram",
+            "astronomy_diagram",
+        ],
+        "template_aliases": [
+            "space_astrophysics_diagram",
+            "astronomy_diagram",
+        ],
+        "meta_contract": {
+            "diagram_type": [
+                "solar_system_overview",
+                "lunar_phases",
+                "earth_sun_seasons",
+                "elliptical_orbit",
+                "hr_diagram",
+                "stellar_lifecycle",
+            ],
+            "title": "optional string override",
+            "subtitle": "optional string subtitle",
+            "show_labels": "optional boolean, defaults to true",
+            "note_not_to_scale": "optional boolean, defaults to true",
+            "highlighted_body": "optional body label to emphasize in solar-system diagrams",
+        },
+    },
+}
+
+
 @dataclass
 class DiagramRequest:
     asset_id: str
