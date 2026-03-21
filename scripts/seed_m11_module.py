@@ -19,7 +19,7 @@ except ModuleNotFoundError:
     from seed_m1_module import get_project_id, init_firebase, print_preview, upsert_doc
 
 M11_MODULE_ID = "M11"
-M11_CONTENT_VERSION = "20260321_m11_switchyard_loop_v1"
+M11_CONTENT_VERSION = "20260321_m11_switchyard_loop_v2"
 M11_MODULE_TITLE = "Circuits"
 M11_ALLOWLIST = [
     "series_current_confusion",
@@ -147,11 +147,22 @@ def scaffold(core_idea: str, reasoning: str, check: str, trap: str, analogy_body
 
 
 def assessment_targets() -> Dict[str, Any]:
-    return {"diagnostic_pool_min": 8, "concept_gate_pool_min": 6, "mastery_pool_min": 8, "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem."}
+    return {
+        "diagnostic_pool_min": 10,
+        "concept_gate_pool_min": 8,
+        "mastery_pool_min": 10,
+        "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery on every fresh attempt before repeating any previous stem.",
+    }
 
 
 def visual_checks(topic: str) -> List[str]:
-    return [f"The main {topic} labels stay visible on desktop and mobile.", "Circuit symbols, branch arrows, and checkpoint labels stay separated from the path geometry.", "Voltage, current, and resistance labels do not overlap in a way that merges distinct quantities."]
+    return [
+        f"The main {topic} labels stay fully visible on desktop and mobile.",
+        "Circuit symbols, branch arrows, and checkpoint labels stay separated from the path geometry.",
+        "Voltage, current, resistance, and power labels do not overlap in a way that merges distinct quantities.",
+        "The primary comparison in each picture keeps the source, path structure, and readouts visually distinct in one scan.",
+        "Any calculation cue shown in the visual stays readable enough for a learner to follow the circuit logic without guessing.",
+    ]
 
 
 def switchyard_map(focus: str) -> Dict[str, Any]:
@@ -209,6 +220,18 @@ def series_lesson() -> Dict[str, Any]:
         short("M11L1_M7", "Why is a one-lane chain a good name for a series circuit?", ["Because every carrier must visit every station in order on one route.", "Because there are no side branches where the flow can split."], "Use route-order language.", ["series_current_confusion"], skill_tags=["series_current"], acceptance_rules=acceptance_groups(["every carrier", "must pass", "visit every station"], ["one route", "one path", "no branches"], ["in order"])),
         mcq("M11L1_M8", "Best summary of series behavior:", ["same current, shared voltage, resistances add", "shared current, same voltage, resistances cancel", "same current, same voltage, resistances never matter", "different current, same current, shared power"], 0, "That is the core series summary.", ["series_current_confusion", "series_voltage_share_confusion", "equivalent_resistance_confusion"], skill_tags=["series_summary"]),
     ]
+    d.extend([
+        mcq("M11L1_D9", "Three equal 4 ohm resistors are in series on a 12 V source. The voltage across one resistor is...", ["4 V", "12 V", "8 V", "1 V"], 0, "Equal series resistors share the source voltage equally.", ["series_voltage_share_confusion"], skill_tags=["series_voltage_share"]),
+        short("M11L1_D10", "Why does a larger resistor in a series chain take a larger share of the source voltage?", ["Because the same current passes through every series resistor, so the larger resistance needs a larger voltage drop.", "Because series current stays common, so the bigger resistance gets the bigger potential difference."], "Use same-current and larger-drop language.", ["series_voltage_share_confusion"], skill_tags=["series_voltage_share"], acceptance_rules=acceptance_groups(["same current", "series current"], ["larger resistance", "bigger resistor"], ["larger voltage drop", "bigger potential difference", "more voltage"])) ,
+    ])
+    c.extend([
+        mcq("M11L1_C7", "A 9 V one-lane chain carries 1.5 A. Its total resistance is...", ["6 ohm", "13.5 ohm", "7.5 ohm", "1.5 ohm"], 0, "Use R = V/I = 9/1.5.", ["equivalent_resistance_confusion"], skill_tags=["series_current_calc"]),
+        short("M11L1_C8", "Why can the total current fall even though the battery voltage stays fixed when another series resistor is added?", ["Because the added series resistor raises the total resistance, so the same source voltage drives a smaller current.", "Because one more station increases the total drag seen by the source."], "Use fixed-source and larger-total-resistance language.", ["equivalent_resistance_confusion"], skill_tags=["series_current_change"], acceptance_rules=acceptance_groups(["same source voltage", "battery stays fixed", "fixed voltage"], ["more resistance", "larger total resistance", "more total drag"], ["smaller current", "less current", "current falls"])) ,
+    ])
+    t.extend([
+        mcq("M11L1_M9", "A 24 V source feeds 3 ohm and 9 ohm resistors in series. The current is...", ["2 A", "8 A", "12 A", "3 A"], 0, "Total resistance is 12 ohm, so I = 24/12.", ["equivalent_resistance_confusion"], skill_tags=["series_current_calc"]),
+        mcq("M11L1_M10", "In that same chain, the voltage across the 9 ohm resistor is...", ["18 V", "6 V", "24 V", "9 V"], 0, "Use V = IR = 2 x 9.", ["series_voltage_share_confusion"], skill_tags=["series_voltage_share"]),
+    ])
     return {"d": d, "c": c, "t": t}
 
 
@@ -241,6 +264,18 @@ def parallel_lesson() -> Dict[str, Any]:
         short("M11L2_M7", "What is the cleanest branch-deck summary for voltage and current?", ["Voltage is the same across each branch, while current splits among the branches and adds again at the junction.", "Parallel branches share voltage and split current."], "Use shared-voltage and split-current language.", ["parallel_voltage_confusion", "parallel_current_split_confusion"], skill_tags=["parallel_summary"], acceptance_rules=acceptance_groups(["same voltage", "shared voltage"], ["current", "split", "branch current"], ["add", "rejoin", "sum"])),
         mcq("M11L2_M8", "Best reason a parallel network is often more reliable for separate devices:", ["One branch can fail without automatically opening the others.", "It forces the same current through every device.", "It always gives zero resistance.", "It turns voltage into current at each junction."], 0, "Branch independence is a core practical parallel idea.", ["parallel_current_split_confusion"], skill_tags=["branch_independence"]),
     ]
+    d.extend([
+        mcq("M11L2_D9", "Two equal 6 ohm branches are connected in parallel across a 12 V source. The current in each branch is...", ["2 A", "1 A", "6 A", "12 A"], 0, "Each branch gets the full 12 V, so I = 12/6.", ["parallel_voltage_confusion", "parallel_current_split_confusion"], skill_tags=["parallel_current_calc"]),
+        short("M11L2_D10", "Why can the source current be larger than either single branch current in a parallel network?", ["Because the branch currents add together when they rejoin at the source path.", "Because total current is the sum of the separate branch currents."], "Use add-when-they-rejoin language.", ["parallel_current_split_confusion"], skill_tags=["parallel_current_sum"], acceptance_rules=acceptance_groups(["branch currents", "currents in the branches"], ["add", "sum", "rejoin", "recombine"], ["source current", "total current"])) ,
+    ])
+    c.extend([
+        mcq("M11L2_C7", "A 12 V source feeds branches of 4 ohm and 6 ohm. The total current is...", ["5 A", "2 A", "3 A", "10 A"], 0, "Branch currents are 3 A and 2 A, so total current is 5 A.", ["parallel_voltage_confusion", "parallel_current_split_confusion"], skill_tags=["parallel_current_sum"]),
+        short("M11L2_C8", "Why must the equivalent resistance of a parallel deck be below the smallest branch resistance?", ["Because every added branch gives another path for the current, so the total drag seen by the source becomes smaller than any one branch alone.", "Because the source sees several routes in parallel rather than just one branch."], "Use extra-path and smaller-total-drag language.", ["equivalent_resistance_confusion", "added_branch_raises_resistance_confusion"], skill_tags=["parallel_equivalent"], acceptance_rules=acceptance_groups(["another path", "extra path", "several routes", "parallel"], ["smaller", "lower"], ["equivalent resistance", "total drag"], ["than the smallest branch", "than one branch alone"])) ,
+    ])
+    t.extend([
+        mcq("M11L2_M9", "A 12 V source feeds 4 ohm and 12 ohm branches in parallel. The equivalent resistance is...", ["3 ohm", "16 ohm", "4 ohm", "8 ohm"], 0, "The branch currents are 3 A and 1 A, so total current is 4 A and Req = 12/4 = 3 ohm.", ["equivalent_resistance_confusion"], skill_tags=["parallel_equivalent"]),
+        mcq("M11L2_M10", "For that same network, the total current from the source is...", ["4 A", "3 A", "1 A", "12 A"], 0, "Add the 3 A and 1 A branch currents.", ["parallel_current_split_confusion"], skill_tags=["parallel_current_sum"]),
+    ])
     return {"d": d, "c": c, "t": t}
 
 
@@ -273,6 +308,18 @@ def power_lesson() -> Dict[str, Any]:
         short("M11L3_M7", "Why can the same series current pass two lamps even when one has a larger power?", ["Because power depends on both current and voltage drop, so the lamp with the larger voltage drop can have the larger power even at the same current.", "Because same current does not force same power if the voltage drops differ."], "Use same-current different-voltage-drop language.", ["power_current_confusion", "series_voltage_share_confusion"], skill_tags=["power_compare"], acceptance_rules=acceptance_groups(["same current"], ["voltage drop", "potential difference"], ["different", "larger"], ["power"])),
         mcq("M11L3_M8", "Best summary of component power:", ["power is the energy transfer rate at the component", "power is the charge stored in the source", "power is identical to current", "power is how many branches there are"], 0, "That is the clean summary.", ["power_energy_confusion"], skill_tags=["power_definition"]),
     ]
+    d.extend([
+        mcq("M11L3_D9", "A component transfers 30 J of energy each second. Its power is...", ["30 W", "30 V", "30 A", "1/30 W"], 0, "Power is energy transferred per second.", ["power_energy_confusion"], skill_tags=["power_unit"]),
+        short("M11L3_D10", "Why does the statement '1 W = 1 J/s' matter in circuit reasoning?", ["Because it shows that power tells you how much energy is transferred each second.", "Because watts are joules per second, so power is a rate of energy transfer."], "Use joules-per-second language.", ["power_energy_confusion"], skill_tags=["power_unit"], acceptance_rules=acceptance_groups(["1 watt", "w"], ["1 joule per second", "joules per second", "j/s"], ["energy"], ["each second", "rate", "transferred"])) ,
+    ])
+    c.extend([
+        mcq("M11L3_C7", "A lamp is rated at 24 W and has 12 V across it. The current is...", ["2 A", "12 A", "24 A", "0.5 A"], 0, "Use I = P/V = 24/12.", ["power_current_confusion"], skill_tags=["power_calculation"]),
+        short("M11L3_C8", "Why can two devices have the same power even when their currents are different?", ["Because power depends on both current and voltage, so a different voltage can balance a different current.", "Because the same energy-transfer rate can come from different I and V combinations."], "Use both-current-and-voltage language.", ["power_current_confusion"], skill_tags=["power_compare"], acceptance_rules=acceptance_groups(["power"], ["current", "different currents"], ["voltage", "different voltage"], ["same rate", "same energy transfer", "balance"])) ,
+    ])
+    t.extend([
+        mcq("M11L3_M9", "A heater transfers 18 J each second. Its power is...", ["18 W", "18 V", "18 A", "1.8 W"], 0, "Power is joules per second.", ["power_energy_confusion"], skill_tags=["power_unit"]),
+        mcq("M11L3_M10", "A device runs at 12 W while 3 A flows through it. The voltage across it is...", ["4 V", "36 V", "9 V", "0.25 V"], 0, "Use V = P/I = 12/3.", ["power_current_confusion"], skill_tags=["power_calculation"]),
+    ])
     return {"d": d, "c": c, "t": t}
 
 
@@ -305,6 +352,18 @@ def route_map_lesson() -> Dict[str, Any]:
         short("M11L4_M7", "How does route-map reading prepare you for circuit calculations?", ["It helps you identify the series and parallel structure before you calculate anything.", "It shows which parts share one path and which parts share the same two junctions."], "Use identify-structure-first language.", ["diagram_picture_confusion", "mixed_network_reduction_confusion"], skill_tags=["diagram_connections"], acceptance_rules=acceptance_groups(["series", "parallel", "structure"], ["identify", "see", "spot"], ["before", "first"], ["calculate", "reduction"])) ,
         mcq("M11L4_M8", "Best summary of route maps:", ["They are symbolic network maps, not realistic pictures.", "They are only useful after you know the answer.", "They show how current gets used up.", "They force every circuit to be series."], 0, "That is the route-map summary.", ["diagram_picture_confusion"], skill_tags=["diagram_meaning"]),
     ]
+    d.extend([
+        mcq("M11L4_D9", "A route map shows a 4 ohm resistor in series with a parallel pair of 8 ohm and 8 ohm. The best first reduction is to...", ["reduce the 8 ohm branch pair to 4 ohm", "add all three resistors to get 20 ohm", "ignore the branch pair and calculate current first", "treat every resistor as if it had the same current"], 0, "The same-two-junction branch pair is the first valid block.", ["diagram_picture_confusion", "mixed_network_reduction_confusion"], skill_tags=["diagram_connections"]),
+        short("M11L4_D10", "Why is redrawing a circuit after one valid reduction a useful step?", ["Because the redraw makes the new simpler series or parallel structure easier to see and stops you combining the wrong parts.", "Because each redraw shows the next valid block clearly."], "Use redraw-and-see-the-new-structure language.", ["mixed_network_reduction_confusion"], skill_tags=["diagram_connections"], acceptance_rules=acceptance_groups(["redraw", "draw again"], ["simpler structure", "next structure", "new structure"], ["see", "identify", "clear"], ["valid block", "wrong parts", "combine"])) ,
+    ])
+    c.extend([
+        mcq("M11L4_C7", "An 8 ohm and 8 ohm branch pair has been reduced to 4 ohm. If that 4 ohm block is in series with another 4 ohm resistor, the total is...", ["8 ohm", "4 ohm", "16 ohm", "2 ohm"], 0, "Once the branch pair becomes 4 ohm, the remaining series step is 4 + 4.", ["mixed_network_reduction_confusion"], skill_tags=["mixed_network_calc"]),
+        short("M11L4_C8", "Why can a neat schematic support calculations better than a realistic sketch?", ["Because it makes the valid series and parallel sections visible before you start any calculations.", "Because the symbolic map reveals the actual connection pattern that the algebra must follow."], "Use valid-sections-before-calculations language.", ["diagram_picture_confusion", "mixed_network_reduction_confusion"], skill_tags=["diagram_connections"], acceptance_rules=acceptance_groups(["series", "parallel", "valid sections", "connection pattern"], ["visible", "clear", "reveals"], ["before", "start"], ["calculations", "algebra"])) ,
+    ])
+    t.extend([
+        mcq("M11L4_M9", "A route map shows a 12 V source feeding a 2 ohm resistor in series with a parallel pair of 3 ohm and 6 ohm. The first reduction gives...", ["2 ohm for the branch pair", "9 ohm for the branch pair", "3 ohm for the branch pair", "6 ohm for the branch pair"], 0, "The 3 ohm and 6 ohm pair reduce to 2 ohm in parallel.", ["mixed_network_reduction_confusion"], skill_tags=["mixed_network_calc"]),
+        mcq("M11L4_M10", "For that same route map, the total current from the 12 V source is...", ["3 A", "6 A", "2 A", "12 A"], 0, "The total resistance is 2 ohm + 2 ohm = 4 ohm, so I = 12/4.", ["mixed_network_reduction_confusion"], skill_tags=["mixed_network_calc"]),
+    ])
     return {"d": d, "c": c, "t": t}
 
 
@@ -337,6 +396,18 @@ def safety_lesson() -> Dict[str, Any]:
         short("M11L5_M7", "Why is 'more voltage is the only thing that makes a circuit dangerous' incomplete?", ["Because dangerous current and heating can also come from low resistance and fault paths.", "Because overloads and short circuits matter, not voltage alone."], "Use low-resistance and overload language.", ["safety_voltage_only_confusion", "short_circuit_confusion"], skill_tags=["safety_reasoning"], acceptance_rules=acceptance_groups(["not only", "not just", "incomplete"], ["voltage"], ["current", "overload", "short circuit", "low resistance", "heating"])) ,
         mcq("M11L5_M8", "Best final safety summary:", ["shorts and overloads are dangerous because they can drive large current, so guard links and insulation matter", "all safety comes only from using tiny batteries", "fuses work best when placed in parallel", "safety has nothing to do with resistance"], 0, "That is the full safety summary.", ["safety_voltage_only_confusion", "short_circuit_confusion", "fuse_parallel_confusion"], skill_tags=["safety_summary"]),
     ]
+    d.extend([
+        mcq("M11L5_D9", "A 12 V source accidentally drives current through a 2 ohm fault path. The current is...", ["6 A", "2 A", "24 A", "0.17 A"], 0, "Use I = V/R = 12/2.", ["short_circuit_confusion"], skill_tags=["short_circuit_risk"]),
+        mcq("M11L5_D10", "A 3 A fuse is protecting that path. It should...", ["open because 6 A is above its rating", "stay closed because current is always safe in faults", "raise the voltage to stop the current", "move into parallel automatically"], 0, "The guard link should interrupt current above its safe rating.", ["fuse_parallel_confusion", "short_circuit_confusion"], skill_tags=["fuse_role"]),
+    ])
+    c.extend([
+        mcq("M11L5_C7", "If a 12 V source drives current through a 4 ohm fault path, the current is...", ["3 A", "4 A", "12 A", "48 A"], 0, "Use I = V/R = 12/4.", ["short_circuit_confusion"], skill_tags=["short_circuit_risk"]),
+        short("M11L5_C8", "Why does lowering the resistance of a fault path raise the heating risk even if the battery is unchanged?", ["Because the lower resistance lets a larger current flow, and that larger current can cause more energy dissipation in the wires.", "Because the same source can drive a much bigger current through the shortcut path."], "Use lower-resistance larger-current heating language.", ["short_circuit_confusion", "safety_voltage_only_confusion"], skill_tags=["overload_heating"], acceptance_rules=acceptance_groups(["lower resistance", "smaller resistance", "fault path"], ["larger current", "more current", "current rises"], ["heating", "overheat", "more energy dissipation"])) ,
+    ])
+    t.extend([
+        mcq("M11L5_M9", "A damaged cable leaves a 1 ohm fault across a 12 V supply. The current is...", ["12 A", "1 A", "6 A", "24 A"], 0, "Use I = V/R = 12/1.", ["short_circuit_confusion"], skill_tags=["short_circuit_risk"]),
+        short("M11L5_M10", "Why is a 5 A fuse more likely to open during that 12 A fault than during a normal 2 A run?", ["Because the fault current is above the fuse rating while the normal current is below it, so the fuse interrupts the unsafe case.", "Because the guard link is designed to break the path only when the current becomes too large."], "Use above-rating and below-rating language.", ["fuse_parallel_confusion", "short_circuit_confusion"], skill_tags=["fuse_role"], acceptance_rules=acceptance_groups(["above", "exceeds", "greater than"], ["fuse rating", "5 a"], ["below", "normal current", "2 a"], ["open", "interrupt", "break the path"])) ,
+    ])
     return {"d": d, "c": c, "t": t}
 
 
@@ -369,6 +440,18 @@ def equivalent_lesson() -> Dict[str, Any]:
         short("M11L6_M7", "Why is equivalent-drag language helpful in the Switchyard model?", ["Because it lets a complicated network be treated as one effective route drag for the source.", "Because the source sees one total drag after the reduction is finished."], "Use one-effective-drag language.", ["equivalent_resistance_confusion"], skill_tags=["equivalent_definition"], acceptance_rules=acceptance_groups(["one", "single", "effective"], ["drag", "resistance"], ["source", "complicated network", "whole network"])) ,
         mcq("M11L6_M8", "Best final summary of mixed-network reduction:", ["identify a valid series or parallel block, reduce it, redraw, and repeat", "multiply every resistor by the battery voltage", "always add all the resistors first", "ignore parallel branches until the end"], 0, "That is the correct reduction workflow.", ["mixed_network_reduction_confusion"], skill_tags=["mixed_reduction_method"]),
     ]
+    d.extend([
+        mcq("M11L6_D9", "Two equal 8 ohm branches in parallel reduce to...", ["4 ohm", "8 ohm", "16 ohm", "2 ohm"], 0, "Equal parallel resistors halve when there are two of them.", ["equivalent_resistance_confusion"], skill_tags=["parallel_resistance_calc"]),
+        mcq("M11L6_D10", "That 4 ohm equivalent in series with a 2 ohm resistor gives a total of...", ["6 ohm", "2 ohm", "8 ohm", "4 ohm"], 0, "Series resistances add.", ["mixed_network_reduction_confusion"], skill_tags=["mixed_network_calc"]),
+    ])
+    c.extend([
+        mcq("M11L6_C7", "A reduced network has a total resistance of 6 ohm on a 12 V source. The total current is...", ["2 A", "6 A", "0.5 A", "18 A"], 0, "Use I = V/R = 12/6.", ["equivalent_resistance_confusion"], skill_tags=["mixed_network_calc"]),
+        short("M11L6_C8", "Why must the total current step wait until the full equivalent resistance is known?", ["Because the source current depends on the resistance of the whole network, not just one unfinished section.", "Because only the final single effective resistance tells you the total load seen by the source."], "Use whole-network-load language.", ["equivalent_resistance_confusion", "mixed_network_reduction_confusion"], skill_tags=["equivalent_definition"], acceptance_rules=acceptance_groups(["whole network", "full network", "total load"], ["final", "single", "effective"], ["resistance"], ["total current", "source current"])) ,
+    ])
+    t.extend([
+        mcq("M11L6_M9", "A 16 V source feeds a 4 ohm resistor in series with a parallel pair of 8 ohm and 8 ohm. The total resistance is...", ["8 ohm", "12 ohm", "4 ohm", "16 ohm"], 0, "The 8 ohm parallel pair becomes 4 ohm, then 4 ohm + 4 ohm = 8 ohm.", ["mixed_network_reduction_confusion"], skill_tags=["mixed_network_calc"]),
+        mcq("M11L6_M10", "For that same network, the total current is...", ["2 A", "4 A", "8 A", "0.5 A"], 0, "Use I = V/R = 16/8.", ["equivalent_resistance_confusion"], skill_tags=["mixed_network_calc"]),
+    ])
     return {"d": d, "c": c, "t": t}
 
 
