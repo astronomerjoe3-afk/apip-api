@@ -13,6 +13,7 @@ from scripts.seed_m5_module import M5_LESSONS, M5_MODULE_DOC, M5_SIM_LABS
 from scripts.seed_m6_module import M6_LESSONS, M6_MODULE_DOC, M6_SIM_LABS
 from scripts.seed_m7_module import M7_LESSONS, M7_MODULE_DOC, M7_SIM_LABS
 from scripts.seed_m8_module import M8_LESSONS, M8_MODULE_DOC, M8_SIM_LABS
+from scripts.seed_m9_module import M9_LESSONS, M9_MODULE_DOC, M9_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -415,9 +416,10 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(diagnostic_items), 8)
             self.assertGreaterEqual(len(concept_checks), 6)
             self.assertGreaterEqual(len(transfer_items), 8)
-            self.assertEqual(len(contract["visual_assets"]), 1)
+            expected_visual_count = 5 if lesson["lesson_id"] == "M8_L1" else 1
+            self.assertEqual(len(contract["visual_assets"]), expected_visual_count)
             self.assertEqual(len(contract["animation_assets"]), 1)
-            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), expected_visual_count)
             self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
@@ -438,6 +440,16 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertTrue(scaffold_support["reasoning"])
             self.assertTrue(scaffold_support["common_trap"])
             self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
+
+            if lesson["lesson_id"] == "M8_L1":
+                diagram_ids = {asset["asset_id"] for asset in lesson["generated_assets"]["diagrams"]}
+                self.assertIn("m8-l1-surface-conversion", diagram_ids)
+                self.assertIn("m8-l1-ghost-image", diagram_ids)
+                plane_mirror_assets = {
+                    asset["asset_id"]: asset["meta"]["system_type"]
+                    for asset in lesson["generated_assets"]["diagrams"]
+                }
+                self.assertEqual(set(plane_mirror_assets.values()), {"plane_mirror"})
 
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])
@@ -566,6 +578,104 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIn("plane mirror", mastery_prompts)
         self.assertIn("converging lens", mastery_prompts)
         self.assertIn("diverging-lens", mastery_prompts)
+
+    def test_m9_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(M9_MODULE_DOC["id"], "M9")
+        self.assertEqual(M9_MODULE_DOC["title"], "Sound")
+        self.assertEqual(M9_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(M9_LESSONS), 6)
+        self.assertEqual(len(M9_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M9_LESSONS],
+            ["M9_L1", "M9_L2", "M9_L3", "M9_L4", "M9_L5", "M9_L6"],
+        )
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in M9_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            scaffold_support = contract["scaffold_support"]
+            self.assertTrue(scaffold_support["core_idea"])
+            self.assertTrue(scaffold_support["reasoning"])
+            self.assertTrue(scaffold_support["common_trap"])
+            self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
+
+            for example in contract["worked_examples"]:
+                self.assertTrue(example["answer_reason"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
+    def test_m9_curriculum_scope_stays_on_sound(self) -> None:
+        mastery_text = " ".join(M9_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M9_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("sound production", description_text)
+        self.assertIn("compressions", description_text)
+        self.assertIn("frequency", description_text)
+        self.assertIn("pitch", description_text)
+        self.assertIn("ultrasound", description_text)
+        self.assertIn("pitch", mastery_text)
+        self.assertIn("ultrasound", mastery_text)
+        self.assertIn("doppler", mastery_text)
+        self.assertNotIn("current", mastery_text)
+        self.assertNotIn("mirror", mastery_text)
+        self.assertNotIn("latent heat", mastery_text)
+
+    def test_m9_l5_and_l6_keep_echo_depth_and_doppler_flow_explicit(self) -> None:
+        echo_lesson = next(payload for lesson_id, payload in M9_LESSONS if lesson_id == "M9_L5")
+        doppler_lesson = next(payload for lesson_id, payload in M9_LESSONS if lesson_id == "M9_L6")
+        echo_contract = echo_lesson["authoring_contract"]
+        doppler_contract = doppler_lesson["authoring_contract"]
+        echo_mastery = " ".join(str(item.get("prompt") or "") for item in echo_lesson["phases"]["transfer"]["items"]).lower()
+        doppler_mastery = " ".join(str(item.get("prompt") or "") for item in doppler_lesson["phases"]["transfer"]["items"]).lower()
+
+        self.assertEqual(echo_contract["simulation_contract"]["concept"], "echo_imaging")
+        self.assertIn("divide by two", echo_contract["simulation_contract"]["takeaway"].lower())
+        self.assertIn("many echoes", " ".join(echo_contract["reflection_prompts"]).lower())
+        self.assertIn("return time", echo_mastery)
+        self.assertIn("doppler", " ".join(doppler_contract["reflection_prompts"]).lower())
+        self.assertIn("higher returned frequency", doppler_mastery)
+        self.assertIn("moving away", doppler_mastery)
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
