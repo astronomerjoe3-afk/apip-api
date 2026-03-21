@@ -28,6 +28,7 @@ _MODULE_IMPORT_SPECS = (
     ("M12", "scripts.seed_m12_module", "M12_CONTENT_VERSION", "M12_MODULE_DOC", "M12_LESSONS", "M12_SIM_LABS"),
     ("M13", "scripts.seed_m13_module", "M13_CONTENT_VERSION", "M13_MODULE_DOC", "M13_LESSONS", "M13_SIM_LABS"),
     ("A1", "scripts.seed_a1_module", "A1_CONTENT_VERSION", "A1_MODULE_DOC", "A1_LESSONS", "A1_SIM_LABS"),
+    ("A2", "scripts.seed_a2_module", "A2_CONTENT_VERSION", "A2_MODULE_DOC", "A2_LESSONS", "A2_SIM_LABS"),
     ("A3", "scripts.seed_a3_module", "A3_CONTENT_VERSION", "A3_MODULE_DOC", "A3_LESSONS", "A3_SIM_LABS"),
 )
 
