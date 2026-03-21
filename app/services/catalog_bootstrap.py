@@ -30,6 +30,7 @@ _MODULE_IMPORT_SPECS = (
     ("A1", "scripts.seed_a1_module", "A1_CONTENT_VERSION", "A1_MODULE_DOC", "A1_LESSONS", "A1_SIM_LABS"),
     ("A2", "scripts.seed_a2_module", "A2_CONTENT_VERSION", "A2_MODULE_DOC", "A2_LESSONS", "A2_SIM_LABS"),
     ("A3", "scripts.seed_a3_module", "A3_CONTENT_VERSION", "A3_MODULE_DOC", "A3_LESSONS", "A3_SIM_LABS"),
+    ("A4", "scripts.seed_a4_module", "A4_CONTENT_VERSION", "A4_MODULE_DOC", "A4_LESSONS", "A4_SIM_LABS"),
 )
 
 _MODULE_IMPORT_INDEX = {module_id: spec for module_id, *spec in _MODULE_IMPORT_SPECS}

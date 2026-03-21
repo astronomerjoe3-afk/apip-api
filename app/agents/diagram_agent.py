@@ -8,6 +8,7 @@ from app.agents.electromagnetism_diagram_agent import generate_electromagnetism_
 from app.agents.optics_ray_diagram_agent import generate_optics_ray_diagram
 from app.agents.physics_graph_agent import generate_physics_graph
 from app.agents.radioactivity_diagram_agent import generate_radioactivity_diagram
+from app.agents.thermal_statmech_diagram_agent import generate_thermal_statmech_diagram
 from app.agents.wave_diagram_agent import generate_wave_diagram
 from app.lesson_pipeline.contracts import DiagramRequest, GeneratedAsset
 
@@ -550,6 +551,20 @@ def generate_diagram(
         "atomic_physics",
     }:
         return generate_radioactivity_diagram(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "thermal_statmech_diagram" or req.concept in {
+        "thermal_statmech_diagram",
+        "thermal_statmech",
+        "ideal_gas",
+        "entropy_diagram",
+    }:
+        return generate_thermal_statmech_diagram(
             req=req,
             output_dir=output_dir,
             public_base=public_base,
