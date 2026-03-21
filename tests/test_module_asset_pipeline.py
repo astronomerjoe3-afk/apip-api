@@ -22,6 +22,7 @@ from scripts.seed_m12_module import M12_LESSONS, M12_MODULE_DOC, M12_SIM_LABS
 from scripts.seed_m13_module import M13_LESSONS, M13_MODULE_DOC, M13_SIM_LABS
 from scripts.seed_a1_module import A1_LESSONS, A1_MODULE_DOC, A1_SIM_LABS
 from scripts.seed_a2_module import A2_LESSONS, A2_MODULE_DOC, A2_SIM_LABS
+from scripts.seed_a3_module import A3_LESSONS, A3_MODULE_DOC, A3_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -48,6 +49,14 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "A2")
         self.assertEqual(row["title"], "Advanced Electricity")
+
+    def test_catalog_bootstrap_includes_a3_bundle(self) -> None:
+        self.assertIn("A3", get_catalog_module_ids())
+
+        row = get_catalog_module_row("A3")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["id"], "A3")
+        self.assertEqual(row["title"], "Fields & Electromagnetic Theory")
 
     def test_builder_question_accepts_type_field_for_mcq_specs(self) -> None:
         question = _question(
@@ -1244,6 +1253,107 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         explanation_tokens = ("why", "explain", "describe", "which statement", "best summary", "correction")
 
         for lesson_id, lesson in A2_LESSONS:
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            mastery_items = lesson["phases"]["transfer"]["items"]
+            all_items = [*diagnostic_items, *concept_checks, *mastery_items]
+            prompts = [str(item.get("prompt") or "").lower() for item in all_items]
+
+            short_count = sum(1 for item in all_items if item.get("type") == "short")
+            quantitative_count = sum(1 for prompt in prompts if any(token in prompt for token in quantitative_tokens) or any(ch.isdigit() for ch in prompt))
+            explanation_count = sum(1 for prompt in prompts if any(token in prompt for token in explanation_tokens))
+            mastery_short_count = sum(1 for item in mastery_items if item.get("type") == "short")
+
+            self.assertGreaterEqual(short_count, 2, lesson_id)
+            self.assertGreaterEqual(quantitative_count, 4, lesson_id)
+            self.assertGreaterEqual(explanation_count, 3, lesson_id)
+            self.assertGreaterEqual(mastery_short_count, 1, lesson_id)
+
+    def test_a3_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(A3_MODULE_DOC["id"], "A3")
+        self.assertEqual(A3_MODULE_DOC["title"], "Fields & Electromagnetic Theory")
+        self.assertEqual(A3_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(A3_LESSONS), 6)
+        self.assertEqual(len(A3_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in A3_LESSONS],
+            ["A3_L1", "A3_L2", "A3_L3", "A3_L4", "A3_L5", "A3_L6"],
+        )
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in A3_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 0)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 0)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 2)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 2)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            representation_kinds = {item["kind"] for item in contract["representations"]}
+            self.assertIn("words", representation_kinds)
+            self.assertIn("formula", representation_kinds)
+            self.assertTrue(any(kind in {"diagram", "graph", "table", "model", "equation_story"} for kind in representation_kinds))
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
+    def test_a3_curriculum_scope_stays_on_fields_and_electromagnetic_theory(self) -> None:
+        mastery_text = " ".join(A3_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(A3_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("magnetic flux", mastery_text)
+        self.assertIn("induction", mastery_text)
+        self.assertIn("lenz", mastery_text)
+        self.assertIn("rms", mastery_text)
+        self.assertIn("thread-window", description_text)
+        self.assertNotIn("projectile", mastery_text)
+        self.assertNotIn("radioactivity", mastery_text)
+        self.assertNotIn("ultrasound", mastery_text)
+
+    def test_a3_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
+        quantitative_tokens = ("wb", "v", "hz", "period", "frequency", "rms", "peak", "flux", "linkage", "turn", "coil")
+        explanation_tokens = ("why", "explain", "describe", "which statement", "best summary", "correction")
+
+        for lesson_id, lesson in A3_LESSONS:
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             mastery_items = lesson["phases"]["transfer"]["items"]

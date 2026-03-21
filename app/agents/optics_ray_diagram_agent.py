@@ -200,6 +200,11 @@ def _arc(
     )
 
 
+def _connector(points: list[tuple[float, float]], *, stroke: str, stroke_width: int = 3) -> str:
+    pts = " ".join(f"{x:.2f},{y:.2f}" for x, y in points)
+    return f'<polyline points="{pts}" fill="none" stroke="{stroke}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" />'
+
+
 def _mirror_distance_tick(x: float, y1: float, y2: float, *, stroke: str) -> str:
     return "".join(
         [
@@ -681,10 +686,38 @@ def _draw_plane_mirror_scene(spec: OpticsRayDiagramSpec, width: int, height: int
     if spec.annotation_mode == "surface_conversion":
         theta = spec.guide_line_angle_deg
         surface = spec.surface_angle_deg
-        parts.append(_arc(mirror_x, hit_y, 60.0, 180.0, 180.0 + theta, stroke="#22c55e", stroke_width=4))
-        parts.append(_arc(mirror_x, hit_y, 34.0, 270.0 - surface, 270.0, stroke="#ef4444", stroke_width=4))
-        parts.append(_text(mirror_x - 144.0, hit_y - 86.0, f"{int(round(theta))} deg to Guide Line", fill="#86efac", size=16, anchor="start", weight="bold"))
-        parts.append(_text(mirror_x - 168.0, hit_y + 64.0, f"{int(round(surface))} deg to surface", fill="#fca5a5", size=16, anchor="start", weight="bold"))
+        guide_radius = 78.0
+        surface_radius = 52.0
+        guide_mid = 180.0 + (theta / 2.0)
+        surface_mid = 270.0 - (surface / 2.0)
+
+        guide_anchor = _point_on_circle(mirror_x, hit_y, guide_radius, guide_mid)
+        surface_anchor = _point_on_circle(mirror_x, hit_y, surface_radius, surface_mid)
+
+        parts.append(_arc(mirror_x, hit_y, guide_radius, 180.0, 180.0 + theta, stroke="#22c55e", stroke_width=5))
+        parts.append(_arc(mirror_x, hit_y, surface_radius, 270.0 - surface, 270.0, stroke="#ef4444", stroke_width=5))
+        parts.append(
+            _connector(
+                [
+                    (guide_anchor[0] - 8.0, guide_anchor[1] - 10.0),
+                    (mirror_x - 122.0, hit_y - 124.0),
+                    (mirror_x - 232.0, hit_y - 124.0),
+                ],
+                stroke="#22c55e",
+            )
+        )
+        parts.append(
+            _connector(
+                [
+                    (surface_anchor[0] + 10.0, surface_anchor[1] - 4.0),
+                    (mirror_x + 84.0, hit_y - 54.0),
+                    (mirror_x + 176.0, hit_y - 54.0),
+                ],
+                stroke="#ef4444",
+            )
+        )
+        parts.append(_text(mirror_x - 236.0, hit_y - 132.0, f"{int(round(theta))} deg to Guide Line", fill="#86efac", size=17, anchor="start", weight="bold"))
+        parts.append(_text(mirror_x + 180.0, hit_y - 62.0, f"{int(round(surface))} deg to surface", fill="#fca5a5", size=17, anchor="start", weight="bold"))
         parts.append(_text(mirror_x + 28.0, hit_y + 104.0, "surface + Guide Line = 90 deg", fill="#cbd5e1", size=15, anchor="start"))
 
     if spec.annotation_mode in {"ghost_image", "bounce_panel"}:
