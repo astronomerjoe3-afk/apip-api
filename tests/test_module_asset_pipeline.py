@@ -23,6 +23,7 @@ from scripts.seed_m13_module import M13_LESSONS, M13_MODULE_DOC, M13_SIM_LABS
 from scripts.seed_a1_module import A1_LESSONS, A1_MODULE_DOC, A1_SIM_LABS
 from scripts.seed_a2_module import A2_LESSONS, A2_MODULE_DOC, A2_SIM_LABS
 from scripts.seed_a3_module import A3_LESSONS, A3_MODULE_DOC, A3_SIM_LABS
+from scripts.seed_a5_module import A5_LESSONS, A5_MODULE_DOC, A5_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -57,6 +58,40 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "A3")
         self.assertEqual(row["title"], "Fields & Electromagnetic Theory")
+
+    def test_catalog_bootstrap_includes_a5_bundle(self) -> None:
+        self.assertIn("A5", get_catalog_module_ids())
+
+        row = get_catalog_module_row("A5")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["id"], "A5")
+        self.assertEqual(row["title"], "Modern Physics")
+
+    def test_a5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(A5_MODULE_DOC["id"], "A5")
+        self.assertEqual(A5_MODULE_DOC["title"], "Modern Physics")
+        self.assertEqual(len(A5_LESSONS), 6)
+        self.assertEqual(len(A5_SIM_LABS), 6)
+
+        for _, lesson in A5_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
 
     def test_builder_question_accepts_type_field_for_mcq_specs(self) -> None:
         question = _question(
