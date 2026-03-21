@@ -14,6 +14,7 @@ import app.routers.progress as progress
 import app.routers.student_progression as student_progression
 import app.routers.student_runner as student_runner
 import app.routers.system as system
+from app.core.config import settings
 from app.middleware.request_id import RequestIDMiddleware
 from app.services.catalog_bootstrap import ensure_catalog_seeded
 from app.services.monetization_service import ensure_monetization_seeded
