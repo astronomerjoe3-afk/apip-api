@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 A5_MODULE_ID = "A5"
-A5_CONTENT_VERSION = "20260322_a5_packet_pattern_frame_v1"
+A5_CONTENT_VERSION = "20260322_a5_packet_pattern_frame_v2"
 A5_MODULE_TITLE = "Modern Physics"
 A5_ALLOWLIST = [
     "brightness_beats_threshold_confusion",
@@ -507,10 +507,10 @@ def lesson_one() -> Dict[str, Any]:
                 relation("E = h f", "Photon energy relation.", ["J"], "Use to connect frequency to the energy of each photon."),
             ],
             representations=[
-                representation("threshold diagram", "Shows a gate with a minimum per-packet energy."),
+                representation("diagram", "Shows a gate with a minimum per-packet energy."),
                 representation("words", "Explains frequency as packet grade and intensity as packet count."),
-                representation("comparison table", "Contrasts below-threshold and above-threshold beams."),
-                representation("cause chain", "Links packet grade -> gate outcome -> emission."),
+                representation("table", "Contrasts below-threshold and above-threshold beams."),
+                representation("formula", "Uses E = h f to link packet grade to photon energy at the release gate."),
             ],
             analogy_map=packet_pattern_frame_map("the learner tests whether packets can beat the release gate"),
             worked_examples=[
@@ -746,10 +746,10 @@ def lesson_two() -> Dict[str, Any]:
                 relation("Kmax = h f - phi", "Rearranged maximum kinetic energy relation.", ["J"], "Valid only above threshold frequency."),
             ],
             representations=[
-                representation("equation story", "Tracks incoming photon energy, unlock toll, and leftover kick."),
+                representation("formula", "Uses h f = phi + Kmax as the energy-bookkeeping rule."),
                 representation("graph", "Shows Kmax rising with frequency above threshold."),
-                representation("threshold edge case", "Shows Kmax = 0 when frequency is exactly at threshold."),
-                representation("comparison table", "Contrasts frequency changes with intensity changes."),
+                representation("words", "Explains threshold as the zero-leftover edge case and separates frequency from intensity."),
+                representation("table", "Contrasts frequency changes with intensity changes."),
             ],
             analogy_map=packet_pattern_frame_map("the learner tracks where photon energy goes after a release-gate success"),
             worked_examples=[
@@ -985,10 +985,10 @@ def lesson_three() -> Dict[str, Any]:
                 relation("lambda = h / p", "de Broglie wavelength relation.", ["m"], "Use for moving matter particles as well as in conceptual wavelength comparisons."),
             ],
             representations=[
-                representation("dot map", "Shows single localized detections."),
-                representation("distribution map", "Shows the built-up pattern from many events."),
-                representation("diffraction comparison", "Compares particle hits with the wave-like distribution they build."),
-                representation("equation story", "Links increasing momentum to decreasing wavelength."),
+                representation("diagram", "Shows single localized detections appearing as discrete hit dots."),
+                representation("model", "Shows the built-up probability pattern formed by many hit events."),
+                representation("words", "Explains why localized detections and wave-like distributions must be kept together."),
+                representation("formula", "Uses de Broglie's relation to link increasing momentum to decreasing wavelength."),
             ],
             analogy_map=packet_pattern_frame_map("the learner builds a pattern map from repeated hit dots"),
             worked_examples=[
@@ -1224,10 +1224,10 @@ def lesson_four() -> Dict[str, Any]:
                 relation("Delta E = Delta m c^2", "Mass-energy relation for a mass change.", ["J"], "Use when a rest-mass difference is converted to or from energy."),
             ],
             representations=[
-                representation("bundle comparison", "Shows before-and-after nuclei with different binding tightness."),
-                representation("mass-energy ledger", "Tracks mass difference and the associated energy change."),
+                representation("diagram", "Shows before-and-after nuclei with different binding tightness."),
+                representation("table", "Tracks mass difference and the associated energy change as a ledger."),
                 representation("words", "Separates nuclear binding from chemical bonding."),
-                representation("cause chain", "Links tighter binding -> lower mass-energy -> release."),
+                representation("formula", "Uses Delta E = Delta m c^2 to connect mass defect to released energy."),
             ],
             analogy_map=packet_pattern_frame_map("the learner compares core bundles before and after a nuclear rearrangement"),
             worked_examples=[
@@ -1462,10 +1462,10 @@ def lesson_five() -> Dict[str, Any]:
                 relation("Delta t = gamma Delta tau", "Time-dilation relation.", ["s"], "Delta tau is proper time measured in the rest frame of the clock."),
             ],
             representations=[
-                representation("light-clock diagram", "Shows diagonal light path in the moving-frame view."),
-                representation("frame comparison", "Compares proper time and dilated time."),
+                representation("diagram", "Shows diagonal light path in the moving-frame view."),
+                representation("table", "Compares proper time and dilated time across frames."),
                 representation("words", "Explains time dilation as a frame effect rather than a mechanical fault."),
-                representation("gamma table", "Shows stronger effects as speed approaches c."),
+                representation("formula", "Uses Delta t = gamma Delta tau to quantify time dilation."),
             ],
             analogy_map=packet_pattern_frame_map("the learner compares tick counts in different moving frame pods"),
             worked_examples=[
@@ -1702,10 +1702,10 @@ def lesson_six() -> Dict[str, Any]:
                 relation("Delta E = Delta m c^2", "Mass-energy relation revisited.", ["J"], "Included here to connect the frame layer back to the core-bundle layer."),
             ],
             representations=[
-                representation("rod comparison", "Shows proper length beside contracted length."),
-                representation("event map", "Shows two events judged simultaneous in one frame but not another."),
+                representation("diagram", "Shows proper length beside contracted length and the simultaneity comparison."),
+                representation("model", "Shows two events judged simultaneous in one frame but not another."),
                 representation("words", "Explains why one universal now-map cannot survive invariant c."),
-                representation("concept bridge", "Links relativity and mass-energy through the same constant c."),
+                representation("formula", "Uses L = L0 / gamma and revisits Delta E = Delta m c^2 through the shared role of c."),
             ],
             analogy_map=packet_pattern_frame_map("the learner compares length and simultaneity maps across moving frame pods"),
             worked_examples=[
