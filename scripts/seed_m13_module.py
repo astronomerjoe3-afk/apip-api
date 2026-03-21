@@ -521,3 +521,154 @@ def background_lesson() -> Dict[str, Any]:
             visual_clarity_checks=visual_checks("ambient-buzz"),
         ),
     )
+
+
+def ledger_lesson() -> Dict[str, Any]:
+    d = [
+        mcq("M13L6_D1", "The Vault Ledger stands for...", ["the decay equation", "the orbit ring", "background radiation only", "a shielding sheet"], 0, "The ledger is the before-and-after decay record.", ["decay_equation_balance_confusion"], skill_tags=["balance_decay_equation"]),
+        mcq("M13L6_D2", "In any decay equation, which two totals must balance across the arrow?", ["atomic number and mass number", "electron number and color", "half-life and background", "shielding and time"], 0, "Badge count and total core-piece count must balance.", ["decay_equation_balance_confusion"], skill_tags=["balance_decay_equation"]),
+        mcq("M13L6_D3", "After alpha decay, the daughter nucleus has...", ["atomic number 2 less and mass number 4 less", "atomic number 1 more and mass number unchanged", "both numbers unchanged", "mass number 2 less and atomic number 4 less"], 0, "Alpha removes 2 protons and 2 neutrons.", ["alpha_beta_gamma_mixup", "decay_equation_balance_confusion"], skill_tags=["alpha_ledger"]),
+        mcq("M13L6_D4", "After beta-minus decay, the daughter nucleus has...", ["atomic number 1 more and mass number unchanged", "atomic number 2 less and mass number 4 less", "both numbers unchanged", "mass number 1 less and atomic number unchanged"], 0, "Beta-minus raises Z by 1 while A stays the same.", ["beta_mass_number_confusion", "decay_equation_balance_confusion"], skill_tags=["beta_ledger"]),
+        mcq("M13L6_D5", "After gamma decay, the daughter nucleus has...", ["the same atomic number and the same mass number", "atomic number 1 more", "mass number 4 less", "a different element"], 0, "Gamma changes the energy state only.", ["gamma_changes_numbers_confusion", "decay_equation_balance_confusion"], skill_tags=["gamma_ledger"]),
+        mcq("M13L6_D6", "Which count fixes the element identity in the ledger?", ["atomic number Z", "mass number A only", "half-life", "background count"], 0, "Element identity follows proton number.", ["proton_identity_confusion", "decay_equation_balance_confusion"], skill_tags=["atomic_number"]),
+        short("M13L6_D7", "Why must a nuclear decay equation balance both badge count and total core-piece count?", ["Because proton number and total nucleon number are conserved across the nuclear change.", "Because the daughter nucleus plus emitted radiation must keep the same total atomic number and mass number as the parent."], "Use conserve-and-balance language.", ["decay_equation_balance_confusion"], skill_tags=["balance_decay_equation"], acceptance_rules=acceptance_groups(["balance", "conserve", "same total"], ["atomic number", "badge", "proton"], ["mass number", "total core-piece", "total nucleon"])),
+        short("M13L6_D8", "Why does gamma emission leave the ledger counts unchanged?", ["Because gamma emission releases energy only, so no proton or neutron leaves the nucleus.", "Because gamma changes the energy state without changing atomic number or mass number."], "Use energy-only and unchanged-count language.", ["gamma_changes_numbers_confusion", "decay_equation_balance_confusion"], skill_tags=["gamma_ledger"], acceptance_rules=acceptance_groups(["gamma", "energy", "glow flash"], ["no proton", "no neutron", "no particle"], ["same", "unchanged"], ["atomic number", "mass number", "counts"])) ,
+    ]
+    c = [
+        short("M13L6_C1", "How would you explain the Vault Ledger in one sentence?", ["It is the before-and-after nuclear bookkeeping that keeps atomic number and mass number balanced across the decay.", "It is the decay-equation record that checks whether the nuclear counts still balance after alpha, beta, or gamma emission."], "Use bookkeeping and balancing language.", ["decay_equation_balance_confusion"], skill_tags=["balance_decay_equation"], acceptance_rules=acceptance_groups(["ledger", "bookkeeping", "equation"], ["balance", "conserve"], ["atomic number", "badge"], ["mass number", "total"])) ,
+        mcq("M13L6_C2", "Which statement is strongest?", ["Alpha changes both Z and A, beta-minus changes Z only, and gamma changes neither.", "All three radiation types change both counts.", "Gamma changes the element but not the mass number.", "Beta-minus lowers the mass number by 1."], 0, "Keep the three change rules separate.", ["alpha_beta_gamma_mixup", "beta_mass_number_confusion", "gamma_changes_numbers_confusion"], skill_tags=["balance_decay_equation"]),
+        mcq("M13L6_C3", "Which daughter numbers fit alpha decay from A = 222, Z = 86?", ["A = 218, Z = 84", "A = 222, Z = 87", "A = 218, Z = 86", "A = 220, Z = 84"], 0, "Subtract 4 from A and 2 from Z.", ["decay_equation_balance_confusion"], skill_tags=["alpha_ledger"]),
+        short("M13L6_C4", "Why is it weak to balance only one of the two counts in a decay equation?", ["Because both atomic number and mass number must balance; keeping only one correct is not enough.", "Because the ledger must conserve both the proton count and the total nucleon count together."], "Use both-counts language.", ["decay_equation_balance_confusion"], skill_tags=["balance_decay_equation"], acceptance_rules=acceptance_groups(["both", "two"], ["atomic number", "badge", "proton"], ["mass number", "total"], ["balance", "conserve"])) ,
+        mcq("M13L6_C5", "A nucleus emits beta-minus radiation. If the parent has A = 14 and Z = 6, the daughter has...", ["A = 14 and Z = 7", "A = 10 and Z = 4", "A = 14 and Z = 6", "A = 15 and Z = 6"], 0, "Beta-minus raises Z by 1 and keeps A the same.", ["beta_mass_number_confusion", "decay_equation_balance_confusion"], skill_tags=["beta_ledger"]),
+        short("M13L6_C6", "Why does the element change after alpha or beta-minus but not after gamma?", ["Because alpha and beta-minus change the proton count, while gamma does not.", "Because element identity follows atomic number, and only alpha or beta-minus change Z."], "Connect identity to proton number.", ["gamma_changes_numbers_confusion", "proton_identity_confusion", "decay_equation_balance_confusion"], skill_tags=["atomic_number"], acceptance_rules=acceptance_groups(["element", "identity"], ["proton", "badge", "atomic number", "Z"], ["alpha", "beta"], ["gamma"], ["change", "unchanged"])) ,
+    ]
+    t = [
+        mcq("M13L6_M1", "A nucleus with A = 210 and Z = 84 emits alpha radiation. The daughter nucleus is...", ["A = 206 and Z = 82", "A = 210 and Z = 85", "A = 208 and Z = 84", "A = 206 and Z = 84"], 0, "Alpha removes 2 protons and 2 neutrons.", ["decay_equation_balance_confusion"], skill_tags=["alpha_ledger"]),
+        mcq("M13L6_M2", "A nucleus with A = 90 and Z = 38 emits beta-minus radiation. The daughter nucleus is...", ["A = 90 and Z = 39", "A = 86 and Z = 36", "A = 90 and Z = 38", "A = 91 and Z = 38"], 0, "Beta-minus raises Z by 1 while A stays fixed.", ["beta_mass_number_confusion", "decay_equation_balance_confusion"], skill_tags=["beta_ledger"]),
+        short("M13L6_M3", "A nucleus emits gamma radiation. What should you write for the daughter nucleus in the ledger?", ["Write the same atomic number and the same mass number for the daughter nucleus because gamma changes only the energy state.", "The daughter keeps the same Z and A because gamma does not remove a proton or neutron."], "Use same-Z-and-A language.", ["gamma_changes_numbers_confusion", "decay_equation_balance_confusion"], skill_tags=["gamma_ledger"], acceptance_rules=acceptance_groups(["same", "unchanged"], ["Z", "atomic number", "badge"], ["A", "mass number"], ["gamma"])) ,
+        mcq("M13L6_M4", "Which statement best fixes the mistake 'beta-minus makes A go up because a particle is emitted'?", ["A stays the same because one neutron changes into one proton, so the total nucleon count is unchanged.", "A goes up because the emitted electron adds one more particle.", "A falls by 1 because an electron leaves.", "Both Z and A stay the same in beta-minus."], 0, "The nucleon total is unchanged in beta-minus.", ["beta_mass_number_confusion", "decay_equation_balance_confusion"], skill_tags=["beta_ledger"]),
+        short("M13L6_M5", "Why does alpha decay always lower the mass number by 4?", ["Because an alpha particle contains 2 protons and 2 neutrons, so four nucleons leave the nucleus.", "Because alpha emission removes a 4-nucleon chunk from the parent nucleus."], "Connect alpha to a 4-nucleon cluster.", ["alpha_beta_gamma_mixup", "decay_equation_balance_confusion"], skill_tags=["alpha_ledger"], acceptance_rules=acceptance_groups(["alpha"], ["2 protons", "2 neutrons", "four nucleons", "4"], ["leave", "remove"])) ,
+        mcq("M13L6_M6", "Which pair balances a gamma decay correctly?", ["same A and same Z on both sides, plus gamma emitted", "A - 4 and Z - 2 on the daughter side", "A same and Z + 1 on the daughter side", "different A because energy left"], 0, "Gamma leaves the counts unchanged.", ["gamma_changes_numbers_confusion", "decay_equation_balance_confusion"], skill_tags=["gamma_ledger"]),
+        short("M13L6_M7", "A learner says, 'the daughter can have a different proton number even if the ledger still balances mass number.' What is the correction?", ["The ledger is only correct when both atomic number and mass number balance, so you cannot ignore the proton-number balance.", "Mass-number balance alone is not enough; atomic number must balance too because it tracks the proton count and the element."], "Correct with both-counts language.", ["decay_equation_balance_confusion", "proton_identity_confusion"], skill_tags=["balance_decay_equation"], acceptance_rules=acceptance_groups(["both", "atomic number", "mass number"], ["balance", "conserve"], ["not enough", "cannot ignore"], ["proton", "badge", "element"])) ,
+        mcq("M13L6_M8", "Best summary of Lesson 6:", ["Decay equations work because atomic number and mass number both balance across alpha, beta, and gamma changes.", "Only mass number matters in a decay equation.", "Gamma always changes the element shown in the ledger.", "The ledger is separate from the real nuclear process."], 0, "The ledger is the balancing rule for the real process.", ["decay_equation_balance_confusion", "gamma_changes_numbers_confusion"], skill_tags=["balance_decay_equation"]),
+    ]
+    return lesson_spec(
+        "M13_L6",
+        "Vault Ledger Boss",
+        sim("m13_vault_ledger_lab", "Vault Ledger lab", "Balance nuclear decay equations by tracking badge count and total core-piece count.", ["Choose alpha, beta-minus, or gamma.", "Apply the correct change rule.", "Check that both counts balance across the arrow."], ["Balance simple decay equations.", "Explain why alpha, beta, and gamma change the ledger differently.", "Use atomic number and mass number carefully."], ["decay_type", "parent_atomic_number", "parent_mass_number", "daughter_guess"], "Decay-equation reasoning."),
+        d,
+        "The Vault Ledger is the before-and-after record that proves the decay story still balances. Every nuclear equation must keep both the badge count and the total core-piece count balanced across the arrow, even though alpha, beta-minus, and gamma do that in different ways.",
+        "Read the signal first, apply its count-change rule second, and then check both counts before trusting the ledger.",
+        [prompt_block("Which two totals must balance in every decay ledger?", "Atomic number and mass number."), prompt_block("Which signal changes neither of those totals?", "Gamma.")],
+        [prompt_block("Start with an alpha decay.", "Lower Z by 2 and A by 4."), prompt_block("Now compare a beta-minus decay.", "Raise Z by 1 while keeping A unchanged.")],
+        ["Why must the Vault Ledger balance both atomic number and mass number?", "Why does gamma emission leave the ledger counts unchanged?"],
+        "Use the ledger so the decay equation becomes a balancing check, not a memorized symbol pattern.",
+        c,
+        t,
+        contract(
+            concept_targets=["Balance simple alpha, beta-minus, and gamma decay equations.", "Explain why atomic number and mass number must both balance.", "Use proton-number identity to explain when the element changes."],
+            core_concepts=["Atomic number tracks proton count and therefore element identity.", "Mass number tracks the total nucleon count.", "Alpha lowers Z by 2 and A by 4.", "Beta-minus raises Z by 1 while leaving A unchanged.", "Gamma leaves both counts unchanged because it releases energy only."],
+            prerequisite_lessons=["M13_L1", "M13_L3"],
+            misconception_focus=["decay_equation_balance_confusion", "beta_mass_number_confusion", "gamma_changes_numbers_confusion", "proton_identity_confusion"],
+            formulas=[relation("alpha: parent -> daughter with Z - 2 and A - 4", "Alpha emission removes a 2-proton, 2-neutron chunk.", ["change rule"], "Use when balancing alpha decay equations."), relation("beta-minus: parent -> daughter with Z + 1 and A unchanged", "Beta-minus converts one neutron to one proton while keeping nucleon total the same.", ["change rule"], "Use when balancing beta-minus equations."), relation("gamma: parent* -> parent + gamma with Z unchanged and A unchanged", "Gamma emission changes the energy state only.", ["change rule"], "Use when balancing gamma equations.")],
+            representations=[representation("words", "Explains why the ledger must balance both counts."), representation("diagram", "Shows alpha, beta, and gamma count changes side by side."), representation("notation", "Uses Z and A in formal nuclear equations."), representation("worked example", "Balances one alpha, one beta-minus, and one gamma case.")],
+            analogy_map=core_vault_map("the class is balancing the before-and-after ledger for alpha, beta, and gamma changes"),
+            worked_examples=[worked("A parent nucleus has A = 222 and Z = 86 and emits alpha radiation. What are the daughter numbers?", ["Apply the alpha rule: subtract 2 from Z.", "Subtract 4 from A.", "State the daughter nucleus numbers."], "daughter: A = 218, Z = 84", "Alpha removes 2 protons and 2 neutrons, so both counts must fall.", "This is the cleanest alpha-ledger pattern."), worked("A parent nucleus has A = 14 and Z = 6 and emits beta-minus radiation. What are the daughter numbers?", ["Apply the beta-minus rule.", "Increase Z by 1.", "Keep A unchanged."], "daughter: A = 14, Z = 7", "Beta-minus changes one neutron into one proton, so Z rises but A stays the same.", "This blocks the common beta mass-number mistake."), worked("A parent nucleus emits gamma radiation. What must the daughter numbers be?", ["Ask whether any proton or neutron leaves.", "Notice that gamma is energy only.", "Keep both counts unchanged in the daughter nucleus."], "The daughter keeps the same A and Z.", "Gamma changes the energy state without changing the proton or nucleon counts.", "This keeps gamma separate from alpha and beta bookkeeping.")],
+            visual_assets=[visual("m13-l6-vault-ledger", "vault_ledger", "Vault Ledger Boss", "Shows alpha, beta, and gamma count balancing side by side in one decay ledger.", "The before-and-after count changes must stay readable at a glance.")],
+            animation_assets=[animation("m13-l6-ledger-balance", "vault_ledger", "Ledger balance", "Shows alpha, beta, and gamma updates being written into the decay ledger while the counts are checked.")],
+            simulation_contract=sim_contract("m13-l6-vault-ledger-lab", "vault_ledger", "How do you keep the decay ledger balanced when alpha, beta-minus, and gamma all change the nucleus differently?", "Start with one parent nucleus and balance one alpha case before trying beta-minus and gamma.", ["Switch between alpha, beta-minus, and gamma.", "Check whether both atomic number and mass number still balance.", "Explain which decays change the element and why."], "Do not balance only one count and assume the equation is correct.", "The decay ledger works only when both atomic number and mass number are conserved across the arrow.", [("decay_type", "Decay type", "Chooses which radiation rule to apply."), ("parent_atomic_number", "Parent atomic number", "Tracks the proton count before decay."), ("parent_mass_number", "Parent mass number", "Tracks the total nucleon count before decay.")], [("Daughter numbers", "Shows the balanced daughter nucleus."), ("Ledger check", "Confirms whether both counts balance."), ("Element change", "Explains whether the proton count changed.")]),
+            reflection_prompts=["Why must the Vault Ledger balance both atomic number and mass number?", "Why does gamma emission leave the ledger counts unchanged?"],
+            mastery_skills=["balance_decay_equation", "alpha_ledger", "beta_ledger", "gamma_ledger", "atomic_number"],
+            variation_plan={"diagnostic": "Fresh attempts rotate between ledger meaning, alpha or beta-minus change rules, and gamma-not-changing-counts stems.", "concept_gate": "Concept checks vary between direct balancing, both-counts explanations, and element-identity reasoning.", "mastery": "Mastery mixes numeric daughter-nucleus questions with short explanations before repeating any stem."},
+            scaffold_support=scaffold("The Vault Ledger is correct only when both atomic number and mass number balance across the arrow.", "Name the decay type first, apply its rule second, and then check both counts before accepting the daughter nucleus.", "If gamma is emitted, what should happen to Z and A in the ledger?", "Do not check only one number and assume the whole equation is correct.", "The ledger works like strict bookkeeping: every badge and every total core-piece count must still be accounted for after the vault settles.", "Why is balancing only the mass number weaker than balancing both counts?", [extra_section("Element identity", "If the proton number changes, the element changes because identity follows Z.", "Which decay types can change the element in the school model?"), extra_section("Three ledger rules", "Alpha changes both counts, beta-minus changes Z only, and gamma changes neither count.", "Which rule belongs to beta-minus?")]),
+            visual_clarity_checks=visual_checks("vault-ledger"),
+        ),
+    )
+
+
+M13_SPEC = {
+    "authoring_standard": AUTHORING_STANDARD_V3,
+    "module_description": "Atomic structure, isotopes, radiation types, half-life, background radiation, and decay equations taught through the Core-Vault Model so students keep identity, stability, decay, detector readings, and nuclear bookkeeping inside one coherent world.",
+    "mastery_outcomes": [
+        "Describe atomic structure using nucleus and outer electron region language.",
+        "Explain isotopes as atoms of the same element with different neutron numbers.",
+        "Distinguish alpha, beta, and gamma radiation using count-change and shielding language.",
+        "Explain half-life as a statistical decay pattern for large groups of nuclei.",
+        "Explain background radiation as a normal environmental presence and correct detector readings by subtracting background.",
+        "Balance simple nuclear decay equations using atomic number and mass number.",
+    ],
+    "lessons": [
+        vault_house_lesson(),
+        isotope_lesson(),
+        escape_lesson(),
+        half_life_lesson(),
+        background_lesson(),
+        ledger_lesson(),
+    ],
+}
+
+
+RELEASE_CHECKS = [
+    "Every lesson keeps the Core-Vault world of badges, stones, escape signals, Settle Span, Ambient Buzz, and the Vault Ledger coherent.",
+    "Every explorer is lesson-specific in focus even when it uses the generic simulation shell.",
+    "Every lesson-owned bank supports fresh unseen diagnostic, concept-gate, and mastery questions before repeats.",
+    "Every conceptual short answer accepts varied scientifically correct wording through authored phrase groups.",
+    "Every worked example includes answer reasoning and not just a final value.",
+    "Every visual keeps nucleus, isotope, radiation, half-life, background, and ledger labels readable without clipping or count collapse.",
+]
+
+
+M13_MODULE_DOC, M13_LESSONS, M13_SIM_LABS = build_nextgen_module_bundle(
+    module_id=M13_MODULE_ID,
+    module_title=M13_MODULE_TITLE,
+    module_spec=M13_SPEC,
+    allowlist=M13_ALLOWLIST,
+    content_version=M13_CONTENT_VERSION,
+    release_checks=RELEASE_CHECKS,
+    sequence=17,
+    level="Module 13",
+    estimated_minutes=320,
+    authoring_standard=AUTHORING_STANDARD_V3,
+    plan_assets=True,
+    public_base="/lesson_assets",
+)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Seed Module M13 into Firestore")
+    parser.add_argument("--project", default=None)
+    parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--compile-assets", action="store_true")
+    parser.add_argument("--asset-root", default="")
+    parser.add_argument("--public-base", default="/lesson_assets")
+    args = parser.parse_args()
+
+    project = get_project_id(args.project)
+    init_firebase(project)
+    asset_root = args.asset_root or default_asset_root()
+    module_doc = deepcopy(M13_MODULE_DOC)
+    lesson_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M13_LESSONS]
+    sim_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M13_SIM_LABS]
+
+    if args.compile_assets:
+        render_module_assets(lesson_pairs, sim_pairs, asset_root=asset_root, public_base=args.public_base)
+
+    print_preview(module_doc, lesson_pairs, sim_pairs)
+    db = init_firebase(project)
+    plan: List[Tuple[str, str]] = [("modules", M13_MODULE_ID)]
+    plan.extend(("lessons", doc_id) for doc_id, _ in lesson_pairs)
+    plan.extend(("sim_labs", doc_id) for doc_id, _ in sim_pairs)
+
+    for collection, doc_id in plan:
+        if collection == "modules":
+            upsert_doc(db, collection, doc_id, module_doc, bool(args.apply))
+        elif collection == "lessons":
+            payload = next(payload for payload_id, payload in lesson_pairs if payload_id == doc_id)
+            upsert_doc(db, collection, doc_id, payload, bool(args.apply))
+        else:
+            payload = next(payload for payload_id, payload in sim_pairs if payload_id == doc_id)
+            upsert_doc(db, collection, doc_id, payload, bool(args.apply))
+
+
+if __name__ == "__main__":
+    main()
