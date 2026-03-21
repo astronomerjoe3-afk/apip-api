@@ -18,6 +18,7 @@ from scripts.seed_m9_module import M9_LESSONS, M9_MODULE_DOC, M9_SIM_LABS
 from scripts.seed_m10_module import M10_LESSONS, M10_MODULE_DOC, M10_SIM_LABS
 from scripts.seed_m11_module import M11_LESSONS, M11_MODULE_DOC, M11_SIM_LABS
 from scripts.seed_m12_module import M12_LESSONS, M12_MODULE_DOC, M12_SIM_LABS
+from scripts.seed_m13_module import M13_LESSONS, M13_MODULE_DOC, M13_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
@@ -947,6 +948,88 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIn("field-weave", description_text)
         self.assertNotIn("ultrasound", mastery_text)
         self.assertNotIn("pressure", mastery_text)
+
+    def test_m13_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(M13_MODULE_DOC["id"], "M13")
+        self.assertEqual(M13_MODULE_DOC["title"], "Radioactivity")
+        self.assertEqual(M13_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(M13_LESSONS), 6)
+        self.assertEqual(len(M13_SIM_LABS), 6)
+        self.assertEqual(
+            [lesson_id for lesson_id, _ in M13_LESSONS],
+            ["M13_L1", "M13_L2", "M13_L3", "M13_L4", "M13_L5", "M13_L6"],
+        )
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in M13_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            representation_kinds = {item["kind"] for item in contract["representations"]}
+            self.assertIn("words", representation_kinds)
+            self.assertIn("formula", representation_kinds)
+            self.assertTrue(any(kind in {"diagram", "graph", "table", "model"} for kind in representation_kinds))
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
+    def test_m13_curriculum_scope_stays_on_radioactivity(self) -> None:
+        mastery_text = " ".join(M13_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M13_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("atomic structure", mastery_text)
+        self.assertIn("isotopes", mastery_text)
+        self.assertIn("alpha", mastery_text)
+        self.assertIn("half-life", mastery_text)
+        self.assertIn("background radiation", mastery_text)
+        self.assertIn("decay equations", mastery_text)
+        self.assertIn("core-vault", description_text)
+        self.assertNotIn("current", mastery_text)
+        self.assertNotIn("lens", mastery_text)
+        self.assertNotIn("ultrasound", mastery_text)
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")

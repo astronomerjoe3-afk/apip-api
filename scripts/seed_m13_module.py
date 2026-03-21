@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M13_MODULE_ID = "M13"
-M13_CONTENT_VERSION = "20260321_m13_core_vault_v1"
+M13_CONTENT_VERSION = "20260321_m13_core_vault_v2"
 M13_MODULE_TITLE = "Radioactivity"
 M13_ALLOWLIST = [
     "nucleus_electron_confusion",
@@ -156,7 +156,7 @@ def scaffold(core_idea: str, reasoning: str, check: str, trap: str, analogy_body
 
 
 def assessment_targets() -> Dict[str, Any]:
-    return {"diagnostic_pool_min": 8, "concept_gate_pool_min": 6, "mastery_pool_min": 8, "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem."}
+    return {"diagnostic_pool_min": 10, "concept_gate_pool_min": 8, "mastery_pool_min": 10, "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem."}
 
 
 def visual_checks(topic: str) -> List[str]:
@@ -164,6 +164,7 @@ def visual_checks(topic: str) -> List[str]:
         f"The main {topic} labels stay fully visible on desktop and mobile.",
         "Badge, stone, orbit, and radiation labels stay separated so the nuclear relationships do not collapse into one blur.",
         "Population, shielding, and ledger labels remain readable without overlapping the main diagram geometry.",
+        "Color, arrows, and count labels make it obvious what changes in the nucleus and what stays the same.",
     ]
 
 
@@ -586,6 +587,122 @@ def ledger_lesson() -> Dict[str, Any]:
     )
 
 
+def enrich_m13_lesson(lesson: Dict[str, Any]) -> Dict[str, Any]:
+    lesson_id = str(lesson.get("id") or lesson.get("lesson_id") or "")
+    extras = M13_EXTRA_BANKS.get(lesson_id)
+    if not extras:
+        return lesson
+
+    diagnostic = lesson.get("diagnostic")
+    if isinstance(diagnostic, list):
+        diagnostic.extend(deepcopy(extras["diagnostic"]))
+
+    capsule_checks = lesson.get("capsule_checks")
+    if isinstance(capsule_checks, list):
+        capsule_checks.extend(deepcopy(extras["concept"]))
+
+    transfer = lesson.get("transfer")
+    if isinstance(transfer, list):
+        transfer.extend(deepcopy(extras["mastery"]))
+
+    contract_payload = lesson.get("contract")
+    if isinstance(contract_payload, dict):
+        contract_payload["assessment_bank_targets"] = assessment_targets()
+        contract_payload["visual_clarity_checks"] = list(
+            contract_payload.get("visual_clarity_checks") or []
+        )
+
+    return lesson
+
+
+M13_EXTRA_BANKS: Dict[str, Dict[str, List[Dict[str, Any]]]] = {
+    "M13_L1": {
+        "diagnostic": [
+            mcq("M13L1_D9", "A vault-house has Z = 12 and A = 24. Which statement is correct?", ["It has 12 protons and 12 neutrons.", "It has 24 protons and 12 neutrons.", "It has 12 electrons and no nucleus.", "It has 24 neutrons and 12 protons in the Orbit Ring."], 0, "Z gives the proton count and A gives the proton-plus-neutron total.", ["proton_identity_confusion"], skill_tags=["neutron_count"]),
+            short("M13L1_D10", "Why can an atom lose one electron without becoming a new element?", ["Because the proton count in the nucleus stays the same, so the element identity stays the same.", "Because changing outer electrons does not change the badge count that fixes the element."], "Keep element identity tied to the nucleus.", ["nucleus_electron_confusion", "proton_identity_confusion"], skill_tags=["electron_region"], acceptance_rules=acceptance_groups(["proton", "badge"], ["same", "unchanged"], ["element", "identity"], ["electron", "orbit", "outer"])),
+        ],
+        "concept": [
+            mcq("M13L1_C7", "A nucleus has 17 protons and 18 neutrons. Which pair is correct?", ["Z = 17 and A = 35", "Z = 35 and A = 17", "Z = 18 and A = 17", "Z = 17 and A = 18"], 0, "Atomic number is proton count; mass number is total nucleons.", ["proton_identity_confusion"], skill_tags=["mass_number"]),
+            short("M13L1_C8", "Why can mass number change while the element stays the same?", ["Because the proton count can stay the same while the neutron count changes, so the element stays the same but A changes.", "Because badges fix the element, but stones can change the total nucleon count."], "Separate identity from total nucleon count.", ["proton_identity_confusion"], skill_tags=["mass_number"], acceptance_rules=acceptance_groups(["proton", "badge"], ["same", "unchanged"], ["neutron", "stone"], ["mass number", "A", "total"])),
+        ],
+        "mastery": [
+            mcq("M13L1_M9", "A neutral atom has 11 protons, 12 neutrons, and 10 electrons. Which change would make it a different element?", ["changing the proton count", "changing the electron count to 11", "changing the neutron count only", "adding one more electron"], 0, "Element identity follows proton number.", ["proton_identity_confusion"], skill_tags=["atomic_number"]),
+            short("M13L1_M10", "An atom has A = 35 and Z = 17. Explain what each number tells you.", ["Z = 17 gives the proton count and therefore the element identity, while A = 35 gives the total number of protons and neutrons.", "Atomic number 17 tells the badges or protons, and mass number 35 tells all nucleons together."], "State what Z fixes and what A totals.", ["proton_identity_confusion"], skill_tags=["mass_number"], acceptance_rules=acceptance_groups(["17", "z", "atomic number"], ["proton", "badge", "element", "identity"], ["35", "a", "mass number"], ["total", "protons and neutrons", "nucleons"])),
+        ],
+    },
+    "M13_L2": {
+        "diagnostic": [
+            mcq("M13L2_D9", "Two nuclei both have Z = 17. One has A = 35 and the other A = 37. What changed between them?", ["the neutron count only", "the proton count only", "the element identity", "the existence of the nucleus"], 0, "Different A with the same Z means different neutron count.", ["isotope_element_confusion"], skill_tags=["identify_isotopes"]),
+            short("M13L2_D10", "Why is proton number a better first check than mass number when deciding whether two nuclei are the same element?", ["Because proton number fixes the element, while mass number can change between isotopes.", "Because the atomic number tells you the element family, but mass number alone does not."], "Start with the identity rule.", ["isotope_element_confusion", "proton_identity_confusion"], skill_tags=["atomic_number"], acceptance_rules=acceptance_groups(["proton", "atomic number", "badge"], ["fixes", "defines", "identity"], ["element"], ["mass number", "A"], ["not", "rather than"])),
+        ],
+        "concept": [
+            mcq("M13L2_C7", "A nucleus has A = 31 and Z = 15. How many neutrons does it have?", ["16", "15", "31", "46"], 0, "Use neutrons = A - Z.", ["isotope_element_confusion"], skill_tags=["neutron_count"]),
+            short("M13L2_C8", "Why can two same-badge vaults have different mass numbers?", ["Because they can keep the same proton count but have different neutron counts, which changes A.", "Because the badge count can stay fixed while the stone count changes the total nucleon number."], "Connect mass number change to neutrons, not to a new element.", ["isotope_element_confusion"], skill_tags=["mass_number"], acceptance_rules=acceptance_groups(["same proton", "same badge", "same atomic number"], ["different neutron", "different stone"], ["mass number", "A", "total"])),
+        ],
+        "mastery": [
+            mcq("M13L2_M9", "Which pair are isotopes of the same element?", ["Z = 17, A = 35 and Z = 17, A = 37", "Z = 17, A = 35 and Z = 18, A = 35", "Z = 6, A = 12 and Z = 7, A = 14", "Z = 8, A = 16 and Z = 10, A = 20"], 0, "Isotopes keep the same proton number.", ["isotope_element_confusion"], skill_tags=["identify_isotopes"]),
+            short("M13L2_M10", "A learner says, 'carbon-12 and nitrogen-12 are isotopes because both have mass number 12.' What is the correction?", ["They are not isotopes because isotopes must have the same proton number, and carbon and nitrogen have different atomic numbers.", "Mass number alone does not make isotopes; the nuclei must keep the same badge count or proton count."], "Correct with proton-number identity.", ["isotope_element_confusion", "proton_identity_confusion"], skill_tags=["atomic_number"], acceptance_rules=acceptance_groups(["same proton", "same badge", "same atomic number"], ["different element", "carbon", "nitrogen"], ["mass number", "A"], ["not enough", "not", "rather than"])),
+        ],
+    },
+    "M13_L3": {
+        "diagnostic": [
+            mcq("M13L3_D9", "A parent nucleus has A = 238 and Z = 92. After a Chunk Burst, the daughter nucleus has...", ["A = 234 and Z = 90", "A = 238 and Z = 93", "A = 234 and Z = 92", "A = 236 and Z = 90"], 0, "Alpha removes 2 protons and 2 neutrons.", ["alpha_beta_gamma_mixup"], skill_tags=["alpha_change"]),
+            short("M13L3_D10", "Why is a Switch Spark modeled as a switch rather than as a heavy chunk leaving the vault?", ["Because one neutron changes into one proton and an electron is emitted, so the change is a switch inside the nucleus rather than a 4-nucleon chunk leaving.", "Because beta-minus changes the badge count by one without ejecting an alpha-size cluster."], "Contrast beta-minus with alpha clearly.", ["alpha_beta_gamma_mixup", "beta_mass_number_confusion"], skill_tags=["beta_change"], acceptance_rules=acceptance_groups(["neutron", "stone"], ["proton", "badge"], ["electron", "beta", "switch spark"], ["not", "rather than"], ["chunk", "alpha"])),
+        ],
+        "concept": [
+            mcq("M13L3_C7", "A parent nucleus has A = 14 and Z = 6. After beta-minus decay, the daughter nucleus is...", ["A = 14 and Z = 7", "A = 10 and Z = 4", "A = 14 and Z = 6", "A = 15 and Z = 6"], 0, "Beta-minus raises Z by 1 while A stays the same.", ["beta_mass_number_confusion", "alpha_beta_gamma_mixup"], skill_tags=["beta_change"]),
+            short("M13L3_C8", "Why can gamma be the most penetrating even though it changes neither count?", ["Because gamma is energy released from the nucleus and can pass through matter more deeply even though it does not change proton number or mass number.", "Because a Glow Flash is pure energy, not a proton-neutron chunk, so its penetration and its count change are different ideas."], "Keep count change separate from penetration.", ["gamma_changes_numbers_confusion", "radiation_penetration_order_confusion"], skill_tags=["gamma_change"], acceptance_rules=acceptance_groups(["gamma", "glow flash", "energy"], ["penetrating", "passes through", "dense shield"], ["same", "unchanged"], ["atomic number", "mass number", "counts"])),
+        ],
+        "mastery": [
+            mcq("M13L3_M9", "Which emitted signal leaves the daughter nucleus with the same A and the same Z as the parent?", ["gamma", "alpha", "beta-minus", "alpha and beta-minus together"], 0, "Gamma changes only the energy state.", ["gamma_changes_numbers_confusion", "alpha_beta_gamma_mixup"], skill_tags=["gamma_change"]),
+            short("M13L3_M10", "A learner says, 'alpha must be the most penetrating because it is heaviest.' What correction should you make?", ["Alpha is actually the least penetrating and can be stopped by paper or skin, while gamma is the most penetrating and needs dense shielding.", "Heavier does not mean more penetrating here; alpha is easiest to stop, beta is intermediate, and gamma is hardest to stop."], "Correct penetration order directly.", ["radiation_penetration_order_confusion"], skill_tags=["shielding_order"], acceptance_rules=acceptance_groups(["alpha"], ["least", "easiest to stop", "paper", "skin"], ["gamma"], ["most", "hardest to stop", "lead", "dense shield"])),
+        ],
+    },
+    "M13_L4": {
+        "diagnostic": [
+            mcq("M13L4_D9", "A sample starts with 64 restless vaults and 16 remain. How many Settle Spans have passed?", ["2", "3", "4", "16"], 0, "64 -> 32 -> 16 is two half-lives.", ["half_life_fixed_timer_confusion", "half_life_linear_drop_confusion"], skill_tags=["half_life_count"]),
+            short("M13L4_D10", "Why does 80 -> 40 -> 20 show halving rather than subtracting the same number each round?", ["Because each step takes half of what remains, not the same fixed number each time.", "Because half-life halves the remaining sample, so the drop changes as the sample gets smaller."], "Separate halving from fixed subtraction.", ["half_life_linear_drop_confusion"], skill_tags=["half_life_pattern"], acceptance_rules=acceptance_groups(["half", "halve"], ["remaining", "what is left"], ["not", "rather than"], ["same number", "fixed subtraction", "linear"])),
+        ],
+        "concept": [
+            mcq("M13L4_C7", "The half-life is 3 days. A sample falls from 192 nuclei to 48 nuclei. How much time has passed?", ["6 days", "3 days", "9 days", "12 days"], 0, "192 -> 96 -> 48 is two half-lives, so 6 days.", ["half_life_fixed_timer_confusion"], skill_tags=["half_life_time"]),
+            short("M13L4_C8", "Why can't the class predict which single vault will decay next even when the half-life is known?", ["Because single nuclei decay randomly, even though the large-group halving pattern is predictable.", "Because half-life predicts the population pattern, not the exact moment one chosen nucleus will decay."], "Keep randomness and crowd predictability together.", ["half_life_fixed_timer_confusion"], skill_tags=["half_life_randomness"], acceptance_rules=acceptance_groups(["single", "individual", "one nucleus"], ["random", "unpredictable"], ["group", "population", "crowd"], ["half", "pattern", "predictable"])),
+        ],
+        "mastery": [
+            mcq("M13L4_M9", "A sample starts with 200 nuclei and has a half-life of 4 hours. How many nuclei remain after 12 hours?", ["25", "50", "100", "75"], 0, "Twelve hours is three half-lives: 200 -> 100 -> 50 -> 25.", ["half_life_fixed_timer_confusion"], skill_tags=["half_life_time"]),
+            short("M13L4_M10", "A class measured 100, 49, 26, and 12 instead of exact halves. Why can that still fit the half-life idea?", ["Because radioactive decay is statistical, so real groups fluctuate around the halving pattern instead of matching exact halves every time.", "Because the overall trend can still be about-halving even when random variation makes each round imperfect."], "Allow randomness without losing the group rule.", ["half_life_fixed_timer_confusion", "half_life_linear_drop_confusion"], skill_tags=["half_life_randomness"], acceptance_rules=acceptance_groups(["statistical", "random", "variation"], ["about half", "halving", "trend"], ["group", "sample", "population"], ["not exact", "imperfect"])),
+        ],
+    },
+    "M13_L5": {
+        "diagnostic": [
+            mcq("M13L5_D9", "A detector reads 58 counts per minute near a source and 21 counts per minute as background. What is the corrected source count rate?", ["37 counts per minute", "79 counts per minute", "21 counts per minute", "58 counts per minute"], 0, "Subtract background from the measured reading.", ["background_means_contamination_confusion"], skill_tags=["background_subtraction"]),
+            short("M13L5_D10", "Why can background radiation change from one place to another?", ["Because natural background depends on location, altitude, and nearby materials such as rocks, air, and buildings.", "Because the environment is not identical everywhere, so cosmic and terrestrial background sources can vary."], "Use place-and-source variation language.", ["background_zero_confusion"], skill_tags=["background_variation"], acceptance_rules=acceptance_groups(["location", "place", "altitude", "environment"], ["vary", "different", "change"], ["cosmic", "rocks", "soil", "air", "buildings", "materials"], ["background"])),
+        ],
+        "concept": [
+            mcq("M13L5_C7", "Measured count rate = 64 counts per minute and background = 19 counts per minute. The corrected source count rate is...", ["45 counts per minute", "83 counts per minute", "19 counts per minute", "64 counts per minute"], 0, "Corrected source count = measured - background.", ["background_means_contamination_confusion"], skill_tags=["background_subtraction"]),
+            short("M13L5_C8", "Why is background subtraction better evidence than quoting the raw detector reading by itself?", ["Because subtracting background shows the source-only contribution instead of mixing normal background with the sample.", "Because a corrected reading isolates the extra counts due to the source more clearly than an uncorrected total."], "Use corrected-reading language.", ["background_means_contamination_confusion"], skill_tags=["background_subtraction", "detector_interpretation"], acceptance_rules=acceptance_groups(["subtract", "remove", "corrected"], ["background"], ["source", "sample"], ["clearer", "extra", "isolate"])),
+        ],
+        "mastery": [
+            mcq("M13L5_M9", "If a detector reads 14 counts per minute and the measured background is also 14 counts per minute, the corrected source count rate is...", ["0", "14 counts per minute", "28 counts per minute", "undefined"], 0, "No extra count above background means zero corrected source count.", ["background_means_contamination_confusion"], skill_tags=["background_subtraction"]),
+            short("M13L5_M10", "A detector is moved from sea level to a mountain and the background rises. What is the best explanation?", ["Higher altitude can increase the cosmic-ray part of background radiation, so the detector reads a higher normal background.", "The detector is picking up more natural cosmic background at higher altitude."], "Tie altitude to cosmic background.", ["background_zero_confusion"], skill_tags=["background_variation", "detector_interpretation"], acceptance_rules=acceptance_groups(["altitude", "mountain", "higher"], ["cosmic"], ["background"], ["more", "higher", "increase"])),
+        ],
+    },
+    "M13_L6": {
+        "diagnostic": [
+            mcq("M13L6_D9", "Which daughter pair fits gamma emission from a parent nucleus with A = 60 and Z = 27?", ["A = 60 and Z = 27", "A = 56 and Z = 25", "A = 60 and Z = 28", "A = 61 and Z = 27"], 0, "Gamma leaves both counts unchanged.", ["gamma_changes_numbers_confusion", "decay_equation_balance_confusion"], skill_tags=["gamma_ledger"]),
+            short("M13L6_D10", "Why must the emitted alpha particle or beta particle be included when checking the ledger balance?", ["Because the emitted radiation carries away some of the atomic number and mass number, so the total must include it when balancing the equation.", "Because the parent counts must match the daughter plus the emitted particle together."], "Balance the full nuclear event, not just the daughter nucleus.", ["decay_equation_balance_confusion"], skill_tags=["balance_decay_equation"], acceptance_rules=acceptance_groups(["emitted", "particle", "radiation"], ["daughter", "plus"], ["atomic number", "mass number", "both counts"], ["balance", "conserve", "same total"])),
+        ],
+        "concept": [
+            mcq("M13L6_C7", "Which decay changes a nucleus from A = 27, Z = 13 to A = 27, Z = 14?", ["beta-minus", "alpha", "gamma", "background radiation"], 0, "Beta-minus raises Z by 1 while A stays the same.", ["beta_mass_number_confusion", "decay_equation_balance_confusion"], skill_tags=["beta_ledger"]),
+            short("M13L6_C8", "Why does the same mass number with a different atomic number still mean a different element?", ["Because element identity follows proton number or atomic number, not mass number alone.", "Because changing Z changes the badge count and therefore changes the element even if A matches."], "Keep identity tied to Z.", ["proton_identity_confusion", "decay_equation_balance_confusion"], skill_tags=["atomic_number"], acceptance_rules=acceptance_groups(["atomic number", "proton", "badge", "Z"], ["element", "identity"], ["mass number", "A"], ["not", "rather than"])),
+        ],
+        "mastery": [
+            mcq("M13L6_M9", "A nucleus with A = 226 and Z = 88 emits alpha radiation. What is the daughter nucleus?", ["A = 222 and Z = 86", "A = 226 and Z = 89", "A = 222 and Z = 88", "A = 224 and Z = 86"], 0, "Alpha lowers A by 4 and Z by 2.", ["alpha_beta_gamma_mixup", "decay_equation_balance_confusion"], skill_tags=["alpha_ledger"]),
+            short("M13L6_M10", "A learner balances mass number correctly but leaves atomic number wrong. What is the correction?", ["The ledger is only correct when both mass number and atomic number balance, because proton number must be conserved too.", "Balancing A alone is not enough; Z must balance as well because it tracks the proton count and the element."], "Use both-counts language.", ["decay_equation_balance_confusion", "proton_identity_confusion"], skill_tags=["balance_decay_equation"], acceptance_rules=acceptance_groups(["both", "mass number", "A"], ["atomic number", "Z", "proton", "badge"], ["balance", "conserve"], ["not enough", "not", "as well"])),
+        ],
+    },
+}
+
+
 M13_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
     "module_description": "Atomic structure, isotopes, radiation types, half-life, background radiation, and decay equations taught through the Core-Vault Model so students keep identity, stability, decay, detector readings, and nuclear bookkeeping inside one coherent world.",
@@ -598,19 +715,19 @@ M13_SPEC = {
         "Balance simple nuclear decay equations using atomic number and mass number.",
     ],
     "lessons": [
-        vault_house_lesson(),
-        isotope_lesson(),
-        escape_lesson(),
-        half_life_lesson(),
-        background_lesson(),
-        ledger_lesson(),
+        enrich_m13_lesson(vault_house_lesson()),
+        enrich_m13_lesson(isotope_lesson()),
+        enrich_m13_lesson(escape_lesson()),
+        enrich_m13_lesson(half_life_lesson()),
+        enrich_m13_lesson(background_lesson()),
+        enrich_m13_lesson(ledger_lesson()),
     ],
 }
 
 
 RELEASE_CHECKS = [
     "Every lesson keeps the Core-Vault world of badges, stones, escape signals, Settle Span, Ambient Buzz, and the Vault Ledger coherent.",
-    "Every explorer is lesson-specific in focus even when it uses the generic simulation shell.",
+    "Every explorer uses lesson-specific controls, readouts, and visual feedback instead of the generic simulation fallback.",
     "Every lesson-owned bank supports fresh unseen diagnostic, concept-gate, and mastery questions before repeats.",
     "Every conceptual short answer accepts varied scientifically correct wording through authored phrase groups.",
     "Every worked example includes answer reasoning and not just a final value.",
