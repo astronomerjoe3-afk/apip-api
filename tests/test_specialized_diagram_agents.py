@@ -103,6 +103,68 @@ class SpecializedDiagramAgentsTests(unittest.TestCase):
             self.assertIn("N", svg)
             self.assertIn("S", svg)
 
+    def test_generates_flux_window_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="flux_window_01",
+            phase_key="guided_concept_building",
+            concept="electromagnetism_diagram",
+            template="electromagnetism_diagram",
+            title="Catch the Field Threads",
+            description="Flux as field through a loop window.",
+            width=1280,
+            height=720,
+            meta={
+                "diagram_type": "flux_window",
+                "loop_tilt_deg": 25,
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_electromagnetism_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="A3",
+                lesson_id="A3_L1",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("Catch the Field Threads", svg)
+            self.assertIn("through the window", svg)
+            self.assertIn("window normal", svg)
+
+    def test_generates_lenz_opposition_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="lenz_opposition_01",
+            phase_key="guided_concept_building",
+            concept="electromagnetism_diagram",
+            template="electromagnetism_diagram",
+            title="Oppose-Turn Rule",
+            description="Induced response opposes the flux change.",
+            width=1280,
+            height=720,
+            meta={
+                "diagram_type": "lenz_opposition",
+                "change_direction": "increasing_inward",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_electromagnetism_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="A3",
+                lesson_id="A3_L4",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("Oppose-Turn Rule", svg)
+            self.assertIn("opposes the change", svg)
+            self.assertIn("induced field", svg)
+
     def test_generates_reflection_wave_svg(self) -> None:
         req = SimpleNamespace(
             asset_id="wave_reflection_01",
