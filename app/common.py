@@ -86,6 +86,9 @@ def normalize_module_id(value: Any) -> str:
         return collapsed
     if re.fullmatch(r"A[1-9]\d*", collapsed):
         return collapsed
+    advanced_alias_match = re.fullmatch(r"MA([1-9]\d*)", collapsed)
+    if advanced_alias_match:
+        return "A" + advanced_alias_match.group(1)
     module_match = re.fullmatch(r"(?:MODULE)?(\d+)", collapsed)
     if module_match:
         return "M" + module_match.group(1)
