@@ -395,6 +395,8 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             ["M7_L1", "M7_L2", "M7_L3", "M7_L4", "M7_L5", "M7_L6"],
         )
 
+        simulation_concepts = set()
+        focus_prompts = set()
         for _, lesson in M7_LESSONS:
             contract = lesson["authoring_contract"]
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
@@ -418,8 +420,18 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
 
             scaffold_support = contract["scaffold_support"]
             self.assertTrue(scaffold_support["core_idea"])
@@ -429,6 +441,19 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
 
     def test_m7_curriculum_scope_stays_on_general_wave_properties(self) -> None:
         mastery_text = " ".join(M7_MODULE_DOC.get("mastery_outcomes") or []).lower()
