@@ -82,6 +82,48 @@ class OpticsRayDiagramAgentTests(unittest.TestCase):
             self.assertIn("Object", svg)
             self.assertIn("Image", svg)
 
+    def test_generates_plane_mirror_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="optics_plane_mirror_equal_angles_01",
+            phase_key="analogical_grounding",
+            concept="optics_ray_diagram",
+            template="optics_ray_diagram",
+            title="Plane Mirror: Equal Angles",
+            description="Plane-mirror diagram for M8 reflection support.",
+            width=1280,
+            height=720,
+            meta={
+                "system_type": "plane_mirror",
+                "object_distance": 2.6,
+                "focal_length": 1.0,
+                "object_height": 1.1,
+                "principal_rays": 3,
+                "annotation_mode": "equal_angles",
+                "incident_angle_deg": 35.0,
+                "guide_line_angle_deg": 35.0,
+                "show_focal_labels": False,
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_optics_ray_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="OPTICS",
+                lesson_id="OPT_L3",
+            )
+
+            output_path = Path(asset.storage_path)
+            self.assertTrue(output_path.exists())
+
+            svg = output_path.read_text(encoding="utf-8")
+            self.assertIn("<svg", svg)
+            self.assertIn("Plane Mirror: Equal Angles", svg)
+            self.assertIn("Guide Line", svg)
+            self.assertIn("equal angles", svg)
+            self.assertIn("Image", svg)
+
 
 if __name__ == "__main__":
     unittest.main()

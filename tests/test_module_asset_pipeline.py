@@ -511,9 +511,10 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(diagnostic_items), 8)
             self.assertGreaterEqual(len(concept_checks), 6)
             self.assertGreaterEqual(len(transfer_items), 8)
-            self.assertEqual(len(contract["visual_assets"]), 1)
+            expected_visual_count = 5 if lesson["lesson_id"] == "M8_L1" else 1
+            self.assertEqual(len(contract["visual_assets"]), expected_visual_count)
             self.assertEqual(len(contract["animation_assets"]), 1)
-            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
+            self.assertEqual(len(lesson["generated_assets"]["diagrams"]), expected_visual_count)
             self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
@@ -530,6 +531,16 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertTrue(scaffold_support["reasoning"])
             self.assertTrue(scaffold_support["common_trap"])
             self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
+
+            if lesson["lesson_id"] == "M8_L1":
+                diagram_ids = {asset["asset_id"] for asset in lesson["generated_assets"]["diagrams"]}
+                self.assertIn("m8-l1-surface-conversion", diagram_ids)
+                self.assertIn("m8-l1-ghost-image", diagram_ids)
+                plane_mirror_systems = {
+                    asset["meta"]["system_type"]
+                    for asset in lesson["generated_assets"]["diagrams"]
+                }
+                self.assertEqual(plane_mirror_systems, {"plane_mirror"})
 
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])

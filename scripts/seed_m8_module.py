@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M8_MODULE_ID = "M8"
-M8_CONTENT_VERSION = "20260321_m8_glow_route_v1"
+M8_CONTENT_VERSION = "20260321_m8_glow_route_v2"
 M8_MODULE_TITLE = "Light"
 M8_ALLOWLIST = [
     "angle_from_surface_confusion",
@@ -112,15 +112,151 @@ def worked(prompt: str, steps: Sequence[str], final_answer: str, answer_reason: 
     }
 
 
-def visual(asset_id: str, concept: str, title: str, purpose: str, caption: str) -> Dict[str, Any]:
-    return {
+def visual(
+    asset_id: str,
+    concept: str,
+    title: str,
+    purpose: str,
+    caption: str,
+    *,
+    phase_key: str = "analogical_grounding",
+    template: str = "auto",
+    width: int = 1280,
+    height: int = 720,
+    meta: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    item = {
         "asset_id": asset_id,
         "concept": concept,
-        "phase_key": "analogical_grounding",
+        "phase_key": phase_key,
         "title": title,
         "purpose": purpose,
         "caption": caption,
     }
+    if template != "auto":
+        item["template"] = template
+    if width != 1280:
+        item["width"] = width
+    if height != 720:
+        item["height"] = height
+    if meta:
+        item["meta"] = deepcopy(meta)
+    return item
+
+
+def optics_visual(
+    asset_id: str,
+    title: str,
+    purpose: str,
+    caption: str,
+    *,
+    subtitle: str,
+    annotation_mode: str,
+    object_distance: float,
+    object_height: float = 1.0,
+    incident_angle_deg: float = 40.0,
+    surface_angle_deg: float | None = None,
+    guide_line_angle_deg: float | None = None,
+    distance_label: str = "",
+    principal_rays: int = 3,
+    show_image: bool = True,
+) -> Dict[str, Any]:
+    meta: Dict[str, Any] = {
+        "system_type": "plane_mirror",
+        "object_distance": object_distance,
+        "focal_length": 1.0,
+        "object_height": object_height,
+        "principal_rays": principal_rays,
+        "subtitle": subtitle,
+        "annotation_mode": annotation_mode,
+        "incident_angle_deg": incident_angle_deg,
+        "guide_line_angle_deg": guide_line_angle_deg if guide_line_angle_deg is not None else incident_angle_deg,
+        "show_image": show_image,
+        "show_focal_labels": False,
+    }
+    if surface_angle_deg is not None:
+        meta["surface_angle_deg"] = surface_angle_deg
+    if distance_label:
+        meta["distance_label"] = distance_label
+    return visual(
+        asset_id,
+        "optics_ray_diagram",
+        title,
+        purpose,
+        caption,
+        template="optics_ray_diagram",
+        meta=meta,
+    )
+
+
+def m8_l1_optics_visuals() -> List[Dict[str, Any]]:
+    return [
+        optics_visual(
+            "m8-l1-bounce-panel",
+            "Bounce Panel symmetry",
+            "Shows equal angles to the Guide Line and the ghost image behind a plane mirror.",
+            "The Guide Line, reflected route, and dashed ghost-image extensions stay visibly separate.",
+            subtitle="Equal angles at the mirror plus a virtual image behind the surface",
+            annotation_mode="bounce_panel",
+            object_distance=3.0,
+            object_height=1.15,
+            incident_angle_deg=35.0,
+            principal_rays=3,
+        ),
+        optics_visual(
+            "m8-l1-equal-angles",
+            "Equal angles to the Guide Line",
+            "Shows that incident and reflected angles match only when both are read from the Guide Line.",
+            "Keep the same Guide Line reference for the incoming and outgoing routes.",
+            subtitle="Read both routes from the Guide Line, not from the surface",
+            annotation_mode="equal_angles",
+            object_distance=2.5,
+            object_height=1.05,
+            incident_angle_deg=35.0,
+            principal_rays=2,
+            show_image=False,
+        ),
+        optics_visual(
+            "m8-l1-surface-conversion",
+            "Surface angle trap vs Guide Line conversion",
+            "Shows why a surface angle must be converted before the mirror rule is applied.",
+            "A surface-angle reading is useful only after it is turned into the Guide-Line angle.",
+            subtitle="20 deg to the surface becomes 70 deg to the Guide Line",
+            annotation_mode="surface_conversion",
+            object_distance=1.0,
+            object_height=1.05,
+            incident_angle_deg=70.0,
+            surface_angle_deg=20.0,
+            guide_line_angle_deg=70.0,
+            principal_rays=2,
+            show_image=False,
+        ),
+        optics_visual(
+            "m8-l1-ghost-image",
+            "Ghost image behind the mirror",
+            "Shows that only dashed backward extensions meet behind the mirror.",
+            "The reflected routes stay in front of the mirror even though the image is located behind it.",
+            subtitle="Backward extensions locate the ghost image without placing real light there",
+            annotation_mode="ghost_image",
+            object_distance=2.7,
+            object_height=1.15,
+            incident_angle_deg=32.0,
+            principal_rays=3,
+        ),
+        optics_visual(
+            "m8-l1-image-distance",
+            "Plane-mirror image distance",
+            "Shows that the image forms the same distance behind the mirror as the object is in front.",
+            "Object distance and image distance match because the mirror geometry is symmetric.",
+            subtitle="A plane mirror places the image at the same perpendicular distance behind the surface",
+            annotation_mode="image_distance",
+            object_distance=2.2,
+            object_height=1.05,
+            incident_angle_deg=30.0,
+            distance_label="5 cm",
+            principal_rays=3,
+        ),
+    ]
 
 
 def animation(asset_id: str, concept: str, title: str, description: str) -> Dict[str, Any]:
@@ -306,7 +442,7 @@ def mirror_lesson() -> Dict[str, Any]:
         short("M8L1_M7", "Why does the mirror image stay the same distance behind the surface?", ["Because the equal-angle geometry makes the backward extensions meet at the symmetric point behind the mirror.", "Because the reflected routes are symmetric about the Guide Line, so the apparent image is equally far behind."], "Use symmetry language.", ["mirror_image_surface_confusion"], skill_tags=["mirror_image_position"], acceptance_rules=acceptance_groups(["symmetric", "symmetry", "same distance"], ["behind"], ["guide line", "mirror"], ["extension", "apparent image"])),
         mcq("M8L1_M8", "Which line is a reference, not a beam?", ["the Guide Line", "the reflected route", "the incident route", "the object ray"], 0, "The normal is a reference line.", ["normal_reference_confusion", "ray_diagram_literal_confusion"], skill_tags=["diagram_roles"]),
     ]
-    return lesson_spec("M8_L1", "Bounce Panels and Guide-Line Angles", sim("m8_mirror_match_lab", "Mirror Match lab", "Use equal-angle mirror geometry and mirror-image symmetry.", ["Set one incident route.", "Draw the Guide Line.", "Compare equal angles and image position."], ["Explain reflection from the normal.", "Place a plane-mirror image.", "Convert surface and normal angles."], ["incident_angle_deg", "surface_angle_deg", "reflected_angle_deg", "image_offset_cm"], "Normal-first mirror geometry."), d, "A Bounce Panel reflects the Glow-Route symmetrically around the Guide Line.", "Name the Guide Line before you trust any mirror angle.", [prompt_block("What line sets the mirror angles?", "The Guide Line normal."), prompt_block("Why can the image be behind the mirror?", "Think apparent backward extension.")], [prompt_block("Increase the incident angle and compare the reflected angle.", "Keep the same reference line."), prompt_block("Compare surface-angle and Guide-Line readings.", "They are not the same thing.")], ["Explain why the Guide Line is the trusted mirror reference.", "Explain why the mirror image is behind the surface without real light there."], "Keep the equal-angle rule and the status of dashed extensions visible before reading any mirror sketch.", c, t, contract(concept_targets=["Explain plane reflection as equal angles to the normal.", "Convert between surface and normal angles.", "Describe plane-mirror images as virtual."], core_concepts=["Plane reflection obeys an equal-angle rule around the normal.", "The normal is the reference line for reflection angles.", "A plane-mirror image is a virtual image the same distance behind the mirror as the object is in front.", "Backward extensions in a mirror sketch are not real light paths."], prerequisite_lessons=["F2_L6"], misconception_focus=["angle_from_surface_confusion", "normal_reference_confusion", "reflection_equal_angle_confusion", "mirror_image_surface_confusion", "ray_diagram_literal_confusion", "real_virtual_image_confusion"], formulas=[relation("angle of incidence = angle of reflection", "Plane reflection keeps equal angles to the normal.", ["degrees"], "Use for a flat mirror.")], representations=[representation("words", "States the mirror rule plainly."), representation("diagram", "Shows the Guide Line, incident route, reflected route, and image extension."), representation("formula", "Compresses the equal-angle rule.")], analogy_map=glow_route_map("the class is comparing reflection angles and plane-mirror ghost images"), worked_examples=[worked("A route arrives at 35 degrees to the Guide Line. Find the reflected angle.", ["Read the angle from the Guide Line.", "Apply the equal-angle rule.", "Use the same reference line in the answer."], "35 degrees", "Plane reflection keeps equal angles to the normal.", "This anchors the mirror rule numerically."), worked("A route is 20 degrees to the surface. Find the incident angle to the Guide Line.", ["Note that surface and normal differ by 90 degrees.", "Subtract 20 from 90.", "Use the converted angle in the rule."], "70 degrees", "Mirror laws use the normal, so surface angles must be converted.", "This blocks the surface-angle trap."), worked("An object is 5 cm in front of a plane mirror. Where is the image?", ["Use plane-mirror symmetry.", "Place the image the same distance behind the mirror.", "Remember that the lines behind the mirror are backward extensions."], "5 cm behind the mirror", "The image is virtual and located by symmetric backward extensions.", "This keeps geometry and image type connected.")], visual_assets=[visual("m8-l1-bounce-panel", "reflection", "Bounce Panel symmetry", "Shows equal angles and a ghost image behind the mirror.", "The Guide Line and the image extension must stay visually distinct.")], animation_assets=[animation("m8-l1-mirror-bounce", "reflection", "Mirror bounce", "Shows one route reflecting and the image appearing behind the mirror.")], simulation_contract=sim_contract("m8-l1-mirror-match-lab", "reflection", "How does the Bounce Panel keep the route symmetric around the Guide Line?", "Start with one diagonal route striking a flat mirror and display the Guide Line first.", ["Change the incident angle and compare the reflected angle.", "Convert a surface angle into the correct normal-based angle."], "Measure from the Guide Line and do not label the dashed image lines as real light.", "Plane reflection is a normal-based symmetry rule.", [("incident_angle", "Incident angle", "Changes the incoming geometry."), ("mirror_tilt", "Mirror tilt", "Moves the Guide Line so the learner must keep the correct reference."), ("object_offset", "Object distance", "Shows the ghost-image placement.")], [("Incident angle", "Incoming angle to the Guide Line."), ("Reflected angle", "Outgoing angle to the Guide Line."), ("Ghost image position", "Apparent image behind the mirror.")]), reflection_prompts=["Why must mirror angles be measured from the Guide Line?", "Why is the plane-mirror image a ghost position rather than a real crossing?"], mastery_skills=["reflection_classification", "normal_reference", "equal_angles", "surface_to_normal", "mirror_image_position"], variation_plan={"diagnostic": "Fresh attempts rotate between normal-reference, angle, and mirror-image stems.", "concept_gate": "Concept checks vary between equal-angle reasoning and ghost-image explanation.", "mastery": "Mastery mixes angle conversion, plane-mirror geometry, and dashed-extension questions before repeating any stem."}, scaffold_support=scaffold("Reflection at a plane mirror is a symmetry rule around the normal.", "Draw the Guide Line first, then compare the incoming and outgoing routes to that line.", "If a route arrives at 40 degrees to the Guide Line, what reflected angle should you expect?", "Do not treat a surface angle as if it were already the incident angle in the reflection law.", "The Bounce Panel makes the reflection geometry visible around the Guide Line while the image appears from backward extensions.", "Which lines in the sketch are real routes and which are only extensions?", [extra_section("Surface angle trap", "Surface angles can be useful, but they must be converted to normal-based angles before the rule is used.", "Why is a 20 degree surface angle not automatically the incident angle?"), extra_section("Ghost image clue", "A plane-mirror image is a ghost meeting point because the reflected routes only appear to come from behind the mirror.", "What makes the mirror image virtual?")]), visual_clarity_checks=visual_checks("reflection")))
+    return lesson_spec("M8_L1", "Bounce Panels and Guide-Line Angles", sim("m8_mirror_match_lab", "Mirror Match lab", "Use equal-angle mirror geometry and mirror-image symmetry.", ["Set one incident route.", "Draw the Guide Line.", "Compare equal angles and image position."], ["Explain reflection from the normal.", "Place a plane-mirror image.", "Convert surface and normal angles."], ["incident_angle_deg", "surface_angle_deg", "reflected_angle_deg", "image_offset_cm"], "Normal-first mirror geometry."), d, "A Bounce Panel reflects the Glow-Route symmetrically around the Guide Line.", "Name the Guide Line before you trust any mirror angle.", [prompt_block("What line sets the mirror angles?", "The Guide Line normal."), prompt_block("Why can the image be behind the mirror?", "Think apparent backward extension.")], [prompt_block("Increase the incident angle and compare the reflected angle.", "Keep the same reference line."), prompt_block("Compare surface-angle and Guide-Line readings.", "They are not the same thing.")], ["Explain why the Guide Line is the trusted mirror reference.", "Explain why the mirror image is behind the surface without real light there."], "Keep the equal-angle rule and the status of dashed extensions visible before reading any mirror sketch.", c, t, contract(concept_targets=["Explain plane reflection as equal angles to the normal.", "Convert between surface and normal angles.", "Describe plane-mirror images as virtual."], core_concepts=["Plane reflection obeys an equal-angle rule around the normal.", "The normal is the reference line for reflection angles.", "A plane-mirror image is a virtual image the same distance behind the mirror as the object is in front.", "Backward extensions in a mirror sketch are not real light paths."], prerequisite_lessons=["F2_L6"], misconception_focus=["angle_from_surface_confusion", "normal_reference_confusion", "reflection_equal_angle_confusion", "mirror_image_surface_confusion", "ray_diagram_literal_confusion", "real_virtual_image_confusion"], formulas=[relation("angle of incidence = angle of reflection", "Plane reflection keeps equal angles to the normal.", ["degrees"], "Use for a flat mirror.")], representations=[representation("words", "States the mirror rule plainly."), representation("diagram", "Shows the Guide Line, incident route, reflected route, and image extension."), representation("formula", "Compresses the equal-angle rule.")], analogy_map=glow_route_map("the class is comparing reflection angles and plane-mirror ghost images"), worked_examples=[worked("A route arrives at 35 degrees to the Guide Line. Find the reflected angle.", ["Read the angle from the Guide Line.", "Apply the equal-angle rule.", "Use the same reference line in the answer."], "35 degrees", "Plane reflection keeps equal angles to the normal.", "This anchors the mirror rule numerically."), worked("A route is 20 degrees to the surface. Find the incident angle to the Guide Line.", ["Note that surface and normal differ by 90 degrees.", "Subtract 20 from 90.", "Use the converted angle in the rule."], "70 degrees", "Mirror laws use the normal, so surface angles must be converted.", "This blocks the surface-angle trap."), worked("An object is 5 cm in front of a plane mirror. Where is the image?", ["Use plane-mirror symmetry.", "Place the image the same distance behind the mirror.", "Remember that the lines behind the mirror are backward extensions."], "5 cm behind the mirror", "The image is virtual and located by symmetric backward extensions.", "This keeps geometry and image type connected.")], visual_assets=m8_l1_optics_visuals(), animation_assets=[animation("m8-l1-mirror-bounce", "reflection", "Mirror bounce", "Shows one route reflecting and the image appearing behind the mirror.")], simulation_contract=sim_contract("m8-l1-mirror-match-lab", "reflection", "How does the Bounce Panel keep the route symmetric around the Guide Line?", "Start with one diagonal route striking a flat mirror and display the Guide Line first.", ["Change the incident angle and compare the reflected angle.", "Convert a surface angle into the correct normal-based angle."], "Measure from the Guide Line and do not label the dashed image lines as real light.", "Plane reflection is a normal-based symmetry rule.", [("incident_angle", "Incident angle", "Changes the incoming geometry."), ("mirror_tilt", "Mirror tilt", "Moves the Guide Line so the learner must keep the correct reference."), ("object_offset", "Object distance", "Shows the ghost-image placement.")], [("Incident angle", "Incoming angle to the Guide Line."), ("Reflected angle", "Outgoing angle to the Guide Line."), ("Ghost image position", "Apparent image behind the mirror.")]), reflection_prompts=["Why must mirror angles be measured from the Guide Line?", "Why is the plane-mirror image a ghost position rather than a real crossing?"], mastery_skills=["reflection_classification", "normal_reference", "equal_angles", "surface_to_normal", "mirror_image_position"], variation_plan={"diagnostic": "Fresh attempts rotate between normal-reference, angle, and mirror-image stems.", "concept_gate": "Concept checks vary between equal-angle reasoning and ghost-image explanation.", "mastery": "Mastery mixes angle conversion, plane-mirror geometry, and dashed-extension questions before repeating any stem."}, scaffold_support=scaffold("Reflection at a plane mirror is a symmetry rule around the normal.", "Draw the Guide Line first, then compare the incoming and outgoing routes to that line.", "If a route arrives at 40 degrees to the Guide Line, what reflected angle should you expect?", "Do not treat a surface angle as if it were already the incident angle in the reflection law.", "The Bounce Panel makes the reflection geometry visible around the Guide Line while the image appears from backward extensions.", "Which lines in the sketch are real routes and which are only extensions?", [extra_section("Surface angle trap", "Surface angles can be useful, but they must be converted to normal-based angles before the rule is used.", "Why is a 20 degree surface angle not automatically the incident angle?"), extra_section("Ghost image clue", "A plane-mirror image is a ghost meeting point because the reflected routes only appear to come from behind the mirror.", "What makes the mirror image virtual?")]), visual_clarity_checks=visual_checks("reflection")))
 
 
 

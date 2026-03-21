@@ -81,6 +81,7 @@ def _diagram_requests(lesson: Dict[str, Any]) -> List[DiagramRequest]:
                 template=_text(item.get("template")) or "auto",
                 width=int(item.get("width") or 1280),
                 height=int(item.get("height") or 720),
+                meta=_record(item.get("meta")),
             )
         )
     return requests
