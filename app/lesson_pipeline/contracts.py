@@ -16,6 +16,7 @@ class DiagramRequest:
     template: str = "auto"
     width: int = 1280
     height: int = 720
+    meta: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

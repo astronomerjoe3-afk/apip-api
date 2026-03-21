@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from app.agents.optics_ray_diagram_agent import generate_optics_ray_diagram
 from app.lesson_pipeline.contracts import DiagramRequest, GeneratedAsset
 
 
@@ -489,6 +490,15 @@ def generate_diagram(
 ) -> GeneratedAsset:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+
+    if getattr(req, "template", "") == "optics_ray_diagram" or req.concept == "optics_ray_diagram":
+        return generate_optics_ray_diagram(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
 
     if req.concept == "prefix_scale":
         svg = _prefix_scale_svg(req)
