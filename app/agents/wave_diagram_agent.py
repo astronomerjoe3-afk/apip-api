@@ -24,6 +24,8 @@ WaveType = Literal[
     "ultrasound_range",
     "echo_map",
     "doppler_shift",
+    "critical_angle",
+    "optical_fiber",
 ]
 
 
@@ -61,12 +63,15 @@ def _parse_spec(req: DiagramRequest) -> WaveDiagramSpec:
         "ultrasound_range",
         "echo_map",
         "doppler_shift",
+        "critical_angle",
+        "optical_fiber",
     }:
         raise ValueError(
             "Invalid wave_type. Use one of: transverse_wave, longitudinal_wave, "
             "standing_wave, travel_pattern, wave_mode_compare, wave_equation, "
             "reflection, refraction, diffraction, sound_source, frequency_pitch, "
-            "ultrasound_range, echo_map, doppler_shift."
+            "ultrasound_range, echo_map, doppler_shift, critical_angle, "
+            "optical_fiber."
         )
 
     try:
@@ -395,6 +400,104 @@ def _draw_refraction(width: int, height: int) -> str:
     )
 
 
+def _critical_angle_panel(x: float, y: float, width: float, height: float, *, title: str, accent: str, state: str) -> str:
+    panel_mid_x = x + width / 2
+    boundary_y = y + 122
+    interface_left = x + 34
+    interface_right = x + width - 34
+    normal_y_top = y + 42
+    normal_y_bottom = y + height - 42
+    hit_x = panel_mid_x
+    incident_start_x = x + 88
+    incident_start_y = y + height - 84
+
+    parts = [
+        _panel(x, y, width, height, title=title, accent=accent),
+        _rect(x + 26, y + 70, width - 52, 70, fill="#1f2937", stroke="#334155", stroke_width=2, rx=18),
+        _rect(x + 26, boundary_y, width - 52, height - 96, fill="#0f172a", stroke="#334155", stroke_width=2, rx=18),
+        _line(interface_left, boundary_y, interface_right, boundary_y, stroke="#94a3b8", stroke_width=6),
+        _line(hit_x, normal_y_top, hit_x, normal_y_bottom, stroke="#38bdf8", stroke_width=4, dashed=True),
+        _path(f"M {incident_start_x} {incident_start_y} L {hit_x} {boundary_y}", stroke="#fbbf24", stroke_width=6, marker_end="wave-arrow"),
+        _text(hit_x + 14, boundary_y - 14, "normal", fill="#bae6fd", anchor="start", size=16),
+        _text(x + 62, y + 112, "faster medium", fill="#dbeafe", anchor="start", size=16),
+        _text(x + 62, y + height - 28, "slower medium", fill="#bbf7d0", anchor="start", size=16),
+    ]
+
+    if state == "below":
+        parts.extend(
+            [
+                _path(f"M {hit_x} {boundary_y} L {x + width - 86} {y + 86}", stroke="#34d399", stroke_width=6, marker_end="wave-arrow"),
+                _text(panel_mid_x, y + height - 68, "incident < critical angle", fill="#fde68a", size=18),
+                _text(panel_mid_x, y + height - 40, "escape: refracted route leaves the slower medium", fill="#cbd5e1", size=17),
+            ]
+        )
+    elif state == "equal":
+        parts.extend(
+            [
+                _path(f"M {hit_x} {boundary_y} L {interface_right - 6} {boundary_y}", stroke="#34d399", stroke_width=6, marker_end="wave-arrow"),
+                _text(panel_mid_x, y + height - 68, "incident = critical angle", fill="#fde68a", size=18),
+                _text(panel_mid_x, y + height - 40, "skim: refracted route runs along the boundary", fill="#cbd5e1", size=17),
+            ]
+        )
+    else:
+        parts.extend(
+            [
+                _path(f"M {hit_x} {boundary_y} L {x + width - 88} {y + height - 84}", stroke="#34d399", stroke_width=6, marker_end="wave-arrow"),
+                _text(panel_mid_x, y + height - 68, "incident > critical angle", fill="#fde68a", size=18),
+                _text(panel_mid_x, y + height - 40, "lock-bounce: no refracted route escapes", fill="#cbd5e1", size=17),
+            ]
+        )
+    return "".join(parts)
+
+
+def _draw_critical_angle(width: int, height: int) -> str:
+    panel_width = 344
+    gap = 24
+    start_x = 100
+    panel_y = 180
+    panel_height = 380
+    return "".join(
+        [
+            _critical_angle_panel(start_x, panel_y, panel_width, panel_height, title="Below critical", accent="#86efac", state="below"),
+            _critical_angle_panel(start_x + panel_width + gap, panel_y, panel_width, panel_height, title="At critical", accent="#fbbf24", state="equal"),
+            _critical_angle_panel(start_x + (panel_width + gap) * 2, panel_y, panel_width, panel_height, title="Above critical", accent="#fda4af", state="above"),
+        ]
+    )
+
+
+def _draw_optical_fiber(width: int, height: int) -> str:
+    core_x = 210
+    core_y = 285
+    core_width = width - 420
+    core_height = 150
+    cladding_padding = 52
+    zig_points = [
+        (core_x + 34, core_y + 102),
+        (core_x + 160, core_y + 42),
+        (core_x + 320, core_y + 108),
+        (core_x + 480, core_y + 42),
+        (core_x + 640, core_y + 108),
+        (core_x + 800, core_y + 42),
+    ]
+    zig_path = "M " + " L ".join(f"{x} {y}" for x, y in zig_points)
+
+    parts = [
+        _panel(90, 190, 1100, 340, title="Optical fiber lock-bounce", accent="#93c5fd"),
+        _rect(core_x - cladding_padding, core_y - cladding_padding, core_width + (cladding_padding * 2), core_height + (cladding_padding * 2), fill="#1f2937", stroke="#334155", stroke_width=3, rx=34),
+        _rect(core_x, core_y, core_width, core_height, fill="#0f766e", stroke="#67e8f9", stroke_width=4, rx=28),
+        _text(width / 2, core_y - 74, "cladding: lower index, faster escape zone", fill="#cbd5e1", size=20),
+        _text(width / 2, core_y + core_height + 78, "core: higher index, slower route zone", fill="#99f6e4", size=20),
+        _path(zig_path, stroke="#fbbf24", stroke_width=7),
+        _arrow(zig_points[-2][0], zig_points[-2][1], zig_points[-1][0], zig_points[-1][1], stroke="#fbbf24"),
+        _line(core_x + 160, core_y + 42, core_x + 160, core_y - 26, stroke="#38bdf8", stroke_width=4, dashed=True),
+        _line(core_x + 320, core_y + 108, core_x + 320, core_y + core_height + 26, stroke="#38bdf8", stroke_width=4, dashed=True),
+        _text(core_x + 160, core_y - 40, "meet boundary above critical angle", fill="#bae6fd", size=18),
+        _text(core_x + 320, core_y + core_height + 48, "bounce stays inside core", fill="#fde68a", size=18),
+        _text(width / 2, 560, "Repeated total internal reflection keeps the route guided down the core.", fill="#cbd5e1", size=22),
+    ]
+    return "".join(parts)
+
+
 def _draw_diffraction(width: int, height: int) -> str:
     return "".join(
         [
@@ -573,6 +676,10 @@ def generate_wave_diagram(
         body.append(_draw_ultrasound_range(width, height))
     elif spec.wave_type == "echo_map":
         body.append(_draw_echo_map(width, height))
+    elif spec.wave_type == "critical_angle":
+        body.append(_draw_critical_angle(width, height))
+    elif spec.wave_type == "optical_fiber":
+        body.append(_draw_optical_fiber(width, height))
     else:
         body.append(_draw_doppler_shift(width, height))
 

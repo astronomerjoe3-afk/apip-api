@@ -514,16 +514,23 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 8,
-                    "concept_gate_pool_min": 6,
-                    "mastery_pool_min": 8,
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 8)
-            self.assertGreaterEqual(len(concept_checks), 6)
-            self.assertGreaterEqual(len(transfer_items), 8)
-            expected_visual_count = 5 if lesson["lesson_id"] == "M8_L1" else 1
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
+            expected_visual_count = {
+                "M8_L1": 5,
+                "M8_L2": 1,
+                "M8_L3": 1,
+                "M8_L4": 1,
+                "M8_L5": 2,
+                "M8_L6": 3,
+            }[lesson["lesson_id"]]
             self.assertEqual(len(contract["visual_assets"]), expected_visual_count)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), expected_visual_count)
@@ -548,11 +555,27 @@ class ModuleAssetPipelineTests(unittest.TestCase):
                 diagram_ids = {asset["asset_id"] for asset in lesson["generated_assets"]["diagrams"]}
                 self.assertIn("m8-l1-surface-conversion", diagram_ids)
                 self.assertIn("m8-l1-ghost-image", diagram_ids)
-                plane_mirror_systems = {
-                    asset["meta"]["system_type"]
+                templates = {
+                    asset["meta"]["template"]
                     for asset in lesson["generated_assets"]["diagrams"]
                 }
-                self.assertEqual(plane_mirror_systems, {"plane_mirror"})
+                self.assertEqual(templates, {"optics_ray_diagram"})
+            if lesson["lesson_id"] == "M8_L5":
+                diagram_ids = {asset["asset_id"] for asset in lesson["generated_assets"]["diagrams"]}
+                self.assertEqual(diagram_ids, {"m8-l5-critical-angle", "m8-l5-optical-fiber"})
+                templates = {
+                    asset["meta"]["template"]
+                    for asset in lesson["generated_assets"]["diagrams"]
+                }
+                self.assertEqual(templates, {"wave_diagram"})
+            if lesson["lesson_id"] == "M8_L6":
+                diagram_ids = {asset["asset_id"] for asset in lesson["generated_assets"]["diagrams"]}
+                self.assertEqual(diagram_ids, {"m8-l6-plane-mirror-ghost", "m8-l6-converging-real", "m8-l6-diverging-ghost"})
+                templates = {
+                    asset["meta"]["template"]
+                    for asset in lesson["generated_assets"]["diagrams"]
+                }
+                self.assertEqual(templates, {"optics_ray_diagram"})
 
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])

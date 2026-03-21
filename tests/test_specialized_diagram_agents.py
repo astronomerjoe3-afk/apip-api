@@ -133,6 +133,67 @@ class SpecializedDiagramAgentsTests(unittest.TestCase):
             self.assertIn("incident", svg)
             self.assertIn("reflected", svg)
 
+    def test_generates_critical_angle_wave_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="wave_critical_angle_01",
+            phase_key="guided_concept_building",
+            concept="wave_diagram",
+            template="wave_diagram",
+            title="Critical Angle Story",
+            description="Compare escape, skim, and lock-bounce.",
+            width=1280,
+            height=720,
+            meta={
+                "wave_type": "critical_angle",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_wave_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="LIGHT",
+                lesson_id="M8_L5",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("Critical Angle Story", svg)
+            self.assertIn("Below critical", svg)
+            self.assertIn("At critical", svg)
+            self.assertIn("Above critical", svg)
+
+    def test_generates_optical_fiber_wave_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="wave_optical_fiber_01",
+            phase_key="guided_concept_building",
+            concept="wave_diagram",
+            template="wave_diagram",
+            title="Optical Fiber",
+            description="Repeated lock-bounce in the core.",
+            width=1280,
+            height=720,
+            meta={
+                "wave_type": "optical_fiber",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_wave_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="LIGHT",
+                lesson_id="M8_L5",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("Optical Fiber", svg)
+            self.assertIn("core", svg)
+            self.assertIn("cladding", svg)
+
     def test_generates_loop_ledger_svg(self) -> None:
         req = SimpleNamespace(
             asset_id="loop_ledger_01",
