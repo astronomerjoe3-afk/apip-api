@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M14_MODULE_ID = "M14"
-M14_CONTENT_VERSION = "20260322_m14_lantern_ring_v2"
+M14_CONTENT_VERSION = "20260322_m14_lantern_ring_v3"
 M14_MODULE_TITLE = "Solar System"
 M14_ALLOWLIST = [
     "sun_planet_confusion",
@@ -409,38 +409,65 @@ def lesson_one() -> Dict[str, Any]:
         "Build the Solar Court",
         sim("m14_solar_court_sort_lab", "Solar court sorter", "Sort Solar System bodies so the Sun-centered family becomes one coherent court.", ["Sort bodies by category.", "Keep the Sun at the center.", "Explain why not everything is a planet."], ["Describe the Solar System as one family.", "Distinguish key body categories."], ["object_type", "main_host", "category_sort"], "Solar family classification reasoning."),
         diagnostic,
-        "The Solar System is a dark court lit by one Great Lantern. Around that center move world riders, companion riders, rock swarm pieces, ice visitors, and smaller round riders.",
-        "Commit to the Solar System as one organized Sun-centered family.",
-        [prompt_block("What sits at the center of the Solar Court?", "The Great Lantern, which stands for the Sun."), prompt_block("What makes a moon different from a planet?", "A moon mainly orbits a larger world instead of the Sun as its main host.")],
-        [prompt_block("Sort the bodies by what they orbit.", "Planets and dwarf planets orbit the Sun; moons orbit larger worlds."), prompt_block("Compare rocky and icy small bodies.", "Asteroids are mainly rocky; comets are icy visitors.")],
-        ["Why is a family model stronger than a loose list of space objects?", "Why is it weak to call every Sun-orbiting body a planet?"],
+        "The Solar System is a dark court lit by one Great Lantern. Around that center move world riders, companion riders, rock swarm pieces, ice visitors, and smaller round riders. Some of those smaller round riders orbit the Sun directly but still stay in the dwarf-planet category because they have not cleared their orbital neighborhood like the full planets have.",
+        "Commit to the Solar System as one organized Sun-centered family, and use main host plus body-type clues before you call something a planet.",
+        [
+            prompt_block("What sits at the center of the Solar Court?", "The Great Lantern, which stands for the Sun."),
+            prompt_block("What makes a moon different from a planet?", "A moon mainly orbits a larger world instead of the Sun as its main host."),
+            prompt_block("What extra clue separates a dwarf planet from a full planet when both orbit the Sun?", "A dwarf planet has not cleared its orbital neighborhood the way a full planet has."),
+        ],
+        [
+            prompt_block("Sort the bodies by what they orbit.", "Planets and dwarf planets orbit the Sun; moons orbit larger worlds."),
+            prompt_block("Compare rocky and icy small bodies.", "Asteroids are mainly rocky; comets are icy visitors."),
+            prompt_block("Compare a planet with a dwarf planet that both orbit the Sun.", "Use the neighborhood-clearing clue to keep the categories distinct."),
+        ],
+        [
+            "Why is a family model stronger than a loose list of space objects?",
+            "Why is it weak to call every Sun-orbiting body a planet?",
+            "What extra clue separates a dwarf planet from a full planet when both orbit the Sun?",
+        ],
         "Build the family structure first so later lessons on gravity, day, seasons, phases, and years all have a clear home.",
         concept,
         mastery,
         contract(
-            concept_targets=["Describe the Solar System as one Sun-centered family.", "Distinguish planets, dwarf planets, moons, asteroids, and comets."],
-            core_concepts=["The Sun is the central star of the Solar System.", "Planets and dwarf planets orbit the Sun, while moons orbit larger worlds.", "Asteroids are mainly rocky small bodies, while comets are icy visitors.", "Object categories matter because not everything orbiting the Sun is a planet."],
+            concept_targets=[
+                "Describe the Solar System as one Sun-centered family.",
+                "Distinguish planets, dwarf planets, moons, asteroids, and comets.",
+                "Use the neighborhood-clearing clue to separate a dwarf planet from a full planet when both orbit the Sun.",
+            ],
+            core_concepts=[
+                "The Sun is the central star of the Solar System.",
+                "Planets and dwarf planets orbit the Sun, while moons orbit larger worlds.",
+                "A dwarf planet can orbit the Sun directly and still stay distinct because it has not cleared its orbital neighborhood like a full planet has.",
+                "Asteroids are mainly rocky small bodies, while comets are icy visitors.",
+                "Object categories matter because not everything orbiting the Sun is a planet.",
+            ],
             prerequisite_lessons=[],
             misconception_focus=["sun_planet_confusion", "planet_category_confusion", "moon_planet_confusion", "comet_asteroid_confusion"],
-            formulas=[relation("Solar System = one Sun-centered family", "Conceptual family rule for the module.", ["concept only"], "Use as the organizing statement."), relation("planet or dwarf planet -> orbits Sun", "Main-host rule for Sun-orbiting worlds.", ["concept only"], "Use when sorting planets and dwarf planets from moons.")],
+            formulas=[
+                relation("Solar System = one Sun-centered family", "Conceptual family rule for the module.", ["concept only"], "Use as the organizing statement."),
+                relation("planet or dwarf planet -> orbits Sun", "Main-host rule for Sun-orbiting worlds.", ["concept only"], "Use when sorting planets and dwarf planets from moons."),
+                relation("dwarf planet -> round + orbits Sun + not cleared neighborhood", "Adds the extra sorting clue that keeps dwarf planets distinct from the full planets.", ["concept only"], "Use qualitatively in lesson 1 before the worked example and later assessment items."),
+            ],
             representations=[representation("words", "Names the Sun-centered family and the main body groups."), representation("diagram", "Shows the Great Lantern, world riders, companion riders, rock swarm, and ice visitor."), representation("formula", "Uses short concept rules for what orbits the Sun and what orbits a larger world.")],
             analogy_map=lantern_ring_map("the learner sorts planets, dwarf planets, moons, asteroids, and comets inside one Solar Court"),
-            worked_examples=[worked("A round body orbits the Sun but has not cleared its orbital neighborhood. How should it be classified?", ["Notice that the body orbits the Sun directly.", "Notice that it is round.", "Use the neighborhood-clearing clue."], "It should be classified as a dwarf planet.", "A dwarf planet is a round Sun-orbiting world that has not cleared its neighborhood.", "This protects learners from collapsing dwarf planets into either planets or asteroids."), worked("A small body mainly orbits Earth rather than the Sun. What category fits best?", ["Ask what the body mainly orbits.", "Notice that its main host is a planet.", "Use the companion-rider rule."], "It is a moon.", "A moon is a companion rider that mainly orbits a larger world.", "This keeps planets and moons separated by orbit relationship."), worked("A learner points to a comet and says, 'It orbits the Sun, so it must be a planet.' How do you correct that?", ["Keep the Sun-orbit clue in place.", "Add the icy small-body category clue.", "Use category and host together."], "A comet is still a comet, not a planet, even though it orbits the Sun.", "Main host alone does not erase the object's body type.", "This strengthens the idea that the Solar Court needs both family structure and category labels.")],
+            worked_examples=[worked("A round body orbits the Sun but has not cleared its orbital neighborhood. How should it be classified?", ["Notice that the body orbits the Sun directly.", "Notice that it is round.", "Use the taught neighborhood-clearing clue to keep it separate from the full planets."], "It should be classified as a dwarf planet.", "A dwarf planet is a round Sun-orbiting world that has not cleared its neighborhood.", "This protects learners from collapsing dwarf planets into either planets or asteroids."), worked("A small body mainly orbits Earth rather than the Sun. What category fits best?", ["Ask what the body mainly orbits.", "Notice that its main host is a planet.", "Use the companion-rider rule."], "It is a moon.", "A moon is a companion rider that mainly orbits a larger world.", "This keeps planets and moons separated by orbit relationship."), worked("A learner points to a comet and says, 'It orbits the Sun, so it must be a planet.' How do you correct that?", ["Keep the Sun-orbit clue in place.", "Add the icy small-body category clue.", "Use category and host together."], "A comet is still a comet, not a planet, even though it orbits the Sun.", "Main host alone does not erase the object's body type.", "This strengthens the idea that the Solar Court needs both family structure and category labels.")],
             visual_assets=[visual("m14-l1-solar-court", "Build the Solar Court", "Show the Solar System as one Sun-centered family with several classes of bodies.", "The Solar Court visual keeps planets, dwarf planets, moons, asteroids, and comets together in one organized family.", diagram_type="solar_court")],
             animation_assets=[],
             simulation_contract=sim_contract("m14_l1_solar_court_sim", "solar_court_sort", "Sort each body into the right Solar Court category before explaining why it belongs there.", "Start with one example of each body type around the Great Lantern.", ["Sort by what the body is.", "Sort by what it mainly orbits."], "Watch for the difference between a world orbiting the Sun and a companion orbiting a larger world.", "The Solar System is one Sun-centered family made of several distinct object groups.", controls=[("object_type", "Body selector", "Lets learners compare planets, moons, asteroids, comets, and dwarf planets."), ("main_host", "Main host", "Shows whether the body mainly belongs to the Sun or to a larger world.")], readouts=[("Current classification", "Names the most accurate Solar Court category."), ("Host note", "Shows what the selected body mainly orbits.")]),
             reflection_prompts=["Explain why the Solar System is stronger as one Sun-centered family than as a random list of objects."],
-            mastery_skills=["solar_family", "identify_sun", "classify_planet", "classify_moon", "classify_small_bodies"],
-            variation_plan={"diagnostic": "Fresh attempts rotate between Sun-role, category, and main-host prompts.", "concept_gate": "Concept-gate retries alternate between category corrections and short host-orbit explanations.", "mastery": "Mastery varies summary and classification prompts before repeating a previous family."},
+            mastery_skills=["solar_family", "identify_sun", "classify_planet", "classify_dwarf_planet", "classify_moon", "classify_small_bodies", "main_host_reasoning", "category_counting"],
+            variation_plan={"diagnostic": "Fresh attempts rotate between Sun-role, category, and main-host prompts.", "concept_gate": "Concept-gate retries alternate between category corrections, neighborhood-clearing explanations, and short host-orbit explanations.", "mastery": "Mastery varies summary, counting, and classification prompts before repeating a previous family."},
             scaffold_support=scaffold(
-                "Start with one central Sun and sort everything else by category and main host.",
-                "Ask first what the body is, then ask what it mainly orbits so planets, moons, comets, asteroids, and dwarf planets do not blur together.",
+                "Start with one central Sun and sort everything else by category, main host, and the dwarf-planet neighborhood clue.",
+                "Ask first what the body is, then ask what it mainly orbits, and finally use the neighborhood-clearing clue when you need to separate a dwarf planet from a full planet.",
                 "Which clue is stronger for separating planets from moons: color or main host?",
                 "Do not let 'orbits the Sun' collapse every body into the planet label.",
                 "The Solar Court works because one Great Lantern can organize several body categories without making them identical.",
-                "What extra clue does the Solar Court need besides 'it is in the Solar System'?",
+                "What extra clue does the Solar Court need when two round bodies both orbit the Sun?",
                 [
                     extra_section("Host Rule", "Main host is the quickest sorting clue for separating world riders from companion riders.", "Which body type mainly orbits a larger world?"),
+                    extra_section("Dwarf Planet Rule", "A dwarf planet can orbit the Sun directly and still stay distinct from the full planets because it has not cleared its orbital neighborhood.", "What extra clue separates a dwarf planet from a full planet?"),
                     extra_section("Small Bodies", "Asteroids and comets belong in the same family but still need rocky-versus-icy distinctions.", "Why is a comet not just an asteroid with a longer orbit?"),
                 ],
             ),
