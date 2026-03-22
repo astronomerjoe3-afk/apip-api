@@ -181,6 +181,24 @@ class M15QualityContractTests(unittest.TestCase):
         self.assertIn("reflective", flattened)
         self.assertIn("both", flattened)
 
+    def test_m15_stellar_path_diagnostic_accepts_mass_determines_ending_wording(self) -> None:
+        lesson = dict(M15_LESSONS)["M15_L2"]
+        question = next(
+            item
+            for item in lesson["phases"]["diagnostic"]["items"]
+            if item.get("id") == "M15L2_D9"
+        )
+
+        accepted = {str(answer) for answer in question.get("accepted_answers", [])}
+        phrase_groups = question.get("acceptance_rules", {}).get("phrase_groups", [])
+        flattened = {phrase for group in phrase_groups for phrase in group}
+
+        self.assertIn("Because their mass determines their ending.", accepted)
+        self.assertIn("Because a star's mass determines its ending.", accepted)
+        self.assertIn("mass", flattened)
+        self.assertIn("determines", flattened)
+        self.assertIn("ending", flattened)
+
 
 if __name__ == "__main__":
     unittest.main()
