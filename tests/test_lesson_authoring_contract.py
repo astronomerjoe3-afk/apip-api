@@ -133,7 +133,22 @@ def _valid_v3_lesson() -> dict:
                     "term": "Pressure",
                     "meaning": "Force per unit area.",
                     "why_it_matters": "It keeps force and pressure separate.",
-                }
+                },
+                {
+                    "term": "Contact area",
+                    "meaning": "The surface area over which the force is spread.",
+                    "why_it_matters": "Changing area can change pressure even if the force stays the same.",
+                },
+                {
+                    "term": "Pascal",
+                    "meaning": "A pascal is one newton per square metre.",
+                    "why_it_matters": "It ties the unit of pressure back to force and area.",
+                },
+                {
+                    "term": "Safe pressure limit",
+                    "meaning": "A safe pressure limit is the greatest pressure a surface can take without failing.",
+                    "why_it_matters": "It supports design-backward reasoning for required area.",
+                },
             ],
             "prerequisite_lessons": [],
             "misconception_focus": ["pressure_area_confusion", "pressure_force_confusion"],
@@ -284,6 +299,14 @@ class LessonAuthoringContractTests(unittest.TestCase):
         errors = validate_nextgen_lesson(lesson, ALLOWLIST, AUTHORING_STANDARD_V3)
 
         self.assertTrue(any("technical_words[1] needs a meaning" in error for error in errors))
+
+    def test_v3_lessons_require_at_least_four_technical_words(self) -> None:
+        lesson = _valid_v3_lesson()
+        lesson["authoring_contract"]["technical_words"] = lesson["authoring_contract"]["technical_words"][:3]
+
+        errors = validate_nextgen_lesson(lesson, ALLOWLIST, AUTHORING_STANDARD_V3)
+
+        self.assertTrue(any("need at least 4 technical_words entries" in error for error in errors))
 
 
 if __name__ == "__main__":

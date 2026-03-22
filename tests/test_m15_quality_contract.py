@@ -43,6 +43,7 @@ class M15QualityContractTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["technical_words"]), 4)
             self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
             self.assertTrue(contract.get("scaffold_support"))
             self.assertTrue(simulation_contract["asset_id"])
@@ -72,6 +73,16 @@ class M15QualityContractTests(unittest.TestCase):
 
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
+
+    def test_m15_lesson_three_includes_authored_technical_words(self) -> None:
+        lesson = dict(M15_LESSONS)["M15_L3"]
+        technical_words = lesson["authoring_contract"]["technical_words"]
+        terms = {entry["term"] for entry in technical_words}
+
+        self.assertIn("Galaxy", terms)
+        self.assertIn("Milky Way", terms)
+        self.assertIn("Solar System", terms)
+        self.assertIn("Gravity-bound", terms)
 
     def test_m15_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
         mastery_text = " ".join(M15_MODULE_DOC.get("mastery_outcomes") or []).lower()

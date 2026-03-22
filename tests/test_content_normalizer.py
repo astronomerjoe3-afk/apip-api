@@ -179,6 +179,44 @@ class ContentNormalizerTests(unittest.TestCase):
             contract["spiral_reinforcement"]["lesson_stage_focus"][0]["level"],
             "level_2",
         )
+        self.assertGreaterEqual(len(contract["technical_words"]), 4)
+        self.assertEqual(contract["technical_words"][0]["term"], "Charge")
+        self.assertEqual(
+            contract["technical_words"][1]["term"],
+            "Current",
+        )
+
+    def test_student_view_adds_technical_words_for_advanced_module_aliases(self) -> None:
+        lesson = {
+            "id": "MA5_L1",
+            "lesson_id": "MA5_L1",
+            "module_id": "MA5",
+            "title": "Modern physics launch",
+            "sequence": 1,
+            "phases": {
+                "analogical_grounding": {},
+                "simulation_inquiry": {},
+                "concept_reconstruction": {"capsules": []},
+                "diagnostic": {"items": []},
+                "transfer": {"items": []},
+            },
+            "authoring_contract": {},
+        }
+
+        payload = to_student_lesson_view(lesson)
+        technical_words = payload["authoring_contract"]["technical_words"]
+        terms = [entry["term"] for entry in technical_words]
+
+        self.assertGreaterEqual(len(technical_words), 4)
+        self.assertEqual(
+            terms[:4],
+            [
+                "Photoelectric effect",
+                "Photon",
+                "Wave-particle duality",
+                "Time dilation",
+            ],
+        )
 
     def test_student_view_expands_short_answer_acceptance_margin_to_ten_to_fifteen_versions(self) -> None:
         lesson = {

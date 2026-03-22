@@ -103,6 +103,10 @@ def prompt_block(prompt: str, hint: str) -> Dict[str, str]:
     return {"prompt": prompt, "hint": hint}
 
 
+def technical_word(term: str, meaning: str, why_it_matters: str) -> Dict[str, str]:
+    return {"term": term, "meaning": meaning, "why_it_matters": why_it_matters}
+
+
 def relation(equation: str, meaning: str, units: Sequence[str], conditions: str) -> Dict[str, Any]:
     return {"equation": equation, "meaning": meaning, "units": list(units), "conditions": conditions}
 
@@ -242,6 +246,7 @@ def contract(
     *,
     concept_targets: Sequence[str],
     core_concepts: Sequence[str],
+    technical_words: Sequence[Dict[str, Any]],
     prerequisite_lessons: Sequence[str],
     misconception_focus: Sequence[str],
     formulas: Sequence[Dict[str, Any]],
@@ -260,6 +265,7 @@ def contract(
     return {
         "concept_targets": list(concept_targets),
         "core_concepts": list(core_concepts),
+        "technical_words": [deepcopy(item) for item in technical_words],
         "prerequisite_lessons": list(prerequisite_lessons),
         "misconception_focus": safe_tags(misconception_focus),
         "formulas": [deepcopy(item) for item in formulas],
@@ -276,6 +282,52 @@ def contract(
         "scaffold_support": deepcopy(scaffold_support),
         "visual_clarity_checks": list(visual_clarity_checks),
     }
+
+
+def m15_technical_words(lesson_id: str) -> List[Dict[str, str]]:
+    if lesson_id == "M15_L1":
+        return [
+            technical_word("Star", "A star is a self-luminous ball of gas that makes its own light.", "It keeps stars separate from planets that only reflect light."),
+            technical_word("Fusion", "Fusion is the joining of light nuclei in a star's core, releasing energy.", "It is the process that powers starlight."),
+            technical_word("Luminous", "A luminous object produces its own light.", "It is the key classification word for a star in this lesson."),
+            technical_word("Reflected light", "Reflected light is light that bounces off an object after coming from another source.", "It explains why a planet can look bright without being a star."),
+        ]
+    if lesson_id == "M15_L2":
+        return [
+            technical_word("Protostar", "A protostar is a young forming star before the long stable stage begins.", "It helps students place the early stellar stages in the right order."),
+            technical_word("Main sequence", "The main sequence is the long steady stage when a star spends most of its life.", "It is the shared middle stage before later branching."),
+            technical_word("Supernova", "A supernova is a violent explosion near the end of some high-mass stars' lives.", "It belongs to the higher-mass route, not every stellar ending."),
+            technical_word("Remnant", "A remnant is the dense object left after a star's later evolution or explosion.", "The remnant type depends strongly on stellar mass."),
+        ]
+    if lesson_id == "M15_L3":
+        return [
+            technical_word("Galaxy", "A galaxy is a huge gravity-bound system of stars, gas, and dust.", "It is much larger than one star system but smaller than the whole universe."),
+            technical_word("Milky Way", "The Milky Way is the galaxy that contains our Solar System.", "It is our home galaxy, not another name for the universe."),
+            technical_word("Solar System", "The Solar System is the Sun and the objects held by its gravity.", "It sits inside the Milky Way rather than equaling it."),
+            technical_word("Gravity-bound", "A gravity-bound system is held together by gravitational attraction.", "It explains why a galaxy counts as one system instead of a loose scatter of stars."),
+        ]
+    if lesson_id == "M15_L4":
+        return [
+            technical_word("Light-year", "A light-year is the distance light travels in one year.", "It is a distance unit even though the word year appears in the name."),
+            technical_word("Distance scale", "A distance scale is a ladder of distances used to compare sizes or separations.", "It helps students place nearby stars and galaxy sizes on one board."),
+            technical_word("Unit", "A unit is the agreed measurement size used with a quantity.", "It keeps the number and the quantity tied together."),
+            technical_word("Astronomical distance", "An astronomical distance is a very large separation in space between objects.", "It explains why ordinary units like kilometres become awkward at cosmic scales."),
+        ]
+    if lesson_id == "M15_L5":
+        return [
+            technical_word("Redshift", "Redshift is the increase in observed wavelength compared with the emitted wavelength.", "It is the measurable clue used in the expansion story."),
+            technical_word("Wavelength", "Wavelength is the distance between matching points on a wave.", "Redshift is explained through wavelength change, not a vague color name alone."),
+            technical_word("Observed light", "Observed light is the light measured when it reaches the observer.", "It may differ from the emitted light after traveling through expanding space."),
+            technical_word("Expansion", "Expansion means the space between distant galaxies increases over time.", "It provides the stretching story behind cosmological redshift."),
+        ]
+    if lesson_id == "M15_L6":
+        return [
+            technical_word("Big Bang", "The Big Bang model describes the universe expanding from an earlier hot, dense state.", "It is a model of cosmic history, not an ordinary explosion from one point."),
+            technical_word("Universe", "The universe is all of space, time, matter, and energy.", "It is larger than any one galaxy."),
+            technical_word("Hot dense state", "A hot dense state is an early condition where the universe was much hotter and more closely packed.", "It is the starting condition in the Big Bang model."),
+            technical_word("Expansion of space", "Expansion of space means the distance between galaxies grows because space itself stretches.", "It is the modern picture that fits the redshift evidence better than a center-blast picture."),
+        ]
+    return []
 
 
 def sim(
@@ -513,6 +565,7 @@ def lesson_one() -> Dict[str, Any]:
                 "Fusion in a star's core releases the energy that makes it shine.",
                 "Apparent brightness alone does not decide whether something is a star.",
             ],
+            technical_words=m15_technical_words("M15_L1"),
             prerequisite_lessons=["M14_L1"],
             misconception_focus=["star_reflects_light_confusion", "fusion_core_energy_confusion"],
             formulas=[
@@ -771,6 +824,7 @@ def lesson_two() -> Dict[str, Any]:
                 "Lower-mass and higher-mass stars do not share identical endings.",
                 "Massive stars can explode as supernovae and leave neutron stars or black holes.",
             ],
+            technical_words=m15_technical_words("M15_L2"),
             prerequisite_lessons=["M15_L1"],
             misconception_focus=["mass_same_star_fate_confusion"],
             formulas=[
@@ -1023,6 +1077,7 @@ def lesson_three() -> Dict[str, Any]:
                 "The Milky Way is our home galaxy.",
                 "The Solar System is inside the Milky Way rather than equal to it.",
             ],
+            technical_words=m15_technical_words("M15_L3"),
             prerequisite_lessons=["M15_L1"],
             misconception_focus=["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"],
             formulas=[
@@ -1265,6 +1320,7 @@ def lesson_four() -> Dict[str, Any]:
                 "Cosmic distances are huge.",
                 "Larger light-year values mean greater distance.",
             ],
+            technical_words=m15_technical_words("M15_L4"),
             prerequisite_lessons=["M15_L3"],
             misconception_focus=["light_year_time_confusion", "light_year_small_distance_confusion"],
             formulas=[
@@ -1517,6 +1573,7 @@ def lesson_five() -> Dict[str, Any]:
                 "Farther galaxies generally show larger cosmological redshifts.",
                 "Redshift is not explained merely by saying the source became cooler.",
             ],
+            technical_words=m15_technical_words("M15_L5"),
             prerequisite_lessons=["M15_L4"],
             misconception_focus=["redshift_cooling_confusion", "redshift_color_only_confusion", "farther_smaller_redshift_confusion"],
             formulas=[
@@ -1785,6 +1842,7 @@ def lesson_six() -> Dict[str, Any]:
                 "Cosmological redshift supports expansion.",
                 "The farther-galaxy larger-redshift pattern is key evidence language.",
             ],
+            technical_words=m15_technical_words("M15_L6"),
             prerequisite_lessons=["M15_L5"],
             misconception_focus=["big_bang_center_explosion_confusion", "expansion_into_space_confusion", "farther_smaller_redshift_confusion"],
             formulas=[

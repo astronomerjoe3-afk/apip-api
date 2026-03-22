@@ -10,6 +10,7 @@ from scripts.lesson_authoring_contract import (
     default_competency_mapping,
     default_spiral_reinforcement,
 )
+from app.services.technical_words_catalog import ensure_minimum_technical_words, module_code_from_lesson
 
 
 _MOJIBAKE_REPLACEMENTS = {
@@ -307,12 +308,13 @@ def _student_capsules(capsules: Optional[List[Dict[str, Any]]]) -> List[Dict[str
     return output
 
 
-def _student_authoring_contract(authoring: Any) -> Dict[str, Any]:
+def _student_authoring_contract(authoring: Any, lesson: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(authoring, dict):
-        return {}
+        authoring = {}
+    module_code = module_code_from_lesson(lesson)
     return {
         "core_concepts": deepcopy(authoring.get("core_concepts") or []),
-        "technical_words": deepcopy(authoring.get("technical_words") or []),
+        "technical_words": ensure_minimum_technical_words(authoring.get("technical_words") or [], module_code),
         "worked_examples": deepcopy(authoring.get("worked_examples") or []),
         "visual_assets": deepcopy(authoring.get("visual_assets") or []),
         "animation_assets": deepcopy(authoring.get("animation_assets") or []),
@@ -419,7 +421,7 @@ def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
             },
         },
         "authoring_contract": {
-            **_student_authoring_contract(normalized.get("authoring_contract")),
+            **_student_authoring_contract(normalized.get("authoring_contract"), normalized),
             **_student_curriculum_contract(normalized.get("authoring_contract"), normalized),
         },
     }

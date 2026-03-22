@@ -564,6 +564,8 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
     technical_words = [_record(item) for item in _items(authoring.get("technical_words"))]
     if technical_words:
         _validate_technical_words(technical_words, errors, f"{lesson_id} authoring")
+    if use_v3:
+        _require(len(technical_words) >= 4, f"{lesson_id}: spec v3 lessons need at least 4 technical_words entries.", errors)
 
     formulas = [_record(item) for item in _items(authoring.get("formulas"))]
     _require(bool(formulas), f"{lesson_id}: authoring_contract.formulas needs at least one formula entry.", errors)
