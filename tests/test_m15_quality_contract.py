@@ -163,6 +163,24 @@ class M15QualityContractTests(unittest.TestCase):
         self.assertIn("source of light", flattened)
         self.assertIn("makes its own light", flattened)
 
+    def test_m15_mastery_brightness_short_answer_accepts_concise_valid_wording(self) -> None:
+        lesson = dict(M15_LESSONS)["M15_L1"]
+        question = next(
+            item
+            for item in lesson["phases"]["transfer"]["items"]
+            if item.get("id") == "M15L1_M9"
+        )
+
+        accepted = {str(answer) for answer in question.get("accepted_answers", [])}
+        phrase_groups = question.get("acceptance_rules", {}).get("phrase_groups", [])
+        flattened = {phrase for group in phrase_groups for phrase in group}
+
+        self.assertIn("Because both sources and reflectors can appear bright.", accepted)
+        self.assertIn("Because both stars and reflective planets can appear bright.", accepted)
+        self.assertIn("reflector", flattened)
+        self.assertIn("reflective", flattened)
+        self.assertIn("both", flattened)
+
 
 if __name__ == "__main__":
     unittest.main()
