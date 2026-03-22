@@ -18,6 +18,16 @@ class SeedA2ModuleTests(unittest.TestCase):
         self.assertEqual(len(module.A2_LESSONS), 6)
         self.assertEqual(len(module.A2_SIM_LABS), 6)
 
+    def test_seed_a2_visuals_use_general_visual_template(self) -> None:
+        module = importlib.import_module("scripts.seed_a2_module")
+
+        for _, lesson in module.A2_LESSONS:
+            visuals = (lesson.get("authoring_contract") or {}).get("visual_assets") or []
+            self.assertGreater(len(visuals), 0)
+            for visual in visuals:
+                self.assertEqual(visual.get("template"), "general_visual")
+                self.assertTrue((visual.get("meta") or {}).get("subject"))
+
 
 if __name__ == "__main__":
     unittest.main()

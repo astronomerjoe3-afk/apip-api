@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 A1_MODULE_ID = "A1"
-A1_CONTENT_VERSION = "20260321_a1_probe_field_v1"
+A1_CONTENT_VERSION = "20260322_a1_probe_field_v2"
 A1_MODULE_TITLE = "Advanced Mechanics"
 A1_ALLOWLIST = [
     "suvat_universal_confusion",
@@ -109,8 +109,17 @@ def visual(asset_id: str, concept: str, title: str, purpose: str, caption: str) 
         "title": title,
         "purpose": purpose,
         "caption": caption,
-        "template": "auto",
-        "meta": {"module_family": "probe_field"},
+        "template": "general_visual",
+        "meta": {
+            "module_family": "probe_field",
+            "subject": title,
+            "style": "cinematic educational concept art",
+            "mood": "dynamic, analytical, high-clarity, physics-driven",
+            "composition": "clean physics scene with one clear focal analogy, readable spatial relationships, premium lighting",
+            "palette": "deep navy, electric blue, teal motion trails, gold highlights",
+            "avoid_text_in_image": True,
+            "extra_prompt": f"{purpose} {caption} Emphasize motion arrows, fields, or orbital geometry only as visual cues without embedded labels.",
+        },
     }
 
 

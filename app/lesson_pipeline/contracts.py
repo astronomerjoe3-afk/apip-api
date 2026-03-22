@@ -7,6 +7,32 @@ from typing import Any, Dict, List
 
 
 DIAGRAM_REQUEST_TEMPLATE_CONTRACTS: Dict[str, Dict[str, Any]] = {
+    "general_visual": {
+        "description": "General educational concept visuals rendered through the image-backed concept-art agent with a deterministic SVG fallback.",
+        "concept_aliases": [
+            "general_visual",
+            "general_visual_concept",
+            "illustration",
+            "concept_art",
+            "power_image",
+        ],
+        "template_aliases": [
+            "general_visual",
+        ],
+        "meta_contract": {
+            "subject": "optional string describing the scene subject",
+            "style": "optional style string, defaults to cinematic educational concept art",
+            "mood": "optional mood string",
+            "composition": "optional composition guidance",
+            "palette": "optional palette guidance",
+            "avoid_text_in_image": "optional boolean, defaults to true",
+            "extra_prompt": "optional extra prompt guidance",
+            "model": "optional image model override, defaults to gpt-image-1",
+            "quality": "optional quality override",
+            "output_format": ["png", "jpeg", "webp"],
+            "background": ["auto", "opaque", "transparent"],
+        },
+    },
     "space_astrophysics_diagram": {
         "description": "Deterministic SVG space and astrophysics diagrams for authored lesson assets.",
         "concept_aliases": [

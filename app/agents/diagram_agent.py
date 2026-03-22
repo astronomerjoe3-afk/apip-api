@@ -6,6 +6,7 @@ from xml.sax.saxutils import escape
 from app.agents.astronomy_diagram_agent import generate_astronomy_diagram
 from app.agents.electric_circuit_diagram_agent import generate_electric_circuit_diagram
 from app.agents.electromagnetism_diagram_agent import generate_electromagnetism_diagram
+from app.agents.general_visual_concept_agent import generate_general_visual_concept
 from app.agents.optics_ray_diagram_agent import generate_optics_ray_diagram
 from app.agents.physics_graph_agent import generate_physics_graph
 from app.agents.radioactivity_diagram_agent import generate_radioactivity_diagram
@@ -608,6 +609,21 @@ def generate_diagram(
         "circular_motion_graph",
     }:
         return generate_physics_graph(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "general_visual" or req.concept in {
+        "general_visual",
+        "general_visual_concept",
+        "illustration",
+        "concept_art",
+        "power_image",
+    }:
+        return generate_general_visual_concept(
             req=req,
             output_dir=output_dir,
             public_base=public_base,

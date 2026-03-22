@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 A2_MODULE_ID = "A2"
-A2_CONTENT_VERSION = "20260321_a2_charge_terrace_mesh_v1"
+A2_CONTENT_VERSION = "20260322_a2_charge_terrace_mesh_v2"
 A2_MODULE_TITLE = "Advanced Electricity"
 A2_ALLOWLIST = [
     "field_force_same_confusion",
@@ -139,8 +139,17 @@ def visual(asset_id: str, concept: str, title: str, purpose: str, caption: str) 
         "title": title,
         "purpose": purpose,
         "caption": caption,
-        "template": "auto",
-        "meta": {"module_family": "charge_terrace_mesh"},
+        "template": "general_visual",
+        "meta": {
+            "module_family": "charge_terrace_mesh",
+            "subject": title,
+            "style": "cinematic educational concept art",
+            "mood": "precise, luminous, premium, systems-focused",
+            "composition": "clean electric-field scene with strong depth, visible charge-terrain relationships, no UI clutter",
+            "palette": "deep navy, electric cyan, violet gradients, gold accents",
+            "avoid_text_in_image": True,
+            "extra_prompt": f"{purpose} {caption} Emphasize electric slopes, terraces, plate fields, nodes, or charge separation as clean visual motifs without embedded labels.",
+        },
     }
 
 
