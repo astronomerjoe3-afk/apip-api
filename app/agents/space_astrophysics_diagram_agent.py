@@ -523,14 +523,16 @@ def _galaxy_milky_way_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, height
             _path(f"M {cx-220:.2f} {cy+20:.2f} C {cx-70:.2f} {cy+140:.2f}, {cx+110:.2f} {cy+150:.2f}, {cx+250:.2f} {cy+40:.2f}", stroke="#7dd3fc", stroke_width=16),
             _circle(cx, cy, 22, fill="#f8fafc", stroke="#bae6fd", stroke_width=3),
             _circle(cx + 120, cy - 24, 8, fill="#facc15", stroke="#f8fafc", stroke_width=2),
-            _text(cx + 170, cy - 34, "Sun inside the Milky Way", fill="#fde68a", size=20, anchor="start"),
-            _line(cx + 138, cy - 26, cx + 96, cy - 22, stroke="#fde68a", stroke_width=3),
-            _rect(830, 190, 320, 260, fill="#111827", stroke="#334155", stroke_width=2, rx=22),
+            _text(cx + 164, cy - 40, "Sun position", fill="#fde68a", size=20, anchor="start", weight="bold"),
+            _text(cx + 164, cy - 12, "inside the Milky Way", fill="#fde68a", size=18, anchor="start"),
+            _line(cx + 136, cy - 22, cx + 96, cy - 20, stroke="#fde68a", stroke_width=3),
+            _rect(830, 190, 320, 288, fill="#111827", stroke="#334155", stroke_width=2, rx=22),
             _text(990, 228, "Beacon-city = galaxy", size=26, weight="bold"),
             _text(990, 276, "gravity-bound", size=22, fill="#86efac"),
             _text(990, 314, "many stars", size=22, fill="#e2e8f0"),
             _text(990, 352, "gas + dust", size=22, fill="#e2e8f0"),
-            _text(990, 390, "Milky Way = home spiral city", size=22, fill="#bfdbfe"),
+            _text(990, 390, "Milky Way = home", size=22, fill="#bfdbfe"),
+            _text(990, 420, "spiral city", size=22, fill="#bfdbfe"),
         ]
     )
     return "".join(parts)
