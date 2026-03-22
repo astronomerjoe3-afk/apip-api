@@ -1887,6 +1887,101 @@ def _merge_unique_strings(existing: Sequence[str], extras: Sequence[str]) -> Lis
     return merged
 
 
+def _extend_phrase_group(group: Sequence[str]) -> List[str]:
+    expanded = list(group)
+    lowered = {str(item).lower() for item in group}
+
+    if lowered & {"makes", "produces", "self-lit", "luminous", "self-luminous"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["emits", "gives off", "gives out", "light source", "source of light", "own light", "self produced"],
+        )
+    if lowered & {"reflect", "reflection", "borrowed"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["reflects", "reflected", "borrowed light", "bounces light", "lit by another source"],
+        )
+    if lowered & {"not enough", "too weak", "by itself"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["cannot prove", "does not prove", "not enough on its own", "does not settle it", "can mislead"],
+        )
+    if lowered & {"mass", "different mass"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["how massive", "more massive", "less massive", "bigger mass", "star mass"],
+        )
+    if lowered & {"path", "branch", "route", "later path"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["fate", "ending route", "later route", "life path"],
+        )
+    if lowered & {"remnant", "ending"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["final state", "end state", "what it ends as"],
+        )
+    if lowered & {"many stars", "many star systems", "collection", "beacons"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["lots of stars", "group of stars", "huge star system collection"],
+        )
+    if lowered & {"distance", "how far"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["distance unit", "distance measure", "measures separation", "space between objects"],
+        )
+    if lowered & {"year", "time"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["sounds like time", "time word", "time-looking word"],
+        )
+    if lowered & {"wavelength", "observed wavelength", "emitted wavelength"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["wave length", "spectral line position", "light wave spacing"],
+        )
+    if lowered & {"longer", "increase", "stretched"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["lengthens", "gets longer", "shifted longer", "stretched out"],
+        )
+    if lowered & {"pattern", "trend"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["overall pattern", "repeating pattern", "many-galaxy trend"],
+        )
+    if lowered & {"expand", "expanding", "expansion", "expansion of space"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["space is stretching", "space gets bigger", "space itself changes scale"],
+        )
+    if lowered & {"center", "centre", "one point", "blast", "explosion"}:
+        expanded = _merge_unique_strings(
+            expanded,
+            ["central blast", "single explosion", "ordinary explosion picture"],
+        )
+
+    return expanded
+
+
+def _broaden_m15_short_acceptance(lesson: Dict[str, Any]) -> None:
+    question_sets = [
+        lesson.get("diagnostic") or [],
+        lesson.get("capsule_checks") or [],
+        lesson.get("transfer") or [],
+    ]
+    for question_set in question_sets:
+        for item in question_set:
+            if item.get("type") != "short":
+                continue
+            acceptance = item.setdefault("acceptance_rules", {})
+            phrase_groups = acceptance.get("phrase_groups")
+            if not isinstance(phrase_groups, list):
+                continue
+            acceptance["phrase_groups"] = [_extend_phrase_group(group) for group in phrase_groups]
+
+
 def _quality_pass_lesson(
     lesson: Dict[str, Any],
     *,
@@ -1911,6 +2006,7 @@ def _quality_pass_lesson(
     for item in [*diagnostic_extra, *concept_extra, *mastery_extra]:
         extra_skills.extend([str(tag) for tag in item.get("skill_tags") or []])
     contract_payload["mastery_skills"] = _merge_unique_strings(contract_payload.get("mastery_skills") or [], extra_skills)
+    _broaden_m15_short_acceptance(upgraded)
     return upgraded
 
 
