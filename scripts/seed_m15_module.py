@@ -361,7 +361,7 @@ def lesson_one() -> Dict[str, Any]:
             0,
             "Stars are self-lit; planets and moons mainly reflect.",
             ["star_reflects_light_confusion"],
-            ["luminous_vs_reflective"],
+            ["luminous_vs_reflective", "identify_star"],
         ),
     ]) + build_shorts([
         (
@@ -373,7 +373,7 @@ def lesson_one() -> Dict[str, Any]:
             ],
             "Use self-lit versus reflected language.",
             ["star_reflects_light_confusion"],
-            ["luminous_vs_reflective"],
+            ["luminous_vs_reflective", "fusion_energy"],
             acceptance_groups(
                 ["star", "beacon"],
                 ["makes", "produces", "self-lit", "luminous"],
@@ -395,7 +395,7 @@ def lesson_one() -> Dict[str, Any]:
             0,
             "Stars make light; planets mainly reflect.",
             ["star_reflects_light_confusion"],
-            ["luminous_vs_reflective"],
+            ["luminous_vs_reflective", "identify_star"],
         ),
     ]) + build_shorts([
         (
@@ -407,7 +407,7 @@ def lesson_one() -> Dict[str, Any]:
             ],
             "Contrast reflection with self-produced light.",
             ["star_reflects_light_confusion"],
-            ["luminous_vs_reflective"],
+            ["luminous_vs_reflective", "fusion_energy"],
             acceptance_groups(
                 ["planet"],
                 ["reflect", "reflection"],
@@ -430,7 +430,7 @@ def lesson_one() -> Dict[str, Any]:
             0,
             "A star is self-lit and fusion-powered.",
             ["star_reflects_light_confusion", "fusion_core_energy_confusion"],
-            ["identify_star"],
+            ["identify_star", "luminous_vs_reflective", "fusion_energy"],
         ),
         (
             "M15L1_M3",
@@ -525,6 +525,7 @@ def lesson_one() -> Dict[str, Any]:
             ],
             representations=[
                 representation("words", "Separates luminous stars from reflective planets."),
+                representation("formula", "fusion in core -> light + heat"),
                 representation("diagram", "Compares a self-lit beacon with a reflective world."),
                 representation("model", "Uses the Beacon language to anchor the distinction."),
             ],
@@ -585,7 +586,7 @@ def lesson_one() -> Dict[str, Any]:
                 ],
             ),
             reflection_prompts=["Explain why a star is stronger as a self-lit beacon than as a reflective object."],
-            mastery_skills=["identify_star", "luminous_vs_reflective", "fusion_energy", "star_to_galaxy_bridge"],
+            mastery_skills=["identify_star", "luminous_vs_reflective", "fusion_energy", "classify_light_source", "star_to_galaxy_bridge"],
             variation_plan={
                 "diagnostic": "Fresh attempts rotate between luminous-versus-reflective, source-check, and fusion-cause prompts.",
                 "concept_gate": "Concept-gate retries alternate between brightness traps and stronger star-definition prompts.",
@@ -782,6 +783,7 @@ def lesson_two() -> Dict[str, Any]:
             ],
             representations=[
                 representation("words", "Tracks the star from birth cloud to remnant."),
+                representation("formula", "higher mass -> different later branch and remnant"),
                 representation("diagram", "Shows the lifecycle branch by mass."),
                 representation("model", "Keeps stellar stages inside the Beacon-City story."),
             ],
@@ -982,7 +984,7 @@ def lesson_three() -> Dict[str, Any]:
             ],
             "Keep many stars, gravity, and the Milky Way together.",
             ["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"],
-            ["identify_milky_way"],
+            ["identify_milky_way", "solar_system_in_galaxy", "gravity_bound_galaxy"],
             acceptance_groups(["galaxy", "beacon-city"], ["gravity", "bound"], ["many", "collection"], ["stars", "beacons"], ["Milky Way"]),
         ),
     ])
@@ -1033,6 +1035,7 @@ def lesson_three() -> Dict[str, Any]:
             ],
             representations=[
                 representation("words", "Separates star, Solar System, galaxy, and universe scales."),
+                representation("formula", "galaxy = many stars + gas + dust held by gravity"),
                 representation("diagram", "Shows the Milky Way as a spiral beacon-city with the Sun inside it."),
                 representation("model", "Uses the city-of-beacons comparison."),
             ],
@@ -1223,7 +1226,7 @@ def lesson_four() -> Dict[str, Any]:
             ],
             "Keep distance and scale together.",
             ["light_year_time_confusion", "light_year_small_distance_confusion"],
-            ["identify_light_year"],
+            ["identify_light_year", "distance_scale"],
             acceptance_groups(["light-year", "signal-year"], ["distance"], ["light"], ["one year"], ["huge", "cosmic", "astronomical"]),
         ),
     ])
@@ -1274,6 +1277,7 @@ def lesson_four() -> Dict[str, Any]:
             ],
             representations=[
                 representation("words", "Defines light-year as distance, not time."),
+                representation("formula", "distance = speed x time"),
                 representation("diagram", "Shows distance scales from local to galactic."),
                 representation("equation_story", "Connects travel time with distance definition."),
             ],
@@ -1331,7 +1335,7 @@ def lesson_four() -> Dict[str, Any]:
                 ],
             ),
             reflection_prompts=["Explain why a light-year should be read as a distance marker instead of as a clock reading."],
-            mastery_skills=["identify_light_year", "distance_scale", "compare_distances"],
+            mastery_skills=["identify_light_year", "distance_scale", "compare_distances", "unit_reasoning", "scale_unit_choice"],
             variation_plan={
                 "diagnostic": "Fresh attempts rotate between distance-definition, larger-smaller, and unit-purpose prompts.",
                 "concept_gate": "Concept-gate retries alternate between direct distance comparisons and unit-correction explanations.",
@@ -1531,6 +1535,7 @@ def lesson_five() -> Dict[str, Any]:
             ],
             representations=[
                 representation("words", "Explains redshift as stretched wavelength."),
+                representation("formula", "observed wavelength > emitted wavelength -> redshift"),
                 representation("diagram", "Shows wavelength stretching across an expanding map."),
                 representation("graph", "Supports ranking larger and smaller redshifts."),
             ],
@@ -1588,7 +1593,7 @@ def lesson_five() -> Dict[str, Any]:
                 ],
             ),
             reflection_prompts=["Explain why cosmological redshift is stronger as a stretchmap effect than as a 'cooling source' explanation."],
-            mastery_skills=["identify_redshift", "stretch_wavelength", "compare_redshift", "redshift_evidence"],
+            mastery_skills=["identify_redshift", "stretch_wavelength", "compare_redshift", "redshift_evidence", "wavelength_comparison"],
             variation_plan={
                 "diagnostic": "Fresh attempts rotate between wavelength-change, larger-smaller redshift, and misconception-correction prompts.",
                 "concept_gate": "Concept-gate retries alternate between numeric wavelength comparisons and expansion-evidence summaries.",
@@ -1792,6 +1797,7 @@ def lesson_six() -> Dict[str, Any]:
             ],
             representations=[
                 representation("words", "Defines the Big Bang as an expanding-universe model."),
+                representation("formula", "larger redshift -> stronger expansion evidence"),
                 representation("diagram", "Shows hot-dense beginning, expansion, and redshift evidence on one board."),
                 representation("table", "Ranks galaxy distance and redshift qualitatively."),
             ],
@@ -1849,7 +1855,7 @@ def lesson_six() -> Dict[str, Any]:
                 ],
             ),
             reflection_prompts=["Explain why the expanding-map description is stronger than an ordinary explosion description for the Big Bang model."],
-            mastery_skills=["identify_big_bang", "space_expands", "expansion_evidence"],
+            mastery_skills=["identify_big_bang", "space_expands", "expansion_evidence", "redshift_pattern_reasoning", "expansion_language"],
             variation_plan={
                 "diagnostic": "Fresh attempts rotate between model-language, redshift-pattern, and misconception-correction prompts.",
                 "concept_gate": "Concept-gate retries alternate between centre-explosion corrections and larger-redshift evidence comparisons.",
