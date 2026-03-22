@@ -211,6 +211,7 @@ def _student_authoring_contract(authoring: Any) -> Dict[str, Any]:
         return {}
     return {
         "core_concepts": deepcopy(authoring.get("core_concepts") or []),
+        "technical_words": deepcopy(authoring.get("technical_words") or []),
         "worked_examples": deepcopy(authoring.get("worked_examples") or []),
         "visual_assets": deepcopy(authoring.get("visual_assets") or []),
         "animation_assets": deepcopy(authoring.get("animation_assets") or []),

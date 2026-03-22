@@ -17,6 +17,7 @@ Use this spec for every newly generated next-generation module from this point f
 - Give every simulation a real variable change, comparison task, and takeaway.
 - Release nothing that still depends on generic fallback teaching.
 - Put scaffold-teaching copy in the authored contract so the web runner does not need lesson-code rescue text.
+- Where a lesson uses technical vocabulary, author a `technical_words` list with plain-English meanings.
 - Make worked examples state both the final answer and why that answer follows.
 - Add explicit visual clarity checks so labels, equations, and captions stay readable on desktop and mobile.
 
@@ -29,6 +30,7 @@ Every lesson must ship with:
 - authoring_contract:
   - `concept_targets`
   - `core_concepts`
+  - `technical_words` (recommended whenever a lesson introduces technical vocabulary)
   - `prerequisite_lessons`
   - `misconception_focus`
   - `formulas`

@@ -314,6 +314,13 @@ def _validate_scaffold_support(item: Dict[str, Any], errors: List[str], label: s
         _require(bool(_text(section.get("body"))), f"{label}: extra section {index} needs a body.", errors)
 
 
+def _validate_technical_words(items: Sequence[Any], errors: List[str], label: str) -> None:
+    for index, entry in enumerate(items, start=1):
+        record = _record(entry)
+        _require(bool(_text(record.get("term"))), f"{label}: technical_words[{index}] needs a term.", errors)
+        _require(bool(_text(record.get("meaning"))), f"{label}: technical_words[{index}] needs a meaning.", errors)
+
+
 def _validate_simulation_contract(
     item: Dict[str, Any],
     errors: List[str],
@@ -554,6 +561,9 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
     _require(len(concept_targets) >= 2, f"{lesson_id}: authoring_contract.concept_targets needs at least 2 targets.", errors)
     _require("prerequisite_lessons" in authoring, f"{lesson_id}: authoring_contract.prerequisite_lessons key is required.", errors)
     _validate_tags(_items(authoring.get("misconception_focus")), allowlist, errors, f"{lesson_id} authoring misconception focus")
+    technical_words = [_record(item) for item in _items(authoring.get("technical_words"))]
+    if technical_words:
+        _validate_technical_words(technical_words, errors, f"{lesson_id} authoring")
 
     formulas = [_record(item) for item in _items(authoring.get("formulas"))]
     _require(bool(formulas), f"{lesson_id}: authoring_contract.formulas needs at least one formula entry.", errors)
@@ -751,6 +761,7 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
         "authoring_contract": {
             "concept_targets": ["", ""],
             "core_concepts": ["", "", "", ""],
+            "technical_words": [],
             "prerequisite_lessons": [],
             "misconception_focus": ["REPLACE_TAG"],
             "formulas": [

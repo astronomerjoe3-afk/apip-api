@@ -128,6 +128,13 @@ def _valid_v3_lesson() -> dict:
                 "Pressure compares push with spread, not push alone.",
                 "A safe pressure limit can be used to design backward to a required area.",
             ],
+            "technical_words": [
+                {
+                    "term": "Pressure",
+                    "meaning": "Force per unit area.",
+                    "why_it_matters": "It keeps force and pressure separate.",
+                }
+            ],
             "prerequisite_lessons": [],
             "misconception_focus": ["pressure_area_confusion", "pressure_force_confusion"],
             "formulas": [
@@ -269,6 +276,14 @@ class LessonAuthoringContractTests(unittest.TestCase):
         sim_labs = [{"lab_id": f"m5_l{index}_lab"} for index in range(1, 7)]
 
         validate_nextgen_module(module_doc, module_lessons, sim_labs, ALLOWLIST)
+
+    def test_technical_words_require_term_and_meaning_when_present(self) -> None:
+        lesson = _valid_v3_lesson()
+        lesson["authoring_contract"]["technical_words"] = [{"term": "Pressure"}]
+
+        errors = validate_nextgen_lesson(lesson, ALLOWLIST, AUTHORING_STANDARD_V3)
+
+        self.assertTrue(any("technical_words[1] needs a meaning" in error for error in errors))
 
 
 if __name__ == "__main__":

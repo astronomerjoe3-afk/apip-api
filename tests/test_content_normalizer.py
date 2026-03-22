@@ -57,6 +57,13 @@ class ContentNormalizerTests(unittest.TestCase):
                     "The same work can be described as an energy transfer.",
                     "Choose the equation that matches the story before calculating.",
                 ],
+                "technical_words": [
+                    {
+                        "term": "Work done",
+                        "meaning": "Energy transferred when a force acts through a distance.",
+                        "why_it_matters": "It links force stories to energy transfer.",
+                    }
+                ],
                 "worked_examples": [
                     {
                         "prompt": "A 4 N force moves a box 5 m. Find the work done.",
@@ -104,6 +111,10 @@ class ContentNormalizerTests(unittest.TestCase):
         self.assertEqual(
             payload["authoring_contract"]["core_concepts"][0],
             "Work depends on force and displacement together.",
+        )
+        self.assertEqual(
+            payload["authoring_contract"]["technical_words"][0]["term"],
+            "Work done",
         )
         self.assertEqual(
             payload["authoring_contract"]["worked_examples"][0]["answer_reason"],

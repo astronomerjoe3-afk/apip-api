@@ -22,6 +22,7 @@ class StudentQuestionItem(BaseModel):
 
 class StudentAuthoringContractOut(BaseModel):
     core_concepts: List[str] = Field(default_factory=list)
+    technical_words: List[Dict[str, Any]] = Field(default_factory=list)
     worked_examples: List[Dict[str, Any]] = Field(default_factory=list)
     visual_assets: List[Dict[str, Any]] = Field(default_factory=list)
     animation_assets: List[Dict[str, Any]] = Field(default_factory=list)
