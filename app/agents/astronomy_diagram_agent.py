@@ -278,10 +278,14 @@ def _draw_seasons_tilt(spec: AstronomyDiagramSpec, width: int, height: int) -> s
         _line(dec_x - tilt_dx, dec_y + tilt_dy, dec_x + tilt_dx, dec_y - tilt_dy, stroke="#f8fafc", stroke_width=4),
         _text(june_x, june_y - 92, "June position", size=20, fill="#bbf7d0"),
         _text(dec_x, dec_y + 104, "December position", size=20, fill="#fecaca"),
-        _text(1030, 220, f"tilt rod ~ {tilt:.1f} deg", size=22, fill="#f8fafc"),
-        _text(1030, 264, "The axis keeps the same leaning direction in space.", size=18, fill="#cbd5e1"),
-        _text(1030, 308, "One hemisphere tilts toward the lantern, then away half a year later.", size=18, fill="#cbd5e1"),
-        _text(1030, 352, "Seasons come from tilt and sunlight angle, not distance changes.", size=18, fill="#fde68a"),
+        _text(900, 208, "AXIS READ", size=14, fill="#94a3b8", weight="bold", anchor="start"),
+        _text(900, 240, f"tilt rod ~ {tilt:.1f} deg", size=22, fill="#f8fafc", weight="bold", anchor="start"),
+        _text(900, 288, "The axis keeps the same leaning", size=18, fill="#cbd5e1", anchor="start"),
+        _text(900, 312, "direction in space.", size=18, fill="#cbd5e1", anchor="start"),
+        _text(900, 362, "One hemisphere tilts toward the", size=18, fill="#cbd5e1", anchor="start"),
+        _text(900, 386, "lantern, then away half a year later.", size=18, fill="#cbd5e1", anchor="start"),
+        _text(900, 452, "Seasons come from tilt and sunlight", size=18, fill="#fde68a", weight="bold", anchor="start"),
+        _text(900, 476, "angle, not distance changes.", size=18, fill="#fde68a", weight="bold", anchor="start"),
     ]
     return "".join(parts)
 
