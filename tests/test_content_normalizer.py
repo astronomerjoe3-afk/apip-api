@@ -124,6 +124,61 @@ class ContentNormalizerTests(unittest.TestCase):
             payload["authoring_contract"]["visual_clarity_checks"][1],
             "The equation callout is visible on mobile.",
         )
+        self.assertEqual(
+            payload["authoring_contract"]["assessment_alignment"]["exam_board"],
+            "Cambridge IGCSE",
+        )
+        self.assertEqual(
+            payload["authoring_contract"]["competency_mapping"]["metrics"][0]["key"],
+            "igcse_readiness_score",
+        )
+        self.assertEqual(
+            payload["authoring_contract"]["spiral_reinforcement"]["lesson_stage_focus"][0]["stage"],
+            "quantitative",
+        )
+
+    def test_student_view_adds_curriculum_defaults_for_older_lessons(self) -> None:
+        lesson = {
+            "id": "M10_L3",
+            "lesson_id": "M10_L3",
+            "module_id": "M10",
+            "title": "Voltage around a loop",
+            "sequence": 3,
+            "phases": {
+                "analogical_grounding": {},
+                "simulation_inquiry": {},
+                "concept_reconstruction": {"capsules": []},
+                "diagnostic": {"items": []},
+                "transfer": {"items": []},
+            },
+            "authoring_contract": {},
+        }
+
+        payload = to_student_lesson_view(lesson)
+        contract = payload["authoring_contract"]
+
+        self.assertEqual(contract["assessment_alignment"]["exam_board"], "Cambridge IGCSE")
+        self.assertEqual(
+            [paper["paper_id"] for paper in contract["assessment_alignment"]["paper_structure"]],
+            ["paper_1", "paper_2", "paper_4", "paper_5", "paper_6"],
+        )
+        self.assertEqual(
+            [metric["key"] for metric in contract["competency_mapping"]["metrics"]],
+            [
+                "igcse_readiness_score",
+                "topic_mastery_index",
+                "practical_competency_rating",
+                "exam_simulation_performance",
+            ],
+        )
+        self.assertEqual(
+            contract["spiral_reinforcement"]["lesson_stage_focus"][0]["stage"],
+            "quantitative",
+        )
+        self.assertEqual(
+            contract["spiral_reinforcement"]["lesson_stage_focus"][0]["level"],
+            "level_2",
+        )
 
 
 if __name__ == "__main__":

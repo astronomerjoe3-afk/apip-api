@@ -28,6 +28,9 @@ class StudentAuthoringContractOut(BaseModel):
     animation_assets: List[Dict[str, Any]] = Field(default_factory=list)
     simulation_contract: Dict[str, Any] = Field(default_factory=dict)
     assessment_bank_targets: Dict[str, Any] = Field(default_factory=dict)
+    assessment_alignment: Dict[str, Any] = Field(default_factory=dict)
+    competency_mapping: Dict[str, Any] = Field(default_factory=dict)
+    spiral_reinforcement: Dict[str, Any] = Field(default_factory=dict)
     scaffold_support: Dict[str, Any] = Field(default_factory=dict)
     visual_clarity_checks: List[str] = Field(default_factory=list)
 

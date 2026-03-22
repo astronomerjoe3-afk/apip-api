@@ -3,6 +3,12 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
+from scripts.lesson_authoring_contract import (
+    default_assessment_alignment,
+    default_competency_mapping,
+    default_spiral_reinforcement,
+)
+
 
 _MOJIBAKE_REPLACEMENTS = {
     "â€™": "'",
@@ -222,6 +228,57 @@ def _student_authoring_contract(authoring: Any) -> Dict[str, Any]:
     }
 
 
+def _inferred_spiral_focus(lesson: Dict[str, Any]) -> List[Dict[str, Any]]:
+    lesson_code = str(lesson.get("lesson_id") or lesson.get("id") or lesson.get("module_id") or "").upper()
+    if lesson_code.startswith("A") or lesson_code.startswith("MA"):
+        target_level, target_stage = ("level_3", "analytical_derivation")
+    elif lesson_code.startswith("M"):
+        target_level, target_stage = ("level_2", "quantitative")
+    else:
+        target_level, target_stage = ("level_1", "intuitive")
+
+    spiral = default_spiral_reinforcement()
+    stages = [
+        deepcopy(stage)
+        for stage in spiral.get("stages") or []
+        if stage.get("level") == target_level and stage.get("stage") == target_stage
+    ]
+    return stages or [deepcopy((spiral.get("stages") or [])[0])]
+
+
+def _student_curriculum_contract(authoring: Any, lesson: Dict[str, Any]) -> Dict[str, Any]:
+    authored = authoring if isinstance(authoring, dict) else {}
+    assessment_alignment = deepcopy(authored.get("assessment_alignment") or default_assessment_alignment())
+    competency_mapping = deepcopy(authored.get("competency_mapping") or default_competency_mapping())
+    authored_spiral = authored.get("spiral_reinforcement") if isinstance(authored.get("spiral_reinforcement"), dict) else {}
+    spiral_reinforcement = deepcopy(authored_spiral or default_spiral_reinforcement())
+
+    if not isinstance(assessment_alignment, dict):
+        assessment_alignment = default_assessment_alignment()
+    if not assessment_alignment.get("paper_structure"):
+        assessment_alignment["paper_structure"] = deepcopy(default_assessment_alignment()["paper_structure"])
+    if not assessment_alignment.get("auto_generation_outputs"):
+        assessment_alignment["auto_generation_outputs"] = deepcopy(default_assessment_alignment()["auto_generation_outputs"])
+
+    if not isinstance(competency_mapping, dict):
+        competency_mapping = default_competency_mapping()
+    if not competency_mapping.get("metrics"):
+        competency_mapping["metrics"] = deepcopy(default_competency_mapping()["metrics"])
+
+    if not isinstance(spiral_reinforcement, dict):
+        spiral_reinforcement = default_spiral_reinforcement()
+    if not spiral_reinforcement.get("stages"):
+        spiral_reinforcement["stages"] = deepcopy(default_spiral_reinforcement()["stages"])
+    if not authored_spiral or not spiral_reinforcement.get("lesson_stage_focus"):
+        spiral_reinforcement["lesson_stage_focus"] = _inferred_spiral_focus(lesson)
+
+    return {
+        "assessment_alignment": assessment_alignment,
+        "competency_mapping": competency_mapping,
+        "spiral_reinforcement": spiral_reinforcement,
+    }
+
+
 def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
     normalized = normalize_lesson_payload(lesson)
 
@@ -266,7 +323,10 @@ def to_student_lesson_view(lesson: Dict[str, Any]) -> Dict[str, Any]:
                 "items": _student_question_items(transfer.get("items")),
             },
         },
-        "authoring_contract": _student_authoring_contract(normalized.get("authoring_contract")),
+        "authoring_contract": {
+            **_student_authoring_contract(normalized.get("authoring_contract")),
+            **_student_curriculum_contract(normalized.get("authoring_contract"), normalized),
+        },
     }
 
 
