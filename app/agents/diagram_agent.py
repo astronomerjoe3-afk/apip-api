@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from app.agents.astronomy_diagram_agent import generate_astronomy_diagram
 from app.agents.electric_circuit_diagram_agent import generate_electric_circuit_diagram
 from app.agents.electromagnetism_diagram_agent import generate_electromagnetism_diagram
 from app.agents.optics_ray_diagram_agent import generate_optics_ray_diagram
@@ -559,14 +560,24 @@ def generate_diagram(
             lesson_id=lesson_id,
         )
 
-    if getattr(req, "template", "") in {"space_astrophysics_diagram", "astronomy_diagram"} or req.concept in {
-        "space_astrophysics_diagram",
-        "space_diagram",
-        "astrophysics_diagram",
+    if getattr(req, "template", "") == "astronomy_diagram" or req.concept in {
         "astronomy_diagram",
         "solar_system",
         "astronomy",
         "space_physics",
+    }:
+        return generate_astronomy_diagram(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "space_astrophysics_diagram" or req.concept in {
+        "space_astrophysics_diagram",
+        "space_diagram",
+        "astrophysics_diagram",
     }:
         return generate_space_astrophysics_diagram(
             req=req,
