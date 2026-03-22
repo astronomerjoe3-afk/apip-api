@@ -180,6 +180,56 @@ class ContentNormalizerTests(unittest.TestCase):
             "level_2",
         )
 
+    def test_student_view_expands_short_answer_acceptance_margin_to_ten_to_fifteen_versions(self) -> None:
+        lesson = {
+            "id": "M15_L2",
+            "lesson_id": "M15_L2",
+            "module_id": "M15",
+            "title": "Choose the Star Path",
+            "sequence": 2,
+            "phases": {
+                "analogical_grounding": {},
+                "simulation_inquiry": {},
+                "concept_reconstruction": {
+                    "capsules": [
+                        {
+                            "prompt": "Capsule",
+                            "checks": [
+                                {
+                                    "id": "M15L2_C8",
+                                    "type": "short",
+                                    "prompt": "Why does the same beginning not guarantee the same ending?",
+                                    "accepted_answers": [
+                                        "Because stars can begin similarly but diverge later if their masses are different."
+                                    ],
+                                    "acceptance_rules": {
+                                        "phrase_groups": [
+                                            ["mass", "different mass"],
+                                            ["different", "branch"],
+                                            ["ending", "remnant"],
+                                        ]
+                                    },
+                                    "skill_tags": ["mass_life_path"],
+                                    "hint": "Keep shared start and different ending together.",
+                                    "feedback": ["Keep shared start and different ending together."],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                "diagnostic": {"items": []},
+                "transfer": {"items": []},
+            },
+            "authoring_contract": {},
+        }
+
+        payload = to_student_lesson_view(lesson)
+        accepted = payload["phases"]["concept_reconstruction"]["capsules"][0]["checks"][0]["accepted_answers"]
+
+        self.assertGreaterEqual(len(accepted), 10)
+        self.assertLessEqual(len(accepted), 15)
+        self.assertIn("mass matters", [answer.lower() for answer in accepted])
+
 
 if __name__ == "__main__":
     unittest.main()

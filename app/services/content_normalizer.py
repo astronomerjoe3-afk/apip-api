@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from itertools import product
+import re
 from typing import Any, Dict, List, Optional
 
 from scripts.lesson_authoring_contract import (
@@ -26,6 +28,30 @@ _MOJIBAKE_REPLACEMENTS = {
     "â‰ˆ": "~",
     "â‰¤": "<=",
     "â‰¥": ">=",
+}
+
+_SHORT_ACCEPTED_MIN = 10
+_SHORT_ACCEPTED_MAX = 15
+_LOW_SIGNAL_VARIANT_WORDS = {
+    "and",
+    "because",
+    "bigger",
+    "both",
+    "branch",
+    "different",
+    "first",
+    "greater",
+    "less",
+    "main",
+    "more",
+    "not",
+    "only",
+    "path",
+    "rather",
+    "route",
+    "same",
+    "smaller",
+    "than",
 }
 
 
@@ -158,6 +184,66 @@ def _acceptance_rules(item: Dict[str, Any]) -> Dict[str, Any]:
     return {"phrase_groups": phrase_groups} if phrase_groups else {}
 
 
+def _accepted_answer_key(value: str) -> str:
+    return " ".join(str(value).strip().lower().rstrip(".!?").split())
+
+
+def _append_unique_answer(values: List[str], candidate: str) -> None:
+    text = str(candidate or "").strip()
+    if not text:
+        return
+    key = _accepted_answer_key(text)
+    if not key:
+        return
+    if any(_accepted_answer_key(existing) == key for existing in values):
+        return
+    values.append(text)
+
+
+def _meaningful_phrase(phrase: str) -> bool:
+    words = [word for word in re.split(r"[^a-z0-9+-]+", phrase.lower()) if word]
+    if not words:
+        return False
+    return any(word not in _LOW_SIGNAL_VARIANT_WORDS for word in words)
+
+
+def _generated_short_answer_variants(accepted_answers: List[str], phrase_groups: List[List[str]]) -> List[str]:
+    values: List[str] = []
+    for answer in accepted_answers:
+        _append_unique_answer(values, answer)
+
+    for answer in list(values):
+        lowered = answer.lower()
+        if lowered.startswith("because "):
+            _append_unique_answer(values, answer[8:].strip())
+        else:
+            _append_unique_answer(values, f"Because {answer[0].lower()}{answer[1:]}" if len(answer) > 1 else f"Because {answer.lower()}")
+
+    for group in phrase_groups:
+        for phrase in group:
+            if _meaningful_phrase(phrase):
+                _append_unique_answer(values, f"{phrase} matters")
+                _append_unique_answer(values, f"Because {phrase} matters")
+            if len(values) >= _SHORT_ACCEPTED_MIN:
+                break
+        if len(values) >= _SHORT_ACCEPTED_MIN:
+            break
+
+    if phrase_groups and len(values) < _SHORT_ACCEPTED_MIN:
+        limited_groups = [group[:4] for group in phrase_groups[:4] if group]
+        if limited_groups:
+            for combo in product(*limited_groups):
+                joined = " ".join(str(part).strip() for part in combo if str(part).strip())
+                if not joined:
+                    continue
+                _append_unique_answer(values, joined)
+                _append_unique_answer(values, f"Because {joined}")
+                if len(values) >= _SHORT_ACCEPTED_MIN:
+                    break
+
+    return values[:_SHORT_ACCEPTED_MAX]
+
+
 def _answer_index(item: Dict[str, Any], choices: List[str]) -> Any:
     raw = _first_present(item, "answer_index", "answerIndex", "correct_index", "correctIndex", "correct_choice_index", "correctChoiceIndex")
     if isinstance(raw, int):
@@ -181,6 +267,15 @@ def _student_question_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[
         if len(feedback) < len(choices):
             feedback = feedback + [str(_first_present(item, "hint", "explanation", "teaching_focus") or "")] * (len(choices) - len(feedback))
 
+        accepted_answers = _accepted_answers(item, choices)
+        acceptance_rules = _acceptance_rules(item)
+        qtype = str(_first_present(item, "type", "item_type") or "").strip().lower()
+        if qtype == "short":
+            accepted_answers = _generated_short_answer_variants(
+                accepted_answers,
+                acceptance_rules.get("phrase_groups") or [],
+            )
+
         questions.append(
             {
                 "id": _first_present(item, "id", "item_id", "question_id"),
@@ -190,8 +285,8 @@ def _student_question_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[
                 "hint": _first_present(item, "hint", "explanation", "teaching_focus"),
                 "feedback": feedback,
                 "answer_index": _answer_index(item, choices),
-                "accepted_answers": _accepted_answers(item, choices),
-                "acceptance_rules": _acceptance_rules(item),
+                "accepted_answers": accepted_answers,
+                "acceptance_rules": acceptance_rules,
                 "skill_tags": _text_strings(item.get("skill_tags")),
             }
         )

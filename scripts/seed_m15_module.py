@@ -1909,7 +1909,7 @@ def _extend_phrase_group(group: Sequence[str]) -> List[str]:
     if lowered & {"mass", "different mass"}:
         expanded = _merge_unique_strings(
             expanded,
-            ["how massive", "more massive", "less massive", "bigger mass", "star mass"],
+            ["how massive", "more massive", "less massive", "bigger mass", "star mass", "mass matters"],
         )
     if lowered & {"path", "branch", "route", "later path"}:
         expanded = _merge_unique_strings(
