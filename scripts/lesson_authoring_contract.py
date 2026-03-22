@@ -20,6 +20,42 @@ LATEST_AUTHORING_STANDARD = AUTHORING_STANDARD_V3
 QUESTION_TYPES = {"mcq", "short"}
 CORE_REPRESENTATION_KINDS = {"words", "formula"}
 OPTIONAL_REPRESENTATION_KINDS = {"diagram", "graph", "table", "model", "equation_story"}
+ASSESSMENT_PAPER_FORMATS = {
+    "paper_1": "multiple_choice",
+    "paper_2": "structured",
+    "paper_4": "extended",
+    "paper_5": "practical_investigation",
+    "paper_6": "alternative_to_practical",
+}
+ASSESSMENT_EXAM_STYLES = set(ASSESSMENT_PAPER_FORMATS.values())
+COMPETENCY_METRIC_KEYS = {
+    "igcse_readiness_score",
+    "topic_mastery_index",
+    "practical_competency_rating",
+    "exam_simulation_performance",
+}
+SPIRAL_STAGE_SEQUENCE = (
+    {
+        "level": "level_1",
+        "stage": "intuitive",
+        "description": "Concept first appears in an intuitive meaning-first form.",
+    },
+    {
+        "level": "level_2",
+        "stage": "quantitative",
+        "description": "Concept returns in a quantitative problem-solving form.",
+    },
+    {
+        "level": "level_3",
+        "stage": "analytical_derivation",
+        "description": "Concept returns in an analytical or derivation-level form.",
+    },
+)
+SPIRAL_LEVEL_STAGE_PAIRS = {
+    ("level_1", "intuitive"),
+    ("level_2", "quantitative"),
+    ("level_3", "analytical_derivation"),
+}
 
 
 class LessonAuthoringContractError(ValueError):
@@ -56,6 +92,93 @@ def _uses_v2_plus(authoring_standard: str) -> bool:
 
 def _uses_v3(authoring_standard: str) -> bool:
     return _text(authoring_standard).lower() == AUTHORING_STANDARD_V3
+
+
+def default_assessment_alignment() -> Dict[str, Any]:
+    return {
+        "exam_board": "Cambridge IGCSE",
+        "paper_structure": [
+            {"paper_id": paper_id, "label": paper_id.replace("_", " ").title(), "format": exam_style}
+            for paper_id, exam_style in ASSESSMENT_PAPER_FORMATS.items()
+        ],
+        "auto_generation_outputs": [
+            "timed_mock_exams",
+            "topic_level_past_paper_simulations",
+            "weakness_heatmaps",
+        ],
+    }
+
+
+def default_competency_mapping() -> Dict[str, Any]:
+    labels = {
+        "igcse_readiness_score": "IGCSE readiness score",
+        "topic_mastery_index": "Topic mastery index",
+        "practical_competency_rating": "Practical competency rating",
+        "exam_simulation_performance": "Exam simulation performance",
+    }
+    return {
+        "metrics": [
+            {"key": key, "label": labels[key]}
+            for key in (
+                "igcse_readiness_score",
+                "topic_mastery_index",
+                "practical_competency_rating",
+                "exam_simulation_performance",
+            )
+        ]
+    }
+
+
+def default_spiral_reinforcement() -> Dict[str, Any]:
+    return {
+        "stages": [deepcopy(item) for item in SPIRAL_STAGE_SEQUENCE],
+        "lesson_stage_focus": [deepcopy(SPIRAL_STAGE_SEQUENCE[0])],
+    }
+
+
+def default_question_assessment_schema(
+    question_type: str,
+    phase_key: str = "",
+    raw_schema: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    normalized_type = _text(question_type).lower()
+    normalized_phase = _text(phase_key).lower()
+    exam_paper = "paper_1" if normalized_type == "mcq" else "paper_2"
+    exam_style = ASSESSMENT_PAPER_FORMATS[exam_paper]
+    spiral_level, spiral_stage = (
+        ("level_2", "quantitative")
+        if normalized_phase == "transfer"
+        else ("level_1", "intuitive")
+    )
+    competency_tags = (
+        ["igcse_readiness_score", "topic_mastery_index"]
+        if normalized_phase == "diagnostic"
+        else ["topic_mastery_index", "exam_simulation_performance"]
+    )
+
+    schema = {
+        "exam_paper": exam_paper,
+        "exam_style": exam_style,
+        "spiral_level": spiral_level,
+        "spiral_stage": spiral_stage,
+        "competency_tags": competency_tags,
+    }
+    raw = _record(raw_schema)
+    if _text(raw.get("exam_paper")):
+        schema["exam_paper"] = _text(raw.get("exam_paper"))
+        schema["exam_style"] = ASSESSMENT_PAPER_FORMATS.get(schema["exam_paper"], exam_style)
+    if _text(raw.get("exam_style")):
+        schema["exam_style"] = _text(raw.get("exam_style"))
+    if _text(raw.get("spiral_level")):
+        schema["spiral_level"] = _text(raw.get("spiral_level"))
+    if _text(raw.get("spiral_stage")):
+        schema["spiral_stage"] = _text(raw.get("spiral_stage"))
+    raw_competencies = [_text(tag) for tag in _items(raw.get("competency_tags")) if _text(tag)]
+    if raw_competencies:
+        schema["competency_tags"] = raw_competencies
+    if schema["exam_paper"] in {"paper_5", "paper_6"} and "practical_competency_rating" not in schema["competency_tags"]:
+        schema["competency_tags"] = [*schema["competency_tags"], "practical_competency_rating"]
+    return schema
 
 
 _NUMERIC_SHORT_ANSWER_RE = re.compile(
@@ -104,6 +227,7 @@ def _validate_question(
     _validate_tags(_items(item.get("misconception_tags")), allowlist, errors, label)
     if use_v3:
         _validate_skill_tags(item, errors, label)
+        _validate_question_assessment_schema(item, errors, label)
     acceptance_rules = _record(item.get("acceptance_rules"))
     if qtype == "mcq":
         choices = [_text(choice) for choice in _items(item.get("choices")) if _text(choice)]
@@ -264,6 +388,107 @@ def _validate_phase_skill_coverage(items: Sequence[Dict[str, Any]], errors: List
     )
 
 
+def _validate_question_assessment_schema(item: Dict[str, Any], errors: List[str], label: str) -> None:
+    schema = _record(item.get("assessment_schema"))
+    _require(bool(schema), f"{label}: assessment_schema is required for authored exam alignment.", errors)
+    if not schema:
+        return
+
+    exam_paper = _text(schema.get("exam_paper"))
+    exam_style = _text(schema.get("exam_style"))
+    spiral_level = _text(schema.get("spiral_level"))
+    spiral_stage = _text(schema.get("spiral_stage"))
+    competency_tags = [_text(tag) for tag in _items(schema.get("competency_tags")) if _text(tag)]
+
+    _require(exam_paper in ASSESSMENT_PAPER_FORMATS, f"{label}: assessment_schema.exam_paper must be one of {sorted(ASSESSMENT_PAPER_FORMATS)}.", errors)
+    _require(exam_style in ASSESSMENT_EXAM_STYLES, f"{label}: assessment_schema.exam_style must be one of {sorted(ASSESSMENT_EXAM_STYLES)}.", errors)
+    if exam_paper in ASSESSMENT_PAPER_FORMATS and exam_style in ASSESSMENT_EXAM_STYLES:
+        _require(
+            ASSESSMENT_PAPER_FORMATS[exam_paper] == exam_style,
+            f"{label}: assessment_schema.exam_style must match the declared exam paper format.",
+            errors,
+        )
+    _require(
+        (spiral_level, spiral_stage) in SPIRAL_LEVEL_STAGE_PAIRS,
+        f"{label}: assessment_schema spiral pair must be one of {sorted(SPIRAL_LEVEL_STAGE_PAIRS)}.",
+        errors,
+    )
+    _require(bool(competency_tags), f"{label}: assessment_schema.competency_tags needs at least one competency metric.", errors)
+    for competency in competency_tags:
+        _require(
+            competency in COMPETENCY_METRIC_KEYS,
+            f"{label}: competency tag '{competency}' is not one of the supported learner metrics.",
+            errors,
+        )
+
+
+def _validate_assessment_alignment(item: Dict[str, Any], errors: List[str], label: str) -> None:
+    _require(bool(_text(item.get("exam_board"))), f"{label}: exam_board is required.", errors)
+    paper_structure = [_record(entry) for entry in _items(item.get("paper_structure"))]
+    _require(len(paper_structure) == len(ASSESSMENT_PAPER_FORMATS), f"{label}: paper_structure should declare Paper 1, 2, 4, 5, and 6.", errors)
+    seen_papers = set()
+    for index, paper in enumerate(paper_structure, start=1):
+        paper_id = _text(paper.get("paper_id"))
+        paper_format = _text(paper.get("format"))
+        _require(paper_id in ASSESSMENT_PAPER_FORMATS, f"{label}: paper_structure[{index}] uses an unsupported paper id.", errors)
+        if paper_id in ASSESSMENT_PAPER_FORMATS:
+            seen_papers.add(paper_id)
+            _require(
+                paper_format == ASSESSMENT_PAPER_FORMATS[paper_id],
+                f"{label}: paper_structure[{index}] format must match the declared paper id.",
+                errors,
+            )
+        _require(bool(_text(paper.get("label"))), f"{label}: paper_structure[{index}] needs a learner-facing label.", errors)
+    _require(
+        seen_papers == set(ASSESSMENT_PAPER_FORMATS),
+        f"{label}: paper_structure must include every supported paper id exactly once.",
+        errors,
+    )
+    outputs = [_text(entry) for entry in _items(item.get("auto_generation_outputs")) if _text(entry)]
+    _require(
+        outputs == ["timed_mock_exams", "topic_level_past_paper_simulations", "weakness_heatmaps"],
+        f"{label}: auto_generation_outputs must list timed_mock_exams, topic_level_past_paper_simulations, and weakness_heatmaps.",
+        errors,
+    )
+
+
+def _validate_competency_mapping(item: Dict[str, Any], errors: List[str], label: str) -> None:
+    metrics = [_record(entry) for entry in _items(item.get("metrics"))]
+    _require(len(metrics) == len(COMPETENCY_METRIC_KEYS), f"{label}: metrics should declare the four learner competency outputs.", errors)
+    seen_metrics = set()
+    for index, metric in enumerate(metrics, start=1):
+        key = _text(metric.get("key"))
+        seen_metrics.add(key)
+        _require(key in COMPETENCY_METRIC_KEYS, f"{label}: metrics[{index}] uses an unsupported competency key.", errors)
+        _require(bool(_text(metric.get("label"))), f"{label}: metrics[{index}] needs a learner-facing label.", errors)
+    _require(
+        seen_metrics == COMPETENCY_METRIC_KEYS,
+        f"{label}: metrics must include igcse_readiness_score, topic_mastery_index, practical_competency_rating, and exam_simulation_performance.",
+        errors,
+    )
+
+
+def _validate_spiral_reinforcement(item: Dict[str, Any], errors: List[str], label: str) -> None:
+    stages = [_record(entry) for entry in _items(item.get("stages"))]
+    _require(len(stages) == len(SPIRAL_STAGE_SEQUENCE), f"{label}: stages should declare the three spiral reinforcement levels.", errors)
+    seen_pairs = set()
+    for index, stage in enumerate(stages, start=1):
+        pair = (_text(stage.get("level")), _text(stage.get("stage")))
+        seen_pairs.add(pair)
+        _require(pair in SPIRAL_LEVEL_STAGE_PAIRS, f"{label}: stages[{index}] uses an unsupported spiral pair.", errors)
+        _require(bool(_text(stage.get("description"))), f"{label}: stages[{index}] needs a description.", errors)
+    _require(
+        seen_pairs == SPIRAL_LEVEL_STAGE_PAIRS,
+        f"{label}: stages must include Level 1 intuitive, Level 2 quantitative, and Level 3 analytical/derivation.",
+        errors,
+    )
+    focus = [_record(entry) for entry in _items(item.get("lesson_stage_focus"))]
+    _require(bool(focus), f"{label}: lesson_stage_focus needs at least one stage target.", errors)
+    for index, stage in enumerate(focus, start=1):
+        pair = (_text(stage.get("level")), _text(stage.get("stage")))
+        _require(pair in SPIRAL_LEVEL_STAGE_PAIRS, f"{label}: lesson_stage_focus[{index}] uses an unsupported spiral pair.", errors)
+
+
 def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], authoring_standard: str = AUTHORING_STANDARD_V1) -> List[str]:
     errors: List[str] = []
     lesson_id = _text(lesson.get("lesson_id") or lesson.get("id") or "lesson")
@@ -368,6 +593,14 @@ def validate_nextgen_lesson(lesson: Dict[str, Any], allowlist: Sequence[str], au
 
     mastery_skills = [_text(item) for item in _items(authoring.get("mastery_skills")) if _text(item)]
     _require(len(mastery_skills) >= 5, f"{lesson_id}: authoring_contract.mastery_skills needs at least 5 distinct skills.", errors)
+
+    assessment_alignment = _record(authoring.get("assessment_alignment"))
+    competency_mapping = _record(authoring.get("competency_mapping"))
+    spiral_reinforcement = _record(authoring.get("spiral_reinforcement"))
+    if use_v3:
+        _validate_assessment_alignment(assessment_alignment, errors, f"{lesson_id}: authoring_contract.assessment_alignment")
+        _validate_competency_mapping(competency_mapping, errors, f"{lesson_id}: authoring_contract.competency_mapping")
+        _validate_spiral_reinforcement(spiral_reinforcement, errors, f"{lesson_id}: authoring_contract.spiral_reinforcement")
 
     variation_plan = _record(authoring.get("variation_plan"))
     _require(bool(_text(variation_plan.get("diagnostic"))), f"{lesson_id}: explain fresh-attempt diagnostic variation.", errors)
@@ -476,9 +709,9 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
             "diagnostic": {
                 "two_tier": True,
                 "items": [
-                    {"id": f"{lesson_id}_D1", "question_id": f"{lesson_id}_D1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
-                    {"id": f"{lesson_id}_D2", "question_id": f"{lesson_id}_D2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
-                    {"id": f"{lesson_id}_D3", "question_id": f"{lesson_id}_D3", "type": "short", "prompt": "", "accepted_answers": [""], "acceptance_rules": {"phrase_groups": [[""], [""]]}, "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
+                    {"id": f"{lesson_id}_D1", "question_id": f"{lesson_id}_D1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"], "assessment_schema": default_question_assessment_schema("mcq", "diagnostic")},
+                    {"id": f"{lesson_id}_D2", "question_id": f"{lesson_id}_D2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"], "assessment_schema": default_question_assessment_schema("mcq", "diagnostic")},
+                    {"id": f"{lesson_id}_D3", "question_id": f"{lesson_id}_D3", "type": "short", "prompt": "", "accepted_answers": [""], "acceptance_rules": {"phrase_groups": [[""], [""]]}, "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"], "assessment_schema": default_question_assessment_schema("short", "diagnostic")},
                 ],
             },
             "analogical_grounding": {
@@ -502,16 +735,16 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
                     {
                         "prompt": "",
                         "checks": [
-                            {"id": f"{lesson_id}_C1", "question_id": f"{lesson_id}_C1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]}
+                            {"id": f"{lesson_id}_C1", "question_id": f"{lesson_id}_C1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"], "assessment_schema": default_question_assessment_schema("mcq", "concept_reconstruction")}
                         ],
                     }
                 ],
             },
             "transfer": {
                 "items": [
-                    {"id": f"{lesson_id}_T1", "question_id": f"{lesson_id}_T1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
-                    {"id": f"{lesson_id}_T2", "question_id": f"{lesson_id}_T2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
-                    {"id": f"{lesson_id}_T3", "question_id": f"{lesson_id}_T3", "type": "short", "prompt": "", "accepted_answers": [""], "acceptance_rules": {"phrase_groups": [[""], [""]]}, "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"]},
+                    {"id": f"{lesson_id}_T1", "question_id": f"{lesson_id}_T1", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"], "assessment_schema": default_question_assessment_schema("mcq", "transfer")},
+                    {"id": f"{lesson_id}_T2", "question_id": f"{lesson_id}_T2", "type": "mcq", "prompt": "", "choices": ["", "", "", ""], "answer_index": 0, "hint": "", "feedback": ["", "", "", ""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"], "assessment_schema": default_question_assessment_schema("mcq", "transfer")},
+                    {"id": f"{lesson_id}_T3", "question_id": f"{lesson_id}_T3", "type": "short", "prompt": "", "accepted_answers": [""], "acceptance_rules": {"phrase_groups": [[""], [""]]}, "hint": "", "feedback": [""], "misconception_tags": ["REPLACE_TAG"], "skill_tags": ["REPLACE_SKILL"], "assessment_schema": default_question_assessment_schema("short", "transfer")},
                 ],
             },
         },
@@ -560,6 +793,9 @@ def nextgen_lesson_template(module_id: str, lesson_id: str, sequence: int, title
             },
             "reflection_prompts": [""],
             "mastery_skills": ["", "", "", "", ""],
+            "assessment_alignment": default_assessment_alignment(),
+            "competency_mapping": default_competency_mapping(),
+            "spiral_reinforcement": default_spiral_reinforcement(),
             "variation_plan": {
                 "diagnostic": "New contexts, numbers, or representation on each fresh attempt.",
                 "concept_gate": "Retries must rotate to a different quick-check prompt.",

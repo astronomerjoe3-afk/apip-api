@@ -4,11 +4,27 @@ from copy import deepcopy
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
-    from scripts.lesson_authoring_contract import AUTHORING_STANDARD_V1, AUTHORING_STANDARD_V2, validate_nextgen_module
+    from scripts.lesson_authoring_contract import (
+        AUTHORING_STANDARD_V1,
+        AUTHORING_STANDARD_V2,
+        default_assessment_alignment,
+        default_competency_mapping,
+        default_question_assessment_schema,
+        default_spiral_reinforcement,
+        validate_nextgen_module,
+    )
     from scripts.module_asset_pipeline import DEFAULT_PUBLIC_BASE, plan_module_assets
     from scripts.nextgen_module_scaffold import build_nextgen_module_scaffold
 except ModuleNotFoundError:
-    from lesson_authoring_contract import AUTHORING_STANDARD_V1, AUTHORING_STANDARD_V2, validate_nextgen_module
+    from lesson_authoring_contract import (
+        AUTHORING_STANDARD_V1,
+        AUTHORING_STANDARD_V2,
+        default_assessment_alignment,
+        default_competency_mapping,
+        default_question_assessment_schema,
+        default_spiral_reinforcement,
+        validate_nextgen_module,
+    )
     from module_asset_pipeline import DEFAULT_PUBLIC_BASE, plan_module_assets
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
@@ -23,12 +39,17 @@ def _safe_tags(tags: Sequence[str], allowlist: Sequence[str]) -> List[str]:
     return [str(tag) for tag in tags if str(tag) in allowed]
 
 
-def _question(spec: Dict[str, Any], allowlist: Sequence[str]) -> Dict[str, Any]:
+def _question(spec: Dict[str, Any], allowlist: Sequence[str], phase_key: str = "") -> Dict[str, Any]:
     hint = str(spec["hint"])
     tags = _safe_tags(list(spec.get("tags") or spec.get("misconception_tags") or []), allowlist)
     acceptance_rules = deepcopy(dict(spec.get("acceptance_rules") or {}))
     skill_tags = [str(tag) for tag in spec.get("skill_tags") or [] if str(tag).strip()]
     qtype = str(spec.get("kind") or spec.get("type") or "").strip().lower()
+    assessment_schema = default_question_assessment_schema(
+        qtype,
+        phase_key=phase_key,
+        raw_schema=deepcopy(dict(spec.get("assessment_schema") or {})),
+    )
     if qtype == "mcq":
         choices = list(spec["choices"])
         question = {
@@ -41,6 +62,7 @@ def _question(spec: Dict[str, Any], allowlist: Sequence[str]) -> Dict[str, Any]:
             "hint": hint,
             "feedback": [hint for _ in choices],
             "misconception_tags": tags,
+            "assessment_schema": assessment_schema,
         }
         if skill_tags:
             question["skill_tags"] = skill_tags
@@ -54,6 +76,7 @@ def _question(spec: Dict[str, Any], allowlist: Sequence[str]) -> Dict[str, Any]:
         "hint": hint,
         "feedback": [hint],
         "misconception_tags": tags,
+        "assessment_schema": assessment_schema,
     }
     if acceptance_rules:
         question["acceptance_rules"] = acceptance_rules
@@ -137,7 +160,7 @@ def build_nextgen_module_bundle(
         )
         lesson["phases"]["diagnostic"] = {
             "two_tier": True,
-            "items": [_question(item, allowlist) for item in lesson_spec["diagnostic"]],
+            "items": [_question(item, allowlist, "diagnostic") for item in lesson_spec["diagnostic"]],
             "notes": str(
                 lesson_spec.get("diagnostic_notes")
                 or "Use the opening check to surface the main misconception before the lesson deepens it."
@@ -154,12 +177,12 @@ def build_nextgen_module_bundle(
             "capsules": [
                 {
                     "prompt": str(lesson_spec["capsule_prompt"]),
-                    "checks": [_question(item, allowlist) for item in lesson_spec["capsule_checks"]],
+                    "checks": [_question(item, allowlist, "concept_reconstruction") for item in lesson_spec["capsule_checks"]],
                 }
             ],
         }
         lesson["phases"]["transfer"] = {
-            "items": [_question(item, allowlist) for item in lesson_spec["transfer"]],
+            "items": [_question(item, allowlist, "transfer") for item in lesson_spec["transfer"]],
             "notes": str(
                 lesson_spec.get("transfer_notes")
                 or "Use transfer to check whether the idea survives a fresh context or representation."
@@ -174,6 +197,9 @@ def build_nextgen_module_bundle(
         contract["visual_assets"] = _cloned_items(list(contract.get("visual_assets") or []))
         contract["animation_assets"] = _cloned_items(list(contract.get("animation_assets") or []))
         contract["release_checks"] = list(release_checks)
+        contract["assessment_alignment"] = deepcopy(contract.get("assessment_alignment") or default_assessment_alignment())
+        contract["competency_mapping"] = deepcopy(contract.get("competency_mapping") or default_competency_mapping())
+        contract["spiral_reinforcement"] = deepcopy(contract.get("spiral_reinforcement") or default_spiral_reinforcement())
         lesson["authoring_contract"] = contract
 
     lesson_pairs: List[Tuple[str, Dict[str, Any]]] = [(str(lesson["lesson_id"]), lesson) for lesson in lessons]

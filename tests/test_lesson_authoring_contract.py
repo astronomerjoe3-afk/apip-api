@@ -5,6 +5,10 @@ from copy import deepcopy
 
 from scripts.lesson_authoring_contract import (
     AUTHORING_STANDARD_V3,
+    default_assessment_alignment,
+    default_competency_mapping,
+    default_question_assessment_schema,
+    default_spiral_reinforcement,
     nextgen_module_doc_template,
     validate_nextgen_lesson,
     validate_nextgen_module,
@@ -26,10 +30,11 @@ def _mcq(qid: str, prompt: str, skill_tag: str) -> dict:
         "feedback": ["Use the pressure story."] * 4,
         "misconception_tags": ["pressure_area_confusion"],
         "skill_tags": [skill_tag],
+        "assessment_schema": default_question_assessment_schema("mcq", "diagnostic"),
     }
 
 
-def _short(qid: str, prompt: str, skill_tag: str) -> dict:
+def _short(qid: str, prompt: str, skill_tag: str, phase_key: str = "diagnostic") -> dict:
     return {
         "id": qid,
         "question_id": qid,
@@ -46,6 +51,7 @@ def _short(qid: str, prompt: str, skill_tag: str) -> dict:
         "feedback": ["Use force-and-area language."],
         "misconception_tags": ["pressure_force_confusion"],
         "skill_tags": [skill_tag],
+        "assessment_schema": default_question_assessment_schema("short", phase_key),
     }
 
 
@@ -88,17 +94,26 @@ def _valid_v3_lesson() -> dict:
                     {
                         "prompt": "Check the central idea.",
                         "checks": [
-                            _mcq("M5L1_C1", "Which statement keeps the ratio idea visible?", "ratio_reasoning"),
-                            _short("M5L1_C2", "Why does a wider footprint help?", "safety_reasoning"),
+                            {
+                                **_mcq("M5L1_C1", "Which statement keeps the ratio idea visible?", "ratio_reasoning"),
+                                "assessment_schema": default_question_assessment_schema("mcq", "concept_reconstruction"),
+                            },
+                            _short("M5L1_C2", "Why does a wider footprint help?", "safety_reasoning", "concept_reconstruction"),
                         ],
                     }
                 ],
             },
             "transfer": {
                 "items": [
-                    _mcq("M5L1_T1", "Which redesign keeps the floor safe?", "design_reasoning"),
-                    _mcq("M5L1_T2", "What must stay fixed if the limit is fixed?", "limit_reasoning"),
-                    _short("M5L1_T3", "Why must area rise with force when the limit stays fixed?", "proportional_reasoning"),
+                    {
+                        **_mcq("M5L1_T1", "Which redesign keeps the floor safe?", "design_reasoning"),
+                        "assessment_schema": default_question_assessment_schema("mcq", "transfer"),
+                    },
+                    {
+                        **_mcq("M5L1_T2", "What must stay fixed if the limit is fixed?", "limit_reasoning"),
+                        "assessment_schema": default_question_assessment_schema("mcq", "transfer"),
+                    },
+                    _short("M5L1_T3", "Why must area rise with force when the limit stays fixed?", "proportional_reasoning", "transfer"),
                 ]
             },
         },
@@ -179,6 +194,9 @@ def _valid_v3_lesson() -> dict:
                 "Design backward from a safe limit",
                 "Compare two pressure situations",
             ],
+            "assessment_alignment": default_assessment_alignment(),
+            "competency_mapping": default_competency_mapping(),
+            "spiral_reinforcement": default_spiral_reinforcement(),
             "variation_plan": {
                 "diagnostic": "Rotate the opening check across force-only and area-only misconception cases.",
                 "concept_gate": "Retry using a different representation before repeating a stem.",
