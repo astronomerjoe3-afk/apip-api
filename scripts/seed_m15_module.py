@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M15_MODULE_ID = "M15"
-M15_CONTENT_VERSION = "20260322_m15_beacon_city_stretchmap_v1"
+M15_CONTENT_VERSION = "20260322_m15_beacon_city_stretchmap_v2"
 M15_MODULE_TITLE = "Universe"
 M15_ALLOWLIST = [
     "star_reflects_light_confusion",
@@ -165,11 +165,16 @@ def scaffold(
     }
 
 
-def assessment_targets() -> Dict[str, Any]:
+def assessment_targets(
+    *,
+    diagnostic_pool_min: int = 3,
+    concept_gate_pool_min: int = 2,
+    mastery_pool_min: int = 3,
+) -> Dict[str, Any]:
     return {
-        "diagnostic_pool_min": 10,
-        "concept_gate_pool_min": 8,
-        "mastery_pool_min": 10,
+        "diagnostic_pool_min": diagnostic_pool_min,
+        "concept_gate_pool_min": concept_gate_pool_min,
+        "mastery_pool_min": mastery_pool_min,
         "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
     }
 
@@ -267,6 +272,7 @@ def contract(
         "reflection_prompts": list(reflection_prompts),
         "mastery_skills": list(mastery_skills),
         "variation_plan": deepcopy(variation_plan),
+        "assessment_bank_targets": assessment_targets(),
         "scaffold_support": deepcopy(scaffold_support),
         "visual_clarity_checks": list(visual_clarity_checks),
     }

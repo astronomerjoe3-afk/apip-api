@@ -87,6 +87,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             transfer_items = lesson["phases"]["transfer"]["items"]
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 3,
+                    "concept_gate_pool_min": 2,
+                    "mastery_pool_min": 3,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
             self.assertGreaterEqual(len(diagnostic_items), 3)
             self.assertGreaterEqual(len(concept_checks), 2)
             self.assertGreaterEqual(len(transfer_items), 3)
