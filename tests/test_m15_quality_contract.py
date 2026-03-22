@@ -148,6 +148,21 @@ class M15QualityContractTests(unittest.TestCase):
             self.assertGreaterEqual(explanation_count, 4, lesson_id)
             self.assertGreaterEqual(mastery_short_count, 2, lesson_id)
 
+    def test_m15_star_brightness_short_answer_accepts_source_language(self) -> None:
+        lesson = dict(M15_LESSONS)["M15_L1"]
+        question = next(
+            item
+            for item in lesson["phases"]["diagnostic"]["items"]
+            if item.get("id") == "M15L1_D8"
+        )
+
+        phrase_groups = question.get("acceptance_rules", {}).get("phrase_groups", [])
+        flattened = {phrase for group in phrase_groups for phrase in group}
+
+        self.assertIn("reflector", flattened)
+        self.assertIn("source of light", flattened)
+        self.assertIn("makes its own light", flattened)
+
 
 if __name__ == "__main__":
     unittest.main()
