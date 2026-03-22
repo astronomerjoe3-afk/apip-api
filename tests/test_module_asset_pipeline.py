@@ -79,6 +79,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
     def test_m15_bundle_uses_generated_assets_and_space_contracts(self) -> None:
         self.assertEqual(M15_MODULE_DOC["id"], "M15")
         self.assertEqual(M15_MODULE_DOC["title"], "Universe")
+        self.assertEqual(M15_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(M15_LESSONS), 6)
         self.assertEqual(len(M15_SIM_LABS), 6)
 
@@ -90,19 +91,20 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 3,
-                    "concept_gate_pool_min": 2,
-                    "mastery_pool_min": 3,
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 3)
-            self.assertGreaterEqual(len(concept_checks), 2)
-            self.assertGreaterEqual(len(transfer_items), 3)
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(contract["visual_assets"][0]["template"], "space_astrophysics_diagram")
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
-            self.assertGreaterEqual(len(contract["worked_examples"]), 2)
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
             self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
 
     def test_m15_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
