@@ -1978,8 +1978,75 @@ def _broaden_m15_short_acceptance(lesson: Dict[str, Any]) -> None:
             acceptance = item.setdefault("acceptance_rules", {})
             phrase_groups = acceptance.get("phrase_groups")
             if not isinstance(phrase_groups, list):
-                continue
+                phrase_groups = []
             acceptance["phrase_groups"] = [_extend_phrase_group(group) for group in phrase_groups]
+
+            skills = {str(tag) for tag in item.get("skill_tags") or []}
+            accepted_answers = list(item.get("accepted_answers") or [])
+
+            if skills & {"classify_light_source", "luminous_vs_reflective", "identify_star"}:
+                accepted_answers = _merge_unique_strings(
+                    accepted_answers,
+                    [
+                        "Because it is a light source.",
+                        "Because stars make their own light.",
+                        "Because it emits its own light.",
+                        "Because it produces its own light.",
+                    ],
+                )
+
+            if skills & {"mass_life_path", "stellar_remnants", "supernova_path"}:
+                accepted_answers = _merge_unique_strings(
+                    accepted_answers,
+                    [
+                        "Because of the difference in their masses.",
+                        "Because they have different masses.",
+                        "Because mass changes the ending.",
+                        "Because mass determines the remnant.",
+                    ],
+                )
+
+            if skills & {"solar_system_in_galaxy", "identify_milky_way", "gravity_bound_galaxy", "scale_hierarchy"}:
+                accepted_answers = _merge_unique_strings(
+                    accepted_answers,
+                    [
+                        "Because the Solar System is inside the Milky Way.",
+                        "Because a galaxy contains many stars.",
+                        "Because the universe contains many galaxies.",
+                    ],
+                )
+
+            if skills & {"identify_light_year", "distance_scale", "unit_reasoning", "scale_unit_choice"}:
+                accepted_answers = _merge_unique_strings(
+                    accepted_answers,
+                    [
+                        "Because a light-year is a distance unit.",
+                        "Because it measures distance not time.",
+                        "Because it tells how far away something is.",
+                    ],
+                )
+
+            if skills & {"identify_redshift", "stretch_wavelength", "redshift_evidence", "wavelength_comparison"}:
+                accepted_answers = _merge_unique_strings(
+                    accepted_answers,
+                    [
+                        "Because the wavelength is longer.",
+                        "Because the light is stretched.",
+                        "Because farther galaxies usually have larger redshifts.",
+                    ],
+                )
+
+            if skills & {"identify_big_bang", "space_expands", "expansion_evidence", "redshift_pattern_reasoning", "expansion_language"}:
+                accepted_answers = _merge_unique_strings(
+                    accepted_answers,
+                    [
+                        "Because space itself expands.",
+                        "Because the universe expanded from a hot dense beginning.",
+                        "Because the redshift pattern supports expansion.",
+                    ],
+                )
+
+            item["accepted_answers"] = accepted_answers
 
 
 def _quality_pass_lesson(
