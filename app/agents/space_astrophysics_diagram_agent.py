@@ -16,6 +16,11 @@ SpaceDiagramType = Literal[
     "elliptical_orbit",
     "hr_diagram",
     "stellar_lifecycle",
+    "star_vs_planet",
+    "galaxy_milky_way",
+    "light_year_scale",
+    "redshift_expansion",
+    "big_bang_timeline",
 ]
 
 
@@ -45,11 +50,18 @@ def _parse_spec(req: DiagramRequest) -> SpaceAstrophysicsDiagramSpec:
         "elliptical_orbit",
         "hr_diagram",
         "stellar_lifecycle",
+        "star_vs_planet",
+        "galaxy_milky_way",
+        "light_year_scale",
+        "redshift_expansion",
+        "big_bang_timeline",
     }
     if diagram_type not in valid_types:
         raise ValueError(
             "Invalid diagram_type. Use one of: solar_system_overview, lunar_phases, "
-            "earth_sun_seasons, elliptical_orbit, hr_diagram, stellar_lifecycle."
+            "earth_sun_seasons, elliptical_orbit, hr_diagram, stellar_lifecycle, "
+            "star_vs_planet, galaxy_milky_way, light_year_scale, redshift_expansion, "
+            "big_bang_timeline."
         )
 
     return SpaceAstrophysicsDiagramSpec(
@@ -466,6 +478,137 @@ def _stellar_lifecycle_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, heigh
     return "".join(parts)
 
 
+def _star_vs_planet_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, height: int) -> str:
+    star_x = 330
+    star_y = height / 2 + 40
+    planet_x = 930
+    planet_y = height / 2 + 54
+
+    parts = [_text(width / 2, 70, spec.title or "Self-Lit Star vs Reflective Planet", size=34, weight="bold")]
+    if spec.subtitle:
+        parts.append(_text(width / 2, 105, spec.subtitle, size=18, fill="#cbd5e1"))
+
+    parts.extend(
+        [
+            _rect(90, 160, 480, 420, fill="#111827", stroke="#334155", stroke_width=2, rx=24),
+            _rect(710, 160, 480, 420, fill="#111827", stroke="#334155", stroke_width=2, rx=24),
+            _text(330, 200, "Beacon: star", size=28, weight="bold", fill="#fde68a"),
+            _text(950, 200, "Lit world: planet", size=28, weight="bold", fill="#bfdbfe"),
+            _circle(star_x, star_y, 88, fill="#facc15", stroke="#fde68a", stroke_width=5),
+            _circle(star_x, star_y, 36, fill="#f97316", stroke="none", stroke_width=0),
+            _text(star_x, star_y + 8, "fusion", size=24, weight="bold", fill="#111827"),
+            _text(star_x, star_y + 132, "self-lit beacon", size=24, fill="#fde68a"),
+            _circle(planet_x, planet_y, 72, fill="#1d4ed8", stroke="#93c5fd", stroke_width=4),
+            _path(f"M {star_x+110:.2f} {star_y-10:.2f} C 610 280, 700 280, {planet_x-88:.2f} {planet_y-10:.2f}", stroke="#fbbf24", stroke_width=8, marker_end="space-arrow"),
+            _text(750, 286, "incoming starlight", size=20, fill="#fde68a"),
+            _path(f"M {planet_x-10:.2f} {planet_y+88:.2f} C 1000 500, 1070 520, 1160 520", stroke="#93c5fd", stroke_width=7, marker_end="space-arrow"),
+            _text(1035, 556, "reflected light", size=20, fill="#bfdbfe"),
+            _text(330, 530, "core fusion releases energy", size=22, fill="#f8fafc"),
+            _text(950, 530, "bright by reflection, not self-emission", size=22, fill="#f8fafc"),
+        ]
+    )
+    return "".join(parts)
+
+
+def _galaxy_milky_way_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, height: int) -> str:
+    cx = 430
+    cy = height / 2 + 30
+    parts = [_text(width / 2, 70, spec.title or "Galaxy and Milky Way", size=34, weight="bold")]
+    if spec.subtitle:
+        parts.append(_text(width / 2, 105, spec.subtitle, size=18, fill="#cbd5e1"))
+    parts.extend(
+        [
+            _ellipse(cx, cy, 280, 110, stroke="#60a5fa", stroke_width=3),
+            _path(f"M {cx-250:.2f} {cy-10:.2f} C {cx-120:.2f} {cy-160:.2f}, {cx+80:.2f} {cy-140:.2f}, {cx+220:.2f} {cy-20:.2f}", stroke="#38bdf8", stroke_width=16),
+            _path(f"M {cx-220:.2f} {cy+20:.2f} C {cx-70:.2f} {cy+140:.2f}, {cx+110:.2f} {cy+150:.2f}, {cx+250:.2f} {cy+40:.2f}", stroke="#7dd3fc", stroke_width=16),
+            _circle(cx, cy, 22, fill="#f8fafc", stroke="#bae6fd", stroke_width=3),
+            _circle(cx + 120, cy - 24, 8, fill="#facc15", stroke="#f8fafc", stroke_width=2),
+            _text(cx + 170, cy - 34, "Sun inside the Milky Way", fill="#fde68a", size=20, anchor="start"),
+            _line(cx + 138, cy - 26, cx + 96, cy - 22, stroke="#fde68a", stroke_width=3),
+            _rect(830, 190, 320, 260, fill="#111827", stroke="#334155", stroke_width=2, rx=22),
+            _text(990, 228, "Beacon-city = galaxy", size=26, weight="bold"),
+            _text(990, 276, "gravity-bound", size=22, fill="#86efac"),
+            _text(990, 314, "many stars", size=22, fill="#e2e8f0"),
+            _text(990, 352, "gas + dust", size=22, fill="#e2e8f0"),
+            _text(990, 390, "Milky Way = home spiral city", size=22, fill="#bfdbfe"),
+        ]
+    )
+    return "".join(parts)
+
+
+def _light_year_scale_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, height: int) -> str:
+    parts = [_text(width / 2, 70, spec.title or "Light-Year Distance Scale", size=34, weight="bold")]
+    if spec.subtitle:
+        parts.append(_text(width / 2, 105, spec.subtitle, size=18, fill="#cbd5e1"))
+    parts.extend(
+        [
+            _line(150, 280, 1130, 280, stroke="#64748b", stroke_width=5),
+            _text(140, 250, "0 ly", size=18, anchor="start"),
+            _text(450, 250, "4 ly", size=18),
+            _text(760, 250, "400 ly", size=18),
+            _text(1070, 250, "100,000 ly", size=18),
+            _circle(150, 280, 10, fill="#f8fafc", stroke="none", stroke_width=0),
+            _circle(450, 280, 16, fill="#38bdf8", stroke="#bfdbfe", stroke_width=3),
+            _circle(760, 280, 18, fill="#a78bfa", stroke="#ddd6fe", stroke_width=3),
+            _circle(1070, 280, 22, fill="#f97316", stroke="#fdba74", stroke_width=3),
+            _text(150, 334, "local starting point", size=18, anchor="start", fill="#cbd5e1"),
+            _text(450, 334, "nearby star", size=18, fill="#cbd5e1"),
+            _text(760, 334, "farther beacon", size=18, fill="#cbd5e1"),
+            _text(1070, 334, "Milky Way width scale", size=18, fill="#cbd5e1"),
+            _rect(230, 420, 820, 110, fill="#111827", stroke="#334155", stroke_width=2, rx=20),
+            _text(640, 462, "1 light-year = distance light travels in 1 year", size=28, weight="bold"),
+            _text(640, 504, "distance unit, not a clock reading", size=22, fill="#93c5fd"),
+        ]
+    )
+    return "".join(parts)
+
+
+def _redshift_expansion_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, height: int) -> str:
+    parts = [_text(width / 2, 70, spec.title or "Redshift from Expansion", size=34, weight="bold")]
+    if spec.subtitle:
+        parts.append(_text(width / 2, 105, spec.subtitle, size=18, fill="#cbd5e1"))
+    wavelengths = [(0, "#38bdf8"), (1, "#60a5fa"), (2, "#818cf8"), (3, "#a78bfa"), (4, "#f472b6"), (5, "#fb7185")]
+    for idx, (_, color) in enumerate(wavelengths):
+        x = 190 + idx * 44
+        parts.append(_rect(x, 250, 30, 140, fill=color, rx=8))
+        parts.append(_rect(x + 530, 250, 42, 140, fill=color, rx=8))
+    parts.extend(
+        [
+            _text(320, 214, "emitted wavelength", size=24, fill="#bfdbfe"),
+            _text(850, 214, "stretched observed wavelength", size=24, fill="#fca5a5"),
+            _line(400, 320, 610, 320, stroke="#fbbf24", stroke_width=7, marker_end="space-arrow"),
+            _text(506, 292, "space expands during travel", size=20, fill="#fde68a"),
+            _text(320, 430, "nearer city = smaller stretch", size=22, fill="#cbd5e1"),
+            _text(850, 430, "farther city = larger redshift", size=22, fill="#fca5a5"),
+        ]
+    )
+    return "".join(parts)
+
+
+def _big_bang_timeline_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, height: int) -> str:
+    parts = [_text(width / 2, 70, spec.title or "Big Bang Expansion Story", size=34, weight="bold")]
+    if spec.subtitle:
+        parts.append(_text(width / 2, 105, spec.subtitle, size=18, fill="#cbd5e1"))
+    parts.extend(
+        [
+            _circle(220, 360, 42, fill="#f97316", stroke="#fde68a", stroke_width=4),
+            _text(220, 430, "hot dense early state", size=22, fill="#fdba74"),
+            _line(280, 360, 530, 360, stroke="#38bdf8", stroke_width=8, marker_end="space-arrow"),
+            _ellipse(700, 360, 110, 64, stroke="#60a5fa", stroke_width=4),
+            _ellipse(700, 360, 170, 96, stroke="#7dd3fc", stroke_width=3),
+            _ellipse(700, 360, 230, 126, stroke="#bae6fd", stroke_width=2),
+            _text(700, 500, "space itself expands", size=26, fill="#bfdbfe"),
+            _rect(910, 220, 260, 280, fill="#111827", stroke="#334155", stroke_width=2, rx=20),
+            _text(1040, 258, "evidence", size=26, weight="bold"),
+            _text(1040, 314, "farther galaxy", size=22, fill="#e2e8f0"),
+            _text(1040, 352, "bigger redshift", size=22, fill="#fca5a5"),
+            _text(1040, 390, "supports expansion", size=22, fill="#86efac"),
+            _text(1040, 442, "not an explosion into empty space", size=18, fill="#fde68a"),
+        ]
+    )
+    return "".join(parts)
+
+
 def generate_space_astrophysics_diagram(
     req: DiagramRequest,
     output_dir: str | Path,
@@ -490,6 +633,16 @@ def generate_space_astrophysics_diagram(
         body = _elliptical_orbit_svg(spec, width, height)
     elif spec.diagram_type == "hr_diagram":
         body = _hr_diagram_svg(spec, width, height)
+    elif spec.diagram_type == "star_vs_planet":
+        body = _star_vs_planet_svg(spec, width, height)
+    elif spec.diagram_type == "galaxy_milky_way":
+        body = _galaxy_milky_way_svg(spec, width, height)
+    elif spec.diagram_type == "light_year_scale":
+        body = _light_year_scale_svg(spec, width, height)
+    elif spec.diagram_type == "redshift_expansion":
+        body = _redshift_expansion_svg(spec, width, height)
+    elif spec.diagram_type == "big_bang_timeline":
+        body = _big_bang_timeline_svg(spec, width, height)
     else:
         body = _stellar_lifecycle_svg(spec, width, height)
 

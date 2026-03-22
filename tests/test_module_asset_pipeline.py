@@ -20,6 +20,7 @@ from scripts.seed_m10_module import M10_LESSONS, M10_MODULE_DOC, M10_SIM_LABS
 from scripts.seed_m11_module import M11_LESSONS, M11_MODULE_DOC, M11_SIM_LABS
 from scripts.seed_m12_module import M12_LESSONS, M12_MODULE_DOC, M12_SIM_LABS
 from scripts.seed_m13_module import M13_LESSONS, M13_MODULE_DOC, M13_SIM_LABS
+from scripts.seed_m15_module import M15_LESSONS, M15_MODULE_DOC, M15_SIM_LABS
 from scripts.seed_a1_module import A1_LESSONS, A1_MODULE_DOC, A1_SIM_LABS
 from scripts.seed_a2_module import A2_LESSONS, A2_MODULE_DOC, A2_SIM_LABS
 from scripts.seed_a3_module import A3_LESSONS, A3_MODULE_DOC, A3_SIM_LABS
@@ -66,6 +67,47 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "A5")
         self.assertEqual(row["title"], "Modern Physics")
+
+    def test_catalog_bootstrap_includes_m15_bundle(self) -> None:
+        self.assertIn("M15", get_catalog_module_ids())
+
+        row = get_catalog_module_row("M15")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["id"], "M15")
+        self.assertEqual(row["title"], "Universe")
+
+    def test_m15_bundle_uses_generated_assets_and_space_contracts(self) -> None:
+        self.assertEqual(M15_MODULE_DOC["id"], "M15")
+        self.assertEqual(M15_MODULE_DOC["title"], "Universe")
+        self.assertEqual(len(M15_LESSONS), 6)
+        self.assertEqual(len(M15_SIM_LABS), 6)
+
+        for _, lesson in M15_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            self.assertGreaterEqual(len(diagnostic_items), 3)
+            self.assertGreaterEqual(len(concept_checks), 2)
+            self.assertGreaterEqual(len(transfer_items), 3)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(contract["visual_assets"][0]["template"], "space_astrophysics_diagram")
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 2)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+
+    def test_m15_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
+        mastery_text = " ".join(M15_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M15_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("fusion", mastery_text)
+        self.assertIn("milky way", mastery_text)
+        self.assertIn("light-year", mastery_text)
+        self.assertIn("redshift", mastery_text)
+        self.assertIn("big bang", mastery_text)
+        self.assertIn("beacon-city", description_text)
+        self.assertIn("stretchmap", description_text)
+        self.assertNotIn("electric current", mastery_text)
+        self.assertNotIn("half-life", mastery_text)
 
     def test_a5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A5_MODULE_DOC["id"], "A5")

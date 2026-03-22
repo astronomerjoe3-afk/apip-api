@@ -13,6 +13,8 @@ class SpaceAstrophysicsDiagramAgentTests(unittest.TestCase):
         contract = DIAGRAM_REQUEST_TEMPLATE_CONTRACTS.get("space_astrophysics_diagram")
         self.assertIsNotNone(contract)
         self.assertIn("solar_system_overview", contract["meta_contract"]["diagram_type"])
+        self.assertIn("star_vs_planet", contract["meta_contract"]["diagram_type"])
+        self.assertIn("redshift_expansion", contract["meta_contract"]["diagram_type"])
         self.assertIn("astronomy_diagram", contract["concept_aliases"])
 
     def test_generates_solar_system_svg(self) -> None:
@@ -136,6 +138,36 @@ class SpaceAstrophysicsDiagramAgentTests(unittest.TestCase):
             svg = path.read_text(encoding="utf-8")
             self.assertIn("Stellar Lifecycle", svg)
             self.assertIn("Main Sequence Star", svg)
+
+    def test_generates_redshift_expansion_svg(self) -> None:
+        req = SimpleNamespace(
+            asset_id="redshift_expansion_01",
+            phase_key="guided_concept_building",
+            concept="space_astrophysics_diagram",
+            title="Redshift from Expansion",
+            description="Compare emitted and stretched observed wavelengths.",
+            width=1280,
+            height=720,
+            meta={
+                "diagram_type": "redshift_expansion",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_space_astrophysics_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="SPACE",
+                lesson_id="SPACE_L5",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn("Redshift from Expansion", svg)
+            self.assertIn("emitted wavelength", svg)
+            self.assertIn("larger redshift", svg)
 
 
 if __name__ == "__main__":
