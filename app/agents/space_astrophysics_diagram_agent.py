@@ -184,9 +184,10 @@ def _path(
 
 
 def _solar_system_overview_svg(spec: SpaceAstrophysicsDiagramSpec, width: int, height: int) -> str:
-    cx = 260
+    # Keep the orbit family clear without pushing left-side labels off-canvas.
+    cx = 340
     cy = height / 2 + 30
-    radii = [80, 130, 190, 260, 350]
+    radii = [70, 120, 180, 250, 330]
     planets = [
         ("Mercury", "#9ca3af", 6, 30),
         ("Venus", "#eab308", 8, 75),

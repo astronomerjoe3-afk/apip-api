@@ -124,6 +124,69 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("electric current", mastery_text)
         self.assertNotIn("half-life", mastery_text)
 
+    def test_f5_bundle_uses_lesson_owned_banks_and_astronomy_visuals(self) -> None:
+        self.assertEqual(F5_MODULE_DOC["id"], "F5")
+        self.assertEqual(F5_MODULE_DOC["title"], "Observable Earth and Sky")
+        self.assertEqual(F5_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(F5_MODULE_DOC["content_version"], "20260323_f5_lantern_ring_skycourt_v2")
+        self.assertEqual(len(F5_LESSONS), 6)
+        self.assertEqual(len(F5_SIM_LABS), 6)
+
+        simulation_concepts = set()
+        focus_prompts = set()
+        for _, lesson in F5_LESSONS:
+            contract = lesson["authoring_contract"]
+            diagnostic_items = lesson["phases"]["diagnostic"]["items"]
+            concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+            transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
+
+            self.assertEqual(
+                contract["assessment_bank_targets"],
+                {
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                },
+            )
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
+            self.assertIn(contract["visual_assets"][0]["template"], {"astronomy_diagram", "space_astrophysics_diagram"})
+            self.assertNotEqual(contract["visual_assets"][0]["template"], "general_visual")
+            self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertIn(
+                "No picture labels, angle marks, or callouts clip on desktop or mobile layouts.",
+                contract["visual_clarity_checks"],
+            )
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+            simulation_concepts.add(simulation_contract["concept"])
+            focus_prompts.add(simulation_contract["focus_prompt"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
+
+        self.assertEqual(len(simulation_concepts), 6)
+        self.assertEqual(len(focus_prompts), 6)
+
     def test_a5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A5_MODULE_DOC["id"], "A5")
         self.assertEqual(A5_MODULE_DOC["title"], "Modern Physics")

@@ -343,6 +343,41 @@ def _build_generated_bundle(*, module_id: str, module_title: str, content_versio
     return module_doc, lesson_pairs, sim_pairs
 
 
+def _set_visual_asset(
+    lesson: Dict[str, Any],
+    *,
+    asset_id: str,
+    concept: str,
+    template: str,
+    title: str,
+    purpose: str,
+    caption: str,
+    meta: Dict[str, Any],
+) -> None:
+    lesson["authoring_contract"]["visual_assets"] = [
+        {
+            "asset_id": asset_id,
+            "concept": concept,
+            "phase_key": "analogical_grounding",
+            "title": title,
+            "purpose": purpose,
+            "caption": caption,
+            "template": template,
+            "meta": deepcopy(meta),
+        }
+    ]
+
+
+def _update_short_item(
+    item: Dict[str, Any],
+    *,
+    accepted_answers: Sequence[str],
+    phrase_groups: Sequence[Sequence[str]],
+) -> None:
+    item["accepted_answers"] = [str(answer) for answer in accepted_answers]
+    item["acceptance_rules"] = acceptance_groups(*phrase_groups)
+
+
 def _load_seed_bundle(module_path: str, prefix: str) -> Tuple[str, Dict[str, Any], List[Tuple[str, Dict[str, Any]]], List[Tuple[str, Dict[str, Any]]]]:
     seed_module = import_module(module_path)
     return getattr(seed_module, f"{prefix}_CONTENT_VERSION"), deepcopy(getattr(seed_module, f"{prefix}_MODULE_DOC")), deepcopy(getattr(seed_module, f"{prefix}_LESSONS")), deepcopy(getattr(seed_module, f"{prefix}_SIM_LABS"))
@@ -508,7 +543,406 @@ def auto_blueprint(
     }
 
 
-F5_CONTENT_VERSION = "20260323_f5_lantern_ring_skycourt_v1"
+def _f5_l1_extras(lesson_tag: str, skills: Sequence[str]) -> Dict[str, List[Dict[str, Any]]]:
+    return {
+        "diagnostic": [
+            mcq(f"{lesson_tag}_D7", "Which pair correctly matches the main orbit in the Earth-Moon-Sun system?", ["Earth orbits the Sun and the Moon orbits Earth", "Earth orbits the Moon and the Sun orbits Earth", "The Moon orbits the Sun directly while Earth stays fixed", "All three bodies orbit Earth in the same way"], 0, "Keep host body and orbit route matched correctly.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_D8", "A scale sketch uses 1 cm for 100,000 km. If Earth and Moon are shown 3 cm apart, what real distance does that represent?", ["300000 km", "300,000 km", "300000"], "Multiply the scale value by the number of centimeters on the sketch.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["300000", "300,000", "300000 km", "300,000 km"])),
+            mcq(f"{lesson_tag}_D9", "Which clue best shows the Earth-Moon-Sun picture should be treated as one linked system?", ["The same positions help explain day-night, phases, eclipses, and orbit ideas together", "Each sky pattern needs a separate cause because the bodies are unrelated", "The Moon shines by making its own light", "Scale does not matter once the Sun is drawn"], 0, "Look for the answer that keeps several sky patterns on one board.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_D10", "Why should gravity stay in the Earth-Moon-Sun story even when no rope or rail is drawn?", ["because gravity keeps the bodies in orbit and linked as one system", "because gravity is the pull that keeps the routes organized", "because gravity keeps Earth and Moon on their paths"], "Use pull-and-orbit language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["gravity", "pull"], ["orbit", "path", "route", "linked"])),
+        ],
+        "concept": [
+            mcq(f"{lesson_tag}_C5", "Which sentence best protects the idea of a shared skycourt?", ["One system picture can explain several sky patterns at once", "Every sky pattern needs its own unrelated rule", "The Moon and Earth use the same route around the Sun", "Scale can be ignored because the diagram is always exact"], 0, "Keep the linked-system idea visible.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_C6", "Why is an orbit weaker if it is described as a painted track in space?", ["because gravity and sideways motion make the path rather than a fixed rail", "because an orbit is a gravity-guided path not a built track", "because the route comes from pull and motion"], "Use gravity-guided path language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["gravity", "pull"], ["path", "route", "orbit"], ["track", "rail", "fixed"])),
+            mcq(f"{lesson_tag}_C7", "If the Moon circles Earth while Earth circles the Sun, which statement is strongest?", ["The system has linked motions on different scales", "Earth and Moon must be the same type of body", "The Moon cannot affect any Earth-sky pattern", "The Sun is not part of the system idea"], 0, "Keep the nested-motion picture visible.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_C8", "A model uses 1 cm for 50,000 km. What real distance does 4 cm represent?", ["200000 km", "200,000 km", "200000"], "Multiply the model distance by the scale.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["200000", "200,000", "200000 km", "200,000 km"])),
+        ],
+        "mastery": [
+            short(f"{lesson_tag}_M7", "A poster shows Earth, Moon, and Sun almost touching. What is the most important correction?", ["the distances are heavily compressed and the scale is not realistic", "the picture is not to scale and the real distances are much larger", "the sketch exaggerates closeness because real space is much bigger"], "Answer with scale-compression language.", skill_tags=[skills[0]], acceptance_rules=acceptance_groups(["scale", "not to scale", "compressed", "larger"], ["distance", "far", "space"])),
+            mcq(f"{lesson_tag}_M8", "Why is the Moon not placed in the same category as Earth in this lesson?", ["Because the Moon mainly orbits Earth while Earth orbits the Sun", "Because the Moon is made of light", "Because the Moon never moves", "Because only Earth has gravity"], 0, "Use main-host language.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_M9", "At a scale of 1 cm to 200,000 km, what real distance does 2 cm represent?", ["400000 km", "400,000 km", "400000"], "Use the same scale factor for the full distance.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["400000", "400,000", "400000 km", "400,000 km"])),
+            mcq(f"{lesson_tag}_M10", "Which explanation best keeps the Earth-Moon-Sun lesson rich rather than split into separate facts?", ["Use one linked system with gravity, orbit, and scale on the same board", "Teach day-night, phases, and seasons as unrelated lists", "Ignore the Sun once the Moon is introduced", "Treat orbit as decoration rather than cause"], 0, "Choose the option that keeps the three-body system together.", skill_tags=[skills[4]]),
+        ],
+    }
+
+
+def _f5_l2_extras(lesson_tag: str, skills: Sequence[str]) -> Dict[str, List[Dict[str, Any]]]:
+    return {
+        "diagnostic": [
+            short(f"{lesson_tag}_D7", "Earth turns 360 degrees in 24 hours. How many degrees does it turn in 6 hours?", ["90", "90 degrees"], "Use a proportional part of one full turn.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["90", "90 degrees"])),
+            mcq(f"{lesson_tag}_D8", "What is the strongest explanation for one city moving from night into day?", ["Earth rotates and carries the city into the lit half", "Earth moves much closer to the Sun each morning", "The Moon shines more strongly at sunrise", "Earth finishes a full year each day"], 0, "Keep the turning-Earth mechanism visible.", skill_tags=[skills[4]]),
+            mcq(f"{lesson_tag}_D9", "Which thing stays fixed in the simple day-night model while Earth spins?", ["The sunlight direction from the Sun", "The city marker itself in space", "The day side on the surface", "Earth's orbit position changes every few seconds"], 0, "The Sun's direction sets the lit half while Earth turns through it.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_D10", "Why can sunrise happen without Earth completing a whole orbit around the Sun?", ["because Earth only needs to rotate until the place faces sunlight", "because spin brings the place into the lit half", "because rotation not yearly orbit causes day and night"], "Use spin-and-sunlight language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["spin", "rotate", "rotation", "turn"], ["sunlight", "lit", "face the Sun", "day side"])),
+        ],
+        "concept": [
+            mcq(f"{lesson_tag}_C5", "If Earth turns about 15 degrees each hour, how far does it turn in 3 hours?", ["45 degrees", "30 degrees", "60 degrees", "90 degrees"], 0, "Multiply the turn per hour by the number of hours.", skill_tags=[skills[3]]),
+            short(f"{lesson_tag}_C6", "Why does Earth not need one full year to change one place from day to night?", ["because rotation changes the lit side much faster than orbit", "because one spin not one orbit makes day and night", "because Earth turns on its axis every day"], "Separate spin timing from orbit timing.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["spin", "rotation", "turn", "axis"], ["day", "night", "lit", "dark"])),
+            mcq(f"{lesson_tag}_C7", "Which pair correctly matches the timescale?", ["day -> one rotation, year -> one orbit", "day -> one orbit, year -> one rotation", "day -> one eclipse, year -> one phase cycle", "day -> no motion, year -> rotation only"], 0, "Keep the two motions separate.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_C8", "A place goes from noon to midnight. What fraction of a full turn has Earth made for that place?", ["half a turn", "1/2 turn", "180 degrees"], "Noon to midnight is opposite sides of one full spin.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["half", "1/2", "180"])),
+        ],
+        "mastery": [
+            mcq(f"{lesson_tag}_M7", "At about 15 degrees per hour, how far does Earth rotate in 4 hours?", ["60 degrees", "45 degrees", "75 degrees", "120 degrees"], 0, "Multiply the turn per hour by 4.", skill_tags=[skills[3]]),
+            short(f"{lesson_tag}_M8", "How is rotation different from orbit in the day-night lesson?", ["rotation is Earth spinning on its axis while orbit is Earth moving around the Sun", "spin is on the axis and orbit is the path around the Sun", "rotation turns Earth and orbit carries Earth around the Sun"], "Name both motions clearly.", skill_tags=[skills[0]], acceptance_rules=acceptance_groups(["spin", "rotation", "axis"], ["orbit", "around the Sun", "path"])),
+            mcq(f"{lesson_tag}_M9", "Two cities on opposite sides of Earth are compared at the same moment. Which statement is strongest?", ["One can be on the day side while the other is on the night side because Earth is rotating", "They must both have noon because the Sun is one star", "They can only differ if the Moon blocks the Sun", "They can only differ once Earth completes a year"], 0, "Use the half-lit Earth picture.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_M10", "Why is 'the Sun goes around Earth once each day' a weak scientific explanation for the pattern we see?", ["because the apparent daily motion is better explained by Earth rotating", "because the daily sky pattern is a viewpoint effect from Earth's spin", "because Earth turning explains the changing view of the Sun"], "Use apparent-motion and rotation language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["rotate", "spin", "Earth turns"], ["apparent", "view", "seen", "pattern", "sky"])),
+        ],
+    }
+
+
+def _f5_l3_extras(lesson_tag: str, skills: Sequence[str]) -> Dict[str, List[Dict[str, Any]]]:
+    return {
+        "diagnostic": [
+            mcq(f"{lesson_tag}_D7", "If the Northern Hemisphere leans toward the Sun, what is most likely true?", ["It receives more direct sunlight", "It must be farther from the Sun", "The Southern Hemisphere gets the same season", "Earth's axis has flipped"], 0, "Use tilt and sunlight angle together.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_D8", "About six months after June in the Northern Hemisphere, which hemisphere leans more toward the Sun?", ["Southern Hemisphere", "the south", "south"], "Half a year later, the seasonal lean swaps hemispheres.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["south", "southern"])),
+            mcq(f"{lesson_tag}_D9", "If Earth had no axial tilt, which seasonal claim is strongest?", ["Season differences would be much smaller because the lean effect would be removed", "Summer would become hotter because Earth would be closer to the Sun", "Earth would stop rotating", "The Moon would cause all seasons"], 0, "Remove tilt first, then ask what seasonal cause remains.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_D10", "Why can opposite hemispheres have opposite seasons at the same time?", ["because the tilted axis makes one hemisphere lean toward the Sun while the other leans away", "because the same tilt gives opposite sunlight angles in opposite hemispheres", "because tilt affects the two hemispheres in opposite ways"], "Use opposite-hemisphere tilt language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["tilt", "axis", "lean"], ["opposite", "one hemisphere", "other hemisphere", "north", "south"])),
+        ],
+        "concept": [
+            mcq(f"{lesson_tag}_C5", "Which statement best matches the season-switch model?", ["Earth keeps roughly the same axis direction in space as it orbits", "Earth flips its axis every half year", "Earth must get much nearer the Sun in summer", "The Moon changes Earth's axis each month"], 0, "Keep the fixed axis direction visible.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_C6", "Why is a simple distance-from-the-Sun story too weak to explain seasons?", ["because opposite hemispheres have opposite seasons at the same time", "because the same Earth-Sun distance cannot give opposite seasons in different hemispheres", "because tilt and sunlight angle explain the pattern better than distance alone"], "Use opposite-hemisphere language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["opposite", "north", "south", "hemisphere"], ["same time", "same distance", "distance alone", "tilt"])),
+            mcq(f"{lesson_tag}_C7", "Which sunlight description usually fits the hemisphere tilted toward the Sun?", ["more direct sunlight and longer daylight", "less direct sunlight and shorter daylight", "no daylight at all", "the same sunlight angle as the opposite hemisphere"], 0, "Tie the lean to the sunlight angle.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_C8", "If Earth's tilt were 0 degrees, what would happen to the strong seasonal contrast?", ["it would be much smaller or nearly disappear", "there would be little or no strong seasonal contrast", "seasons would weaken a lot"], "Answer with no-tilt, weaker-season language.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["little", "less", "weaker", "smaller", "no strong"], ["season"])),
+        ],
+        "mastery": [
+            mcq(f"{lesson_tag}_M7", "It is December. Which hemisphere is more likely tilted toward the Sun?", ["Southern Hemisphere", "Northern Hemisphere", "both equally by tilt", "neither because tilt no longer matters"], 0, "Use the six-month swap idea.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_M8", "About how long after June does the main seasonal lean swap to the opposite hemisphere?", ["about six months", "6 months", "half a year"], "A half-year shift reverses the tilt advantage.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["six", "6", "half"], ["month", "year"])),
+            mcq(f"{lesson_tag}_M9", "Which statement best protects the role of a solstice in this lesson?", ["It is a point where one hemisphere leans most toward or away from the Sun", "It is when Earth stops moving for a day", "It is the moment the Moon causes winter", "It is just the date Earth is closest to the Sun"], 0, "Use maximum lean, not distance, as the anchor.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_M10", "Why is tilt a stronger seasonal cause than simple Earth-Sun distance?", ["because tilt changes sunlight angle and hemisphere lean while distance alone cannot explain opposite seasons", "because tilt changes which hemisphere gets more direct sunlight", "because opposite seasonal patterns follow lean not simple closeness"], "Use tilt-plus-sunlight-angle language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["tilt", "lean"], ["sunlight angle", "direct sunlight", "opposite seasons", "hemisphere"])),
+        ],
+    }
+
+
+def _f5_l4_extras(lesson_tag: str, skills: Sequence[str]) -> Dict[str, List[Dict[str, Any]]]:
+    return {
+        "diagnostic": [
+            mcq(f"{lesson_tag}_D7", "Starting from new moon, which named phase appears after about one quarter of the Moon's orbit?", ["first quarter", "full moon", "third quarter", "solar eclipse"], 0, "Move a quarter of the way around the orbit from the new-moon position.", skill_tags=[skills[3]]),
+            short(f"{lesson_tag}_D8", "Starting from new moon, what phase appears after about half an orbit?", ["full moon", "the full moon"], "Half an orbit from new moon places the Moon opposite the Sun in the sky.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["full moon", "full"])),
+            mcq(f"{lesson_tag}_D9", "Which statement stays true all month in the phase model?", ["The Sun lights half of the Moon all the time", "Earth's shadow covers part of the Moon every night", "The Moon makes its own light", "The lit half appears and disappears physically"], 0, "Keep the half-lit Moon constant.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_D10", "Why are ordinary Moon phases not just small eclipses every month?", ["because phases come from viewing the lit half while eclipses need a special shadow alignment", "because phases are a viewpoint change and eclipses are special shadow events", "because Earth's shadow is not the normal cause of phases"], "Separate viewing angle from special shadow alignment.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["view", "viewing angle", "lit half", "see"], ["eclipse", "shadow", "special alignment", "rare"])),
+        ],
+        "concept": [
+            mcq(f"{lesson_tag}_C5", "Which alignment best matches a lunar eclipse?", ["Earth between Sun and Moon", "Moon between Earth and Sun every month", "Sun between Earth and Moon", "No special alignment is needed"], 0, "A lunar eclipse is a shadow event with Earth in the middle.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_C6", "At first quarter, what fraction of the Moon's orbit has passed since new moon?", ["one quarter", "1/4", "quarter"], "First quarter matches about one quarter of the orbit from new moon.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["quarter", "1/4", "one quarter"])),
+            mcq(f"{lesson_tag}_C7", "Which sentence best protects the phase model?", ["A crescent means we see only a small part of the Moon's lit half", "A crescent means most of the Moon is unlit by the Sun", "A crescent means Earth's shadow is nearly covering the Moon", "A crescent means the Moon has stopped reflecting sunlight"], 0, "Use visible part of the lit half.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_C8", "Why can a crescent Moon still belong to a half-lit Moon?", ["because the Sun still lights half the Moon even though we see only a small part of that half", "because the lit half stays the same while our view changes", "because the visible part changes, not the fact that half is sunlit"], "Keep constant lighting separate from changing viewpoint.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["half lit", "half", "sun lights half"], ["see", "view", "visible part", "small part"])),
+        ],
+        "mastery": [
+            mcq(f"{lesson_tag}_M7", "A diagram shows Earth, Moon, and Sun at right angles with the Moon half-way around from new moon. Which phase is strongest?", ["first quarter", "full moon", "new moon", "lunar eclipse"], 0, "A right-angle position from Earth gives a quarter phase.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_M8", "If the Moon moves from new moon to the opposite side of Earth, what phase is expected?", ["full moon", "the full moon"], "Opposite the Sun from Earth's viewpoint gives full moon.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["full moon", "full"])),
+            mcq(f"{lesson_tag}_M9", "Which explanation best separates ordinary phases from eclipses?", ["Phases are normal viewing changes; eclipses are special alignment events", "Phases are small eclipses that happen every month", "Eclipses happen because the Moon stops reflecting light", "Phases and eclipses are the same event with different names"], 0, "Keep monthly geometry separate from rare shadow cases.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_M10", "Why is Earth's shadow not the everyday explanation for the changing Moon shape?", ["because the changing shape comes from how much of the lit half we can see", "because phases are a viewing-angle story not a constant shadow story", "because the visible lit fraction changes as the Moon orbits Earth"], "Use visible-lit-half language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["see", "visible", "view"], ["lit half", "sunlit", "lit fraction"], ["orbit", "moves around Earth", "phase"])),
+        ],
+    }
+
+
+def _f5_l5_extras(lesson_tag: str, skills: Sequence[str]) -> Dict[str, List[Dict[str, Any]]]:
+    return {
+        "diagnostic": [
+            mcq(f"{lesson_tag}_D7", "Which option is classified as a moon in the Solar System family?", ["a body that mainly orbits a planet or dwarf planet", "any body that orbits the Sun", "a rocky body in the asteroid belt only", "the central star"], 0, "Classify by main host body first.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_D8", "If a body mainly orbits a larger world instead of the Sun directly, what broad category fits best?", ["moon", "natural satellite", "a moon"], "Use host-body language.", skill_tags=[skills[2]], acceptance_rules=acceptance_groups(["moon", "satellite"])),
+            mcq(f"{lesson_tag}_D9", "Why should not every round Sun-orbiting body be called a full planet?", ["Because the Solar System has other categories such as dwarf planets, asteroids, and comets", "Because anything that moves in space is a star", "Because shape never matters in astronomy", "Because moons and planets are always the same thing"], 0, "Keep the category system visible.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_D10", "In one shared time window, an inner world completes 4 laps while an outer world completes 1. Which has the shorter year?", ["the inner world", "inner world", "the inner planet"], "More completed laps in the same time means a shorter orbital period.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["inner"], ["short", "year", "lap", "orbit"])),
+        ],
+        "concept": [
+            mcq(f"{lesson_tag}_C5", "Which statement best distinguishes a dwarf planet from a moon in this school-level model?", ["A dwarf planet orbits the Sun directly, while a moon mainly orbits a larger world", "A dwarf planet makes its own light, while a moon does not", "A dwarf planet never moves", "A moon must be larger than a dwarf planet"], 0, "Use main host body as the first clue.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_C6", "What two clues should you read together when classifying a Solar System body?", ["what the body is and what it mainly orbits", "body type and main host", "its category and its main host body"], "Use body type plus main host.", skill_tags=[skills[0]], acceptance_rules=acceptance_groups(["body", "type", "category"], ["orbit", "host", "mainly orbits"])),
+            mcq(f"{lesson_tag}_C7", "Which small-body description best matches a comet?", ["an icy visitor that can develop a coma or tail near the Sun", "a rocky moon around Earth", "a planet that has cleared its orbit", "the central lantern of the system"], 0, "Separate icy visitors from rocky swarm pieces.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_C8", "Why is a body that mainly orbits a planet not usually called a planet in this lesson?", ["because its main host is the planet, so it fits the moon or satellite role", "because planets orbit the Sun directly in this simplified family model", "because host body helps separate moons from planets"], "Use main-host classification language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["host", "orbit", "planet"], ["moon", "satellite", "not a planet", "planet orbits the Sun"])),
+        ],
+        "mastery": [
+            mcq(f"{lesson_tag}_M7", "Which pair is matched correctly?", ["asteroid -> mostly rocky small body, comet -> icy small body", "asteroid -> icy visitor, comet -> rocky belt body", "moon -> central star, planet -> companion rider", "dwarf planet -> object that orbits nothing"], 0, "Keep rocky and icy small-body roles distinct.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_M8", "If an inner world completes more laps than an outer world in the same time, which one has the longer orbital period?", ["the outer world", "outer world", "the outer planet"], "Fewer laps in the same interval means a longer year.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["outer"], ["long", "period", "year", "lap", "orbit"])),
+            mcq(f"{lesson_tag}_M9", "Why are classroom Solar System drawings often misleading if taken literally?", ["Because they compress huge distances and often cannot keep true size and true distance at once", "Because they show the exact size and distance perfectly", "Because scale never matters in astronomy", "Because the Sun is not really central"], 0, "Use compressed-scale language.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_M10", "Why is sorting Solar System bodies into planet, moon, asteroid, comet, and dwarf planet useful?", ["because the categories show different roles in one Sun-centered family", "because body type and main host give different jobs in the Solar System", "because not every orbiting body behaves or belongs in the same way"], "Use category-and-role language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["category", "sort", "different roles", "type"], ["family", "Solar System", "host", "orbit"])),
+        ],
+    }
+
+
+def _f5_l6_extras(lesson_tag: str, skills: Sequence[str]) -> Dict[str, List[Dict[str, Any]]]:
+    return {
+        "diagnostic": [
+            short(f"{lesson_tag}_D7", "If Earth rotates once per day, how many full rotations happen in 2 days?", ["2", "2 rotations", "two"], "Use one rotation per day.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["2", "two"])),
+            mcq(f"{lesson_tag}_D8", "What real motion best explains the Sun seeming to cross the sky each day?", ["Earth's rotation", "Earth's yearly orbit alone", "the Moon blocking and unblocking the Sun", "the Sun orbiting Earth once each day"], 0, "Treat the daily sky sweep as apparent motion caused by spin.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_D9", "About how many days are in one Earth year?", ["365", "365 days", "about 365"], "Use the year as one full orbit around the Sun.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["365", "365 days", "about 365"])),
+            mcq(f"{lesson_tag}_D10", "Why are many Solar System diagrams not true scale drawings?", ["Because real distances are huge and the sketch is heavily compressed", "Because the Sun is actually small enough to fit near Earth on the page", "Because scale models are impossible in science", "Because day and year are the same motion"], 0, "Use large-distance compression language.", skill_tags=[skills[0]]),
+        ],
+        "concept": [
+            mcq(f"{lesson_tag}_C5", "Which pair correctly matches the motion and time?", ["one day -> one rotation, one year -> one orbit", "one day -> one orbit, one year -> one rotation", "one day -> one eclipse, one year -> one phase", "one day -> no motion, one year -> only apparent motion"], 0, "Keep daily and yearly motions separate.", skill_tags=[skills[2]]),
+            short(f"{lesson_tag}_C6", "Why is apparent sky motion not the whole real-motion story?", ["because what we see from Earth is a viewpoint effect and different real motions cause day and year", "because appearance in the sky and the real motion causing it are not exactly the same thing", "because Earth's viewpoint can make one motion look different from the real arrangement"], "Use viewpoint-versus-real-motion language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["view", "apparent", "seems", "appearance"], ["real motion", "rotation", "orbit", "cause"])),
+            mcq(f"{lesson_tag}_C7", "In the same time interval, an inner world completes 6 laps while an outer world completes 1. Which statement is strongest?", ["The outer world has the longer orbital period", "The inner world has the longer orbital period", "Both worlds have the same year", "Lap count gives no clue about year length"], 0, "More laps in the same interval means a shorter period.", skill_tags=[skills[4]]),
+            short(f"{lesson_tag}_C8", "If an outer world completes 1 lap while an inner world completes 6 in the same interval, which has the longer year?", ["the outer world", "outer world", "the outer planet"], "Fewer laps in the same interval means a longer year.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["outer"], ["long", "year", "period", "orbit", "lap"])),
+        ],
+        "mastery": [
+            mcq(f"{lesson_tag}_M7", "Which statement best corrects the claim 'the Sun really goes around Earth once each day'?", ["The daily sweep is an apparent motion that is better explained by Earth's rotation", "The claim is correct because the sky shows it directly", "The Moon causes the Sun to circle Earth", "A day is the same thing as a year"], 0, "Use apparent motion plus rotation.", skill_tags=[skills[1]]),
+            short(f"{lesson_tag}_M8", "How is a day different from a year in the Earth-Sun story?", ["a day comes from rotation while a year comes from orbit", "day is one spin and year is one orbit", "rotation gives the day and orbit gives the year"], "Name both motions clearly.", skill_tags=[skills[0]], acceptance_rules=acceptance_groups(["day", "rotation", "spin"], ["year", "orbit"])),
+            mcq(f"{lesson_tag}_M9", "Which scale-model claim is strongest?", ["A useful model can preserve the pattern while still compressing the real distances heavily", "A classroom sketch always keeps true size and true distance together", "Scale is irrelevant once planets are labeled", "Compression means the model is scientifically useless"], 0, "A model can still teach the pattern without being literal size-for-size and distance-for-distance.", skill_tags=[skills[0]]),
+            short(f"{lesson_tag}_M10", "Why should daily sky appearance and yearly orbit timing not be collapsed into one motion story?", ["because day and year come from different motions and apparent motion is a viewpoint effect", "because rotation and orbit answer different timing questions", "because the sky can look as if something moves even when a different real motion causes it"], "Keep appearance separate from cause.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["day", "rotation", "spin"], ["year", "orbit"], ["apparent", "view", "appearance", "look"])),
+        ],
+    }
+
+
+def _f5_extra_question_banks(lesson_number: int, slug: str) -> Dict[str, List[Dict[str, Any]]]:
+    lesson_tag = f"F5L{lesson_number}"
+    skills = _skills(slug)
+    if lesson_number == 1:
+        return _f5_l1_extras(lesson_tag, skills)
+    if lesson_number == 2:
+        return _f5_l2_extras(lesson_tag, skills)
+    if lesson_number == 3:
+        return _f5_l3_extras(lesson_tag, skills)
+    if lesson_number == 4:
+        return _f5_l4_extras(lesson_tag, skills)
+    if lesson_number == 5:
+        return _f5_l5_extras(lesson_tag, skills)
+    return _f5_l6_extras(lesson_tag, skills)
+
+
+def _upgrade_f5_bundle(
+    module_doc: Dict[str, Any],
+    lesson_pairs: List[Tuple[str, Dict[str, Any]]],
+    blueprints: Sequence[Dict[str, Any]],
+) -> None:
+    module_doc["content_version"] = "20260323_f5_lantern_ring_skycourt_v2"
+
+    visual_specs = {
+        1: {
+            "concept": "astronomy_diagram",
+            "template": "astronomy_diagram",
+            "title": "Earth, Moon, and Sun in One Court",
+            "purpose": "Show the Earth-Moon-Sun family as one linked skycourt system.",
+            "caption": "Keep Earth, Moon, and Sun on one board so orbit, gravity, and scale stay connected.",
+            "meta": {"diagram_type": "solar_court", "title": "Earth, Moon, and Sun in One Court", "subtitle": "One shared skycourt keeps the system linked."},
+        },
+        2: {
+            "concept": "astronomy_diagram",
+            "template": "astronomy_diagram",
+            "title": "Spin Makes Day and Night",
+            "purpose": "Show one rotating Earth moving a city between lit and dark halves.",
+            "caption": "Day and night stay tied to spin when the lit half and city marker stay visible together.",
+            "meta": {"diagram_type": "day_night_rotation", "title": "Spin Makes Day and Night", "subtitle": "Rotation carries places into and out of sunlight."},
+        },
+        3: {
+            "concept": "astronomy_diagram",
+            "template": "astronomy_diagram",
+            "title": "Tilt Makes Seasons",
+            "purpose": "Compare opposite orbit positions while the axis keeps one space direction.",
+            "caption": "Tilt and sunlight angle stay readable when June and December share one seasons board.",
+            "meta": {"diagram_type": "seasons_tilt", "title": "Tilt Makes Seasons", "subtitle": "Tilt plus orbit position changes the sunlight angle."},
+        },
+        4: {
+            "concept": "astronomy_diagram",
+            "template": "astronomy_diagram",
+            "title": "Moon Phases and Eclipses",
+            "purpose": "Keep the Moon half lit while the Earth viewpoint changes.",
+            "caption": "Phases stay separate from eclipses when the lit half and the shadow line-up are not mixed.",
+            "meta": {"diagram_type": "moon_phases", "title": "Moon Phases and Eclipses", "subtitle": "Viewing angle changes the phase; special alignment creates eclipses."},
+        },
+        5: {
+            "concept": "space_astrophysics_diagram",
+            "template": "space_astrophysics_diagram",
+            "title": "Solar System Family",
+            "purpose": "Show planets, moons, dwarf planets, asteroids, and comets in one Sun-centered family.",
+            "caption": "Host body and body type stay clearer when the Solar System family is drawn with one central Sun.",
+            "meta": {"diagram_type": "solar_system_overview", "title": "Solar System Family", "subtitle": "One Sun-centered family with several body types.", "highlighted_body": "Earth"},
+        },
+        6: {
+            "concept": "astronomy_diagram",
+            "template": "astronomy_diagram",
+            "title": "Apparent Sky Motion and Scale",
+            "purpose": "Compare inner and outer orbits while keeping day and year as different motions.",
+            "caption": "Apparent motion, real motion, and orbital timing stay clearer when inner and outer laps are shown together.",
+            "meta": {"diagram_type": "orbit_distance_period", "title": "Apparent Sky Motion and Scale", "subtitle": "Farther ring reach usually means a longer year lap."},
+        },
+    }
+
+    why_updates = {
+        1: (
+            [
+                "because one linked Earth-Moon-Sun system picture explains day-night, phases, eclipses, and orbit ideas together",
+                "because the same shared system diagram helps explain several sky patterns at once",
+                "because keeping Earth, Moon, and Sun on one board links the main sky patterns together",
+            ],
+            [["one", "shared", "linked", "same"], ["system", "board", "diagram", "picture"], ["day", "phase", "eclipse", "orbit", "pattern"]],
+        ),
+        2: (
+            [
+                "because Earth rotates so a place turns into sunlight and later turns away again",
+                "because spin carries a place onto the lit half and then back into darkness",
+                "because rotation changes whether a place faces the Sun",
+            ],
+            [["spin", "rotate", "rotation", "turn"], ["sunlight", "lit", "face the Sun", "day"], ["dark", "night", "away"]],
+        ),
+        3: (
+            [
+                "because the fixed tilt makes different hemispheres lean toward the Sun at different orbit positions",
+                "because the same axis direction gives different sunlight angles as Earth moves around the Sun",
+                "because tilt and orbit position change which hemisphere gets more direct sunlight",
+            ],
+            [["tilt", "axis", "lean"], ["sunlight", "direct", "angle", "toward the Sun"], ["hemisphere", "north", "south", "orbit"]],
+        ),
+        4: (
+            [
+                "because phases come from how we view the Moon's lit half while eclipses need a special shadow alignment",
+                "because the Moon stays half lit and our view changes as it moves",
+                "because phases are a viewing-angle story rather than an ordinary shadow story",
+            ],
+            [["view", "visible", "see", "viewing angle"], ["lit half", "sunlit", "half lit"], ["eclipse", "shadow", "special alignment", "rare"]],
+        ),
+        5: (
+            [
+                "because planets, moons, asteroids, comets, and dwarf planets play different roles in one Sun-centered family",
+                "because body type and main host help keep Solar System categories clear",
+                "because not every orbiting body belongs in the same category",
+            ],
+            [["category", "sort", "type", "role"], ["family", "Solar System", "Sun-centered"], ["host", "orbit", "planet", "moon", "comet", "asteroid", "dwarf"]],
+        ),
+        6: (
+            [
+                "because apparent sky motion is what we see, while rotation and orbit are the real motions causing day and year",
+                "because day and year come from different motions even if the sky appearance can look simple",
+                "because viewpoint can change how motion looks in the sky",
+            ],
+            [["apparent", "view", "appearance", "seems"], ["rotation", "spin", "day"], ["orbit", "year", "real motion"]],
+        ),
+    }
+
+    compare_updates = {
+        1: (
+            [
+                "an orbit is a gravity-guided path rather than a rigid track or rail",
+                "orbit means pull plus motion making a curved path, not a built rail",
+                "a track is fixed, but an orbit is produced by gravity and motion",
+            ],
+            [["gravity", "pull"], ["path", "route", "orbit"], ["track", "rail", "fixed"]],
+        ),
+        2: (
+            [
+                "rotation is Earth spinning on its axis while orbit is Earth traveling around the Sun",
+                "spin turns Earth on its axis, but orbit carries Earth around the Sun",
+                "rotation is local turning and orbit is the larger route around the Sun",
+            ],
+            [["spin", "rotation", "axis"], ["orbit", "around the Sun", "route"]],
+        ),
+        3: (
+            [
+                "distance alone is too weak because opposite hemispheres have opposite seasons at the same time",
+                "tilt explains opposite hemispheres better than a simple near-far story",
+                "the same Earth-Sun distance cannot by itself explain opposite seasonal patterns",
+            ],
+            [["opposite", "north", "south", "hemisphere"], ["distance", "tilt", "lean", "same time"]],
+        ),
+        4: (
+            [
+                "a phase is a normal view of the lit half while an eclipse is a special shadow alignment",
+                "phases are viewing-angle changes, but eclipses are shadow events",
+                "a phase is ordinary monthly geometry, while an eclipse needs a rare line-up",
+            ],
+            [["phase", "view", "lit half", "viewing"], ["eclipse", "shadow", "alignment", "rare"]],
+        ),
+        5: (
+            [
+                "a moon mainly orbits a larger world, while a planet or dwarf planet orbits the Sun directly in this simplified family model",
+                "main host separates moons from Sun-orbiting worlds",
+                "a moon's route is around a larger world instead of directly around the Sun",
+            ],
+            [["moon", "satellite"], ["planet", "Sun", "host", "orbit"]],
+        ),
+        6: (
+            [
+                "a day comes from rotation while a year comes from one orbit around the Sun",
+                "day belongs to spin and year belongs to orbit",
+                "rotation sets the day, but orbit sets the year",
+            ],
+            [["day", "rotation", "spin"], ["year", "orbit"]],
+        ),
+    }
+
+    simulation_enrichments = {
+        1: {
+            "control": ("scale_cue", "Scale cue", "It keeps the Earth-Moon-Sun board from being mistaken for literal size."),
+            "readout": ("system_link", "System link", "It reminds learners that Earth and Moon belong inside one Sun-lit system."),
+        },
+        2: {
+            "control": ("sun_direction", "Sun direction", "It keeps the sunlight direction fixed while Earth rotates."),
+            "readout": ("day_fraction", "Day fraction", "It shows how much of the spin cycle has carried the city through daylight."),
+        },
+        3: {
+            "control": ("hemisphere_view", "Hemisphere view", "It compares north and south seasonal lean on the same board."),
+            "readout": ("season_reason", "Season reason", "It states which hemisphere currently gets the more direct sunlight."),
+        },
+        4: {
+            "control": ("earth_viewpoint", "Earth viewpoint", "It keeps the observer position visible while the Moon moves."),
+            "readout": ("lit_half_rule", "Lit-half rule", "It keeps the always-half-lit Moon idea visible during every phase."),
+        },
+        5: {
+            "control": ("neighborhood_rule", "Neighborhood rule", "It helps compare dwarf planets with planets during sorting."),
+            "readout": ("host_clue", "Host clue", "It reports whether the selected body mainly belongs to the Sun or a larger world."),
+        },
+        6: {
+            "control": ("view_mode", "View mode", "It switches between sky appearance language and real-motion language."),
+            "readout": ("scale_warning", "Scale warning", "It keeps the compressed-model warning visible while day and year are compared."),
+        },
+    }
+
+    for lesson_index, ((_, lesson), blueprint) in enumerate(zip(lesson_pairs, blueprints), start=1):
+        slug = str(blueprint["slug"])
+        contract = lesson["authoring_contract"]
+        diagnostic = lesson["phases"]["diagnostic"]["items"]
+        concept = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+        mastery = lesson["phases"]["transfer"]["items"]
+        simulation_contract = contract["simulation_contract"]
+
+        why_answers, why_groups = why_updates[lesson_index]
+        compare_answers, compare_groups = compare_updates[lesson_index]
+
+        _update_short_item(diagnostic[1], accepted_answers=why_answers, phrase_groups=why_groups)
+        _update_short_item(diagnostic[5], accepted_answers=compare_answers, phrase_groups=compare_groups)
+        _update_short_item(concept[0], accepted_answers=why_answers, phrase_groups=why_groups)
+        _update_short_item(mastery[1], accepted_answers=compare_answers, phrase_groups=compare_groups)
+        _update_short_item(mastery[5], accepted_answers=why_answers, phrase_groups=why_groups)
+
+        extras = _f5_extra_question_banks(lesson_index, slug)
+        diagnostic.extend(deepcopy(extras["diagnostic"]))
+        concept.extend(deepcopy(extras["concept"]))
+        mastery.extend(deepcopy(extras["mastery"]))
+
+        contract["assessment_bank_targets"] = {
+            "diagnostic_pool_min": 10,
+            "concept_gate_pool_min": 8,
+            "mastery_pool_min": 10,
+            "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+        }
+
+        visual_spec = visual_specs[lesson_index]
+        _set_visual_asset(
+            lesson,
+            asset_id=str(contract["visual_assets"][0]["asset_id"]),
+            concept=str(visual_spec["concept"]),
+            template=str(visual_spec["template"]),
+            title=str(visual_spec["title"]),
+            purpose=str(visual_spec["purpose"]),
+            caption=str(visual_spec["caption"]),
+            meta=deepcopy(dict(visual_spec["meta"])),
+        )
+
+        clarity_checks = [str(item) for item in contract.get("visual_clarity_checks") or []]
+        extra_clip_check = "No picture labels, angle marks, or callouts clip on desktop or mobile layouts."
+        if extra_clip_check not in clarity_checks:
+            clarity_checks.append(extra_clip_check)
+        contract["visual_clarity_checks"] = clarity_checks
+
+        enrichment = simulation_enrichments[lesson_index]
+        controls = [tuple(item) for item in simulation_contract.get("controls") or []]
+        readouts = [tuple(item) for item in simulation_contract.get("readouts") or []]
+        if len(controls) < 3:
+            controls.append(enrichment["control"])
+        if len(readouts) < 3:
+            readouts.append(enrichment["readout"])
+        simulation_contract["controls"] = controls
+        simulation_contract["readouts"] = readouts
+
+
+F5_CONTENT_VERSION = "20260323_f5_lantern_ring_skycourt_v2"
 F5_MODULE_TITLE = "Observable Earth and Sky"
 F5_MODULE_DESCRIPTION = "One lantern lights the court, Earth spins for day and night, tilted laps make seasons, and changing viewpoints explain phases, eclipses, and Solar System patterns."
 F5_MASTERY_OUTCOMES = [
@@ -893,6 +1327,7 @@ F5_MODULE_DOC, F5_LESSONS, F5_SIM_LABS = _build_generated_bundle(
     mastery_outcomes=F5_MASTERY_OUTCOMES,
     lessons=_F5_BLUEPRINTS,
 )
+_upgrade_f5_bundle(F5_MODULE_DOC, F5_LESSONS, _F5_BLUEPRINTS)
 
 
 M9_CONTENT_VERSION = "20260323_m9_carrier_switchyard_v1"
