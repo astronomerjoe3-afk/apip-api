@@ -66,6 +66,109 @@ DIAGRAM_REQUEST_TEMPLATE_CONTRACTS: Dict[str, Dict[str, Any]] = {
             "highlighted_body": "optional body label to emphasize in solar-system diagrams",
         },
     },
+    "standard_physics_equation": {
+        "description": "Deterministic SVG equation cards and equation sheets for reusable physics formula visuals.",
+        "concept_aliases": [
+            "standard_physics_equation",
+            "equation_visual",
+            "equation_card",
+            "formula_card",
+        ],
+        "template_aliases": [
+            "standard_physics_equation",
+        ],
+        "meta_contract": {
+            "visual_type": ["equation_card", "equation_sheet"],
+            "equation_key": [
+                "newtons_second_law",
+                "ohms_law",
+                "wave_speed",
+                "density",
+                "momentum",
+                "kinetic_energy",
+                "gravitational_potential_energy",
+            ],
+            "title": "optional string override",
+            "subtitle": "optional string subtitle",
+            "equation_text": "optional equation string override",
+            "variable_notes": [{"symbol": "string", "meaning": "string"}],
+            "secondary_equations": ["optional list of related equation strings"],
+            "show_units_hint": "optional boolean, defaults to true",
+        },
+    },
+    "particle_physics_visual": {
+        "description": "Deterministic SVG visuals for particle physics overviews, hadrons, decay chains, and collisions.",
+        "concept_aliases": [
+            "particle_physics_visual",
+            "particle_physics",
+            "standard_model",
+            "hadron_diagram",
+        ],
+        "template_aliases": [
+            "particle_physics_visual",
+        ],
+        "meta_contract": {
+            "visual_type": [
+                "standard_model_overview",
+                "hadron_composition",
+                "decay_chain",
+                "collision_event",
+            ],
+            "title": "optional string override",
+            "subtitle": "optional string subtitle",
+            "hadron_type": "optional hadron name, typically proton or neutron",
+            "parent_particle": "optional parent particle label for decay chain",
+            "decay_products": ["optional decay product labels"],
+        },
+    },
+    "quantum_physics_visual": {
+        "description": "Deterministic SVG visuals for energy levels, tunneling, probability, and double-slit concepts.",
+        "concept_aliases": [
+            "quantum_physics_visual",
+            "quantum_visual",
+            "quantum_diagram",
+        ],
+        "template_aliases": [
+            "quantum_physics_visual",
+        ],
+        "meta_contract": {
+            "visual_type": [
+                "energy_levels",
+                "tunneling_barrier",
+                "probability_density",
+                "double_slit_pattern",
+            ],
+            "title": "optional string override",
+            "subtitle": "optional string subtitle",
+            "level_count": "optional integer from 2 to 6 for energy-level diagrams",
+        },
+    },
+    "radioactivity_radiation_visual": {
+        "description": "Deterministic SVG visuals for penetration, half-life, decay chains, and electromagnetic spectrum lessons.",
+        "concept_aliases": [
+            "radioactivity_radiation_visual",
+            "radioactivity_visual",
+            "radiation_visual",
+            "half_life_diagram",
+        ],
+        "template_aliases": [
+            "radioactivity_radiation_visual",
+        ],
+        "meta_contract": {
+            "visual_type": [
+                "alpha_beta_gamma_penetration",
+                "half_life_curve",
+                "nuclear_decay_chain",
+                "electromagnetic_spectrum",
+            ],
+            "title": "optional string override",
+            "subtitle": "optional string subtitle",
+            "half_life": "optional positive number for half-life curve",
+            "initial_amount": "optional positive starting amount for half-life curve",
+            "parent_nuclide": "optional parent nuclide label",
+            "daughter_nuclide": "optional daughter nuclide label",
+        },
+    },
 }
 
 

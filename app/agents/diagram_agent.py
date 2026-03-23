@@ -8,10 +8,14 @@ from app.agents.electric_circuit_diagram_agent import generate_electric_circuit_
 from app.agents.electromagnetism_diagram_agent import generate_electromagnetism_diagram
 from app.agents.general_visual_concept_agent import generate_general_visual_concept
 from app.agents.optics_ray_diagram_agent import generate_optics_ray_diagram
+from app.agents.particle_physics_visual_agent import generate_particle_physics_visual
 from app.agents.physics_graph_agent import generate_physics_graph
 from app.agents.radioactivity_diagram_agent import generate_radioactivity_diagram
+from app.agents.radioactivity_radiation_visual_agent import generate_radioactivity_radiation_visual
 from app.agents.space_astrophysics_diagram_agent import generate_space_astrophysics_diagram
+from app.agents.standard_physics_equation_agent import generate_standard_physics_equation
 from app.agents.thermal_statmech_diagram_agent import generate_thermal_statmech_diagram
+from app.agents.quantum_physics_visual_agent import generate_quantum_physics_visual
 from app.agents.wave_diagram_agent import generate_wave_diagram
 from app.lesson_pipeline.contracts import DiagramRequest, GeneratedAsset
 
@@ -624,6 +628,61 @@ def generate_diagram(
         "power_image",
     }:
         return generate_general_visual_concept(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "standard_physics_equation" or req.concept in {
+        "standard_physics_equation",
+        "equation_visual",
+        "equation_card",
+        "formula_card",
+    }:
+        return generate_standard_physics_equation(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "particle_physics_visual" or req.concept in {
+        "particle_physics_visual",
+        "particle_physics",
+        "standard_model",
+        "hadron_diagram",
+    }:
+        return generate_particle_physics_visual(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "quantum_physics_visual" or req.concept in {
+        "quantum_physics_visual",
+        "quantum_visual",
+        "quantum_diagram",
+    }:
+        return generate_quantum_physics_visual(
+            req=req,
+            output_dir=output_dir,
+            public_base=public_base,
+            module_id=module_id,
+            lesson_id=lesson_id,
+        )
+
+    if getattr(req, "template", "") == "radioactivity_radiation_visual" or req.concept in {
+        "radioactivity_radiation_visual",
+        "radioactivity_visual",
+        "radiation_visual",
+        "half_life_diagram",
+    }:
+        return generate_radioactivity_radiation_visual(
             req=req,
             output_dir=output_dir,
             public_base=public_base,
