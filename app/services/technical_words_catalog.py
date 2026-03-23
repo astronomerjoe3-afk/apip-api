@@ -181,6 +181,15 @@ def default_technical_words_for_module(module_code: str) -> List[Dict[str, str]]
     return deepcopy(DEFAULT_TECHNICAL_WORDS_BY_MODULE.get(canonical_module_code(module_code), []))
 
 
+def _normalized_technical_word(source: Dict[str, Any], default_source: str) -> Dict[str, str]:
+    return {
+        "term": str(source.get("term") or "").strip(),
+        "meaning": str(source.get("meaning") or "").strip(),
+        "why_it_matters": str(source.get("why_it_matters") or source.get("whyItMatters") or "").strip(),
+        "source": str(source.get("source") or default_source).strip() or default_source,
+    }
+
+
 def ensure_minimum_technical_words(
     existing: Sequence[Dict[str, Any]] | None,
     module_code: str,
@@ -191,7 +200,10 @@ def ensure_minimum_technical_words(
     merged: List[Dict[str, str]] = []
     seen = set()
 
-    for source in list(existing or []) + default_technical_words_for_module(module_code):
+    existing_items = [(item, "authored") for item in list(existing or [])]
+    fallback_items = [(item, "generated") for item in default_technical_words_for_module(module_code)]
+
+    for source, default_source in existing_items + fallback_items:
         term = str(source.get("term") or "").strip()
         meaning = str(source.get("meaning") or "").strip()
         if not term or not meaning:
@@ -200,13 +212,7 @@ def ensure_minimum_technical_words(
         if key in seen:
             continue
         seen.add(key)
-        merged.append(
-            {
-                "term": term,
-                "meaning": meaning,
-                "why_it_matters": str(source.get("why_it_matters") or source.get("whyItMatters") or "").strip(),
-            }
-        )
+        merged.append(_normalized_technical_word(source, default_source))
         if len(merged) >= maximum:
             break
 

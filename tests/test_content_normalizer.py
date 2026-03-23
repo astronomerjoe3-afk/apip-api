@@ -117,6 +117,10 @@ class ContentNormalizerTests(unittest.TestCase):
             "Work done",
         )
         self.assertEqual(
+            payload["authoring_contract"]["technical_words"][0]["source"],
+            "authored",
+        )
+        self.assertEqual(
             payload["authoring_contract"]["worked_examples"][0]["answer_reason"],
             "Force and displacement act together, so W = 4 x 5 = 20 J.",
         )
@@ -185,6 +189,7 @@ class ContentNormalizerTests(unittest.TestCase):
             contract["technical_words"][1]["term"],
             "Current",
         )
+        self.assertTrue(all(entry["source"] == "generated" for entry in contract["technical_words"]))
 
     def test_student_view_adds_technical_words_for_advanced_module_aliases(self) -> None:
         lesson = {
@@ -217,6 +222,7 @@ class ContentNormalizerTests(unittest.TestCase):
                 "Time dilation",
             ],
         )
+        self.assertTrue(all(entry["source"] == "generated" for entry in technical_words))
 
     def test_student_view_expands_short_answer_acceptance_margin_to_ten_to_fifteen_versions(self) -> None:
         lesson = {
