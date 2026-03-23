@@ -34,6 +34,12 @@ _MODULE_IMPORT_SPECS = (
     ("A3", "scripts.seed_a3_module", "A3_CONTENT_VERSION", "A3_MODULE_DOC", "A3_LESSONS", "A3_SIM_LABS"),
     ("A4", "scripts.seed_a4_module", "A4_CONTENT_VERSION", "A4_MODULE_DOC", "A4_LESSONS", "A4_SIM_LABS"),
     ("A5", "scripts.seed_a5_module", "A5_CONTENT_VERSION", "A5_MODULE_DOC", "A5_LESSONS", "A5_SIM_LABS"),
+    ("A6", "scripts.revised_advanced_curriculum_modules", "A6_CONTENT_VERSION", "A6_MODULE_DOC", "A6_LESSONS", "A6_SIM_LABS"),
+    ("A7", "scripts.revised_advanced_curriculum_modules", "A7_CONTENT_VERSION", "A7_MODULE_DOC", "A7_LESSONS", "A7_SIM_LABS"),
+    ("A8", "scripts.revised_advanced_curriculum_modules", "A8_CONTENT_VERSION", "A8_MODULE_DOC", "A8_LESSONS", "A8_SIM_LABS"),
+    ("A9", "scripts.revised_advanced_curriculum_modules", "A9_CONTENT_VERSION", "A9_MODULE_DOC", "A9_LESSONS", "A9_SIM_LABS"),
+    ("A10", "scripts.revised_advanced_curriculum_modules", "A10_CONTENT_VERSION", "A10_MODULE_DOC", "A10_LESSONS", "A10_SIM_LABS"),
+    ("A11", "scripts.revised_advanced_curriculum_modules", "A11_CONTENT_VERSION", "A11_MODULE_DOC", "A11_LESSONS", "A11_SIM_LABS"),
 )
 
 _MODULE_IMPORT_INDEX = {module_id: spec for module_id, *spec in _MODULE_IMPORT_SPECS}
