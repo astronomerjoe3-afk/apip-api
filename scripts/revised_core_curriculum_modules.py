@@ -199,6 +199,14 @@ def _generic_formula_choices(equation: str) -> List[str]:
     ]
 
 
+def _relation_prompt(prompt: str, focus: str) -> str:
+    cleaned_focus = str(focus).strip()
+    if not cleaned_focus:
+        return prompt
+    stem = prompt[:-1] if prompt.endswith("?") else prompt
+    return f"{stem} when {cleaned_focus}?"
+
+
 def _skills(slug: str) -> List[str]:
     return [
         f"{slug}_summary",
@@ -217,26 +225,27 @@ def _lesson_spec(module_id: str, model_name: str, blueprint: Dict[str, Any], les
     term0, choices0 = _definition_choices(terms, 0)
     term1, choices1 = _definition_choices(terms, 1)
     term2, choices2 = _definition_choices(terms, 2)
+    relation_prompt_focus = str(blueprint.get("relation_prompt_focus") or "")
     formula = deepcopy(blueprint["formula"])
     diagnostic = [
         mcq(f"{module_id}L{lesson_index}_D1", f"Which statement best matches {blueprint['title'].lower()}?", _generic_statement_choices(str(blueprint["summary"])), 0, "Keep the lesson's central distinction visible.", skill_tags=[skills[0]]),
         short(f"{module_id}L{lesson_index}_D2", str(blueprint["why_prompt"]), list(blueprint["why_answers"]), "Use the lesson's main cause-and-effect language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(*blueprint["why_groups"])),
         mcq(f"{module_id}L{lesson_index}_D3", f"What does {term0} mean in this lesson?", choices0, 0, f"Keep {term0} tied to this lesson's actual topic.", skill_tags=[skills[2]]),
-        mcq(f"{module_id}L{lesson_index}_D4", f"Which relation best belongs to {blueprint['title'].lower()}?", _generic_formula_choices(str(formula["equation"])), 0, "Use the lesson's formal relation as a compact summary of the idea.", skill_tags=[skills[3]]),
+        mcq(f"{module_id}L{lesson_index}_D4", _relation_prompt(f"Which relation best belongs to {blueprint['title'].lower()}?", relation_prompt_focus), _generic_formula_choices(str(formula["equation"])), 0, "Use the lesson's formal relation as a compact summary of the idea.", skill_tags=[skills[3]]),
         mcq(f"{module_id}L{lesson_index}_D5", str(blueprint["apply_prompt"]), list(blueprint["apply_choices"]), int(blueprint["apply_answer_index"]), "Choose the option that keeps the lesson's mechanism visible.", skill_tags=[skills[4]]),
         short(f"{module_id}L{lesson_index}_D6", str(blueprint["compare_prompt"]), list(blueprint["compare_answers"]), "Keep the lesson contrast explicit while you answer.", skill_tags=[skills[0]], acceptance_rules=acceptance_groups(*blueprint["compare_groups"])),
     ]
     concept = [
         short(f"{module_id}L{lesson_index}_C1", str(blueprint["why_prompt"]), list(blueprint["why_answers"]), "Use the lesson's key explanatory language.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(*blueprint["why_groups"])),
         mcq(f"{module_id}L{lesson_index}_C2", f"Which definition best matches {term1}?", choices1, 0, f"Keep {term1} tied to the lesson idea.", skill_tags=[skills[2]]),
-        mcq(f"{module_id}L{lesson_index}_C3", f"Which relation best fits this lesson?", _generic_formula_choices(str(formula["equation"])), 0, "Use the formal relation as a summary of the physics.", skill_tags=[skills[3]]),
+        mcq(f"{module_id}L{lesson_index}_C3", _relation_prompt("Which relation best fits this lesson?", relation_prompt_focus), _generic_formula_choices(str(formula["equation"])), 0, "Use the formal relation as a summary of the physics.", skill_tags=[skills[3]]),
         mcq(f"{module_id}L{lesson_index}_C4", str(blueprint["apply_prompt"]), list(blueprint["apply_choices"]), int(blueprint["apply_answer_index"]), "Keep the lesson logic visible in the scenario.", skill_tags=[skills[4]]),
     ]
     mastery = [
         mcq(f"{module_id}L{lesson_index}_M1", str(blueprint["apply_prompt"]), list(blueprint["apply_choices"]), int(blueprint["apply_answer_index"]), "Use the lesson mechanism in the new context.", skill_tags=[skills[4]]),
         short(f"{module_id}L{lesson_index}_M2", str(blueprint["compare_prompt"]), list(blueprint["compare_answers"]), "Keep both sides of the lesson contrast visible.", skill_tags=[skills[0]], acceptance_rules=acceptance_groups(*blueprint["compare_groups"])),
         mcq(f"{module_id}L{lesson_index}_M3", f"Which lesson meaning best matches {term2}?", choices2, 0, f"Keep {term2} tied to this lesson.", skill_tags=[skills[2]]),
-        mcq(f"{module_id}L{lesson_index}_M4", f"Which relation belongs here?", _generic_formula_choices(str(formula["equation"])), 0, "Use the lesson's compact relation rather than a label-only guess.", skill_tags=[skills[3]]),
+        mcq(f"{module_id}L{lesson_index}_M4", _relation_prompt("Which relation belongs here?", relation_prompt_focus), _generic_formula_choices(str(formula["equation"])), 0, "Use the lesson's compact relation rather than a label-only guess.", skill_tags=[skills[3]]),
         mcq(f"{module_id}L{lesson_index}_M5", f"Which statement best protects {blueprint['title'].lower()}?", _generic_statement_choices(str(blueprint["summary"])), 0, "The best summary keeps the lesson distinction clear.", skill_tags=[skills[0]]),
         short(f"{module_id}L{lesson_index}_M6", str(blueprint["why_prompt"]), list(blueprint["why_answers"]), "Keep the lesson mechanism visible.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(*blueprint["why_groups"])),
     ]
