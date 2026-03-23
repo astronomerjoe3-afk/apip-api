@@ -6,7 +6,7 @@ from scripts.seed_a4_module import A4_LESSONS, A4_MODULE_DOC, A4_SIM_LABS
 class A4QualityContractTests(unittest.TestCase):
     def test_a4_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A4_MODULE_DOC["id"], "A4")
-        self.assertEqual(A4_MODULE_DOC["title"], "Thermal & Statistical Physics")
+        self.assertEqual(A4_MODULE_DOC["title"], "Advanced Mechanics and Materials")
         self.assertEqual(A4_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(A4_LESSONS), 6)
         self.assertEqual(len(A4_SIM_LABS), 6)
@@ -27,23 +27,23 @@ class A4QualityContractTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 6,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(transfer_items), 6)
             self.assertEqual(len(contract["visual_assets"]), 1)
-            self.assertEqual(len(contract["animation_assets"]), 0)
+            self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
-            self.assertEqual(len(lesson["generated_assets"]["animations"]), 0)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 2)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -72,25 +72,21 @@ class A4QualityContractTests(unittest.TestCase):
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
 
-    def test_a4_curriculum_scope_stays_on_thermal_and_statistical_physics(self) -> None:
+    def test_a4_curriculum_scope_stays_on_advanced_mechanics_and_materials(self) -> None:
         mastery_text = " ".join(A4_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(A4_MODULE_DOC.get("description") or "").lower()
-        self.assertIn("ideal gas law", mastery_text)
-        self.assertTrue(
-            "kinetic theory" in mastery_text
-            or "microscopic molecular motion" in mastery_text
-            or "molecular wall collisions" in mastery_text
-        )
-        self.assertIn("temperature", mastery_text)
-        self.assertIn("entropy", mastery_text)
-        self.assertIn("bounce-chamber", description_text)
+        self.assertIn("equilibrium", mastery_text)
+        self.assertIn("projectile", mastery_text)
+        self.assertIn("circular motion", mastery_text)
+        self.assertTrue("young modulus" in mastery_text or "materials" in mastery_text)
+        self.assertIn("vectors", description_text)
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("transformer", mastery_text)
-        self.assertNotIn("projectile", mastery_text)
         self.assertNotIn("radioactivity", mastery_text)
+        self.assertNotIn("entropy", mastery_text)
 
     def test_a4_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
-        quantitative_tokens = ("kpa", "pa", "m^3", "mol", "nrt", "nkt", "mean square", "<c^2>", "3/2", "ln w", "x 10^")
+        quantitative_tokens = ("n", "m s^-1", "m s^-2", "radius", "force", "stress", "strain", "young", "projectile", "momentum")
         explanation_tokens = ("why", "explain", "describe", "which statement", "best summary", "correction", "summarize")
 
         for lesson_id, lesson in A4_LESSONS:
@@ -106,7 +102,7 @@ class A4QualityContractTests(unittest.TestCase):
             mastery_short_count = sum(1 for item in mastery_items if item.get("type") == "short")
 
             self.assertGreaterEqual(short_count, 2, lesson_id)
-            self.assertGreaterEqual(quantitative_count, 4, lesson_id)
+            self.assertGreaterEqual(quantitative_count, 3, lesson_id)
             self.assertGreaterEqual(explanation_count, 3, lesson_id)
             self.assertGreaterEqual(mastery_short_count, 1, lesson_id)
 

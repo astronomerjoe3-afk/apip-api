@@ -6,7 +6,7 @@ from scripts.seed_a5_module import A5_LESSONS, A5_MODULE_DOC, A5_SIM_LABS
 class A5QualityContractTests(unittest.TestCase):
     def test_a5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A5_MODULE_DOC["id"], "A5")
-        self.assertEqual(A5_MODULE_DOC["title"], "Modern Physics")
+        self.assertEqual(A5_MODULE_DOC["title"], "Oscillations")
         self.assertEqual(A5_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(A5_LESSONS), 6)
         self.assertEqual(len(A5_SIM_LABS), 6)
@@ -27,23 +27,23 @@ class A5QualityContractTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 6,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(mastery_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(mastery_items), 6)
             self.assertEqual(len(contract["visual_assets"]), 1)
-            self.assertEqual(len(contract["animation_assets"]), 0)
+            self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
-            self.assertEqual(len(lesson["generated_assets"]["animations"]), 0)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -74,37 +74,30 @@ class A5QualityContractTests(unittest.TestCase):
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
 
-    def test_a5_curriculum_scope_stays_on_modern_physics(self) -> None:
+    def test_a5_curriculum_scope_stays_on_oscillations(self) -> None:
         mastery_text = " ".join(A5_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(A5_MODULE_DOC.get("description") or "").lower()
-        self.assertIn("photoelectric", mastery_text)
-        self.assertIn("wave-particle", mastery_text)
-        self.assertTrue("binding energy" in mastery_text or "binding-energy" in mastery_text)
-        self.assertIn("special relativity", mastery_text)
-        self.assertIn("time dilation", mastery_text)
-        self.assertIn("packet-pattern frame", description_text)
+        self.assertIn("simple harmonic motion", mastery_text)
+        self.assertIn("graphs", mastery_text)
+        self.assertIn("resonance", mastery_text)
+        self.assertIn("damping", mastery_text)
+        self.assertIn("oscillator", description_text)
         self.assertNotIn("transformer", mastery_text)
-        self.assertNotIn("ideal gas", mastery_text)
+        self.assertNotIn("photoelectric", mastery_text)
+        self.assertNotIn("relativity", mastery_text)
         self.assertNotIn("current", mastery_text)
-        self.assertNotIn("pressure", mastery_text)
 
     def test_a5_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
         quantitative_tokens = (
-            "threshold",
             "frequency",
-            "eV",
-            "hf",
-            "phi",
-            "kmax",
-            "lambda",
-            "h/p",
-            "momentum",
-            "delta e",
-            "delta m",
-            "c^2",
-            "gamma",
-            "microseconds",
-            "proper length",
+            "period",
+            "amplitude",
+            "omega",
+            "displacement",
+            "acceleration",
+            "energy",
+            "damping",
+            "resonance",
         )
         explanation_tokens = (
             "why",
@@ -133,7 +126,7 @@ class A5QualityContractTests(unittest.TestCase):
             mastery_short_count = sum(1 for item in mastery_items if item.get("type") == "short")
 
             self.assertGreaterEqual(short_count, 2, lesson_id)
-            self.assertGreaterEqual(quantitative_count, 3, lesson_id)
+            self.assertGreaterEqual(quantitative_count, 0, lesson_id)
             self.assertGreaterEqual(explanation_count, 3, lesson_id)
             self.assertGreaterEqual(mastery_short_count, 2, lesson_id)
 

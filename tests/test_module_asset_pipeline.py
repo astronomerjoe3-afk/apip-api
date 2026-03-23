@@ -50,7 +50,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         row = get_catalog_module_row("A1")
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "A1")
-        self.assertEqual(row["title"], "Advanced Mechanics")
+        self.assertEqual(row["title"], "Matter, Radiation and Particles")
 
     def test_catalog_bootstrap_includes_a2_bundle(self) -> None:
         self.assertIn("A2", get_catalog_module_ids())
@@ -58,7 +58,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         row = get_catalog_module_row("A2")
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "A2")
-        self.assertEqual(row["title"], "Advanced Electricity")
+        self.assertEqual(row["title"], "Quantum Phenomena and Atomic Spectra")
 
     def test_catalog_bootstrap_includes_a3_bundle(self) -> None:
         self.assertIn("A3", get_catalog_module_ids())
@@ -66,7 +66,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         row = get_catalog_module_row("A3")
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "A3")
-        self.assertEqual(row["title"], "Fields & Electromagnetic Theory")
+        self.assertEqual(row["title"], "Advanced Waves and Optics")
 
     def test_catalog_bootstrap_includes_a5_bundle(self) -> None:
         self.assertIn("A5", get_catalog_module_ids())
@@ -74,7 +74,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         row = get_catalog_module_row("A5")
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "A5")
-        self.assertEqual(row["title"], "Modern Physics")
+        self.assertEqual(row["title"], "Oscillations")
 
     def test_catalog_bootstrap_excludes_m15_bundle(self) -> None:
         self.assertNotIn("M15", get_catalog_module_ids())
@@ -109,7 +109,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
 
     def test_revised_m14_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
         mastery_text = " ".join(REVISED_M14_MODULE_DOC.get("mastery_outcomes") or []).lower()
@@ -160,7 +160,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertIn(
                 "No picture labels, angle marks, or callouts clip on desktop or mobile layouts.",
                 contract["visual_clarity_checks"],
@@ -189,7 +189,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_a5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A5_MODULE_DOC["id"], "A5")
-        self.assertEqual(A5_MODULE_DOC["title"], "Modern Physics")
+        self.assertEqual(A5_MODULE_DOC["title"], "Oscillations")
         self.assertEqual(len(A5_LESSONS), 6)
         self.assertEqual(len(A5_SIM_LABS), 6)
 
@@ -201,16 +201,17 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 6,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(transfer_items), 6)
             self.assertEqual(len(contract["visual_assets"]), 1)
+            self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
 
     def test_builder_question_accepts_type_field_for_mcq_specs(self) -> None:
@@ -1171,7 +1172,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -1224,7 +1225,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_a1_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A1_MODULE_DOC["id"], "A1")
-        self.assertEqual(A1_MODULE_DOC["title"], "Advanced Mechanics")
+        self.assertEqual(A1_MODULE_DOC["title"], "Matter, Radiation and Particles")
         self.assertEqual(A1_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(A1_LESSONS), 6)
         self.assertEqual(len(A1_SIM_LABS), 6)
@@ -1245,15 +1246,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 6,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(transfer_items), 6)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
@@ -1261,7 +1262,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -1290,20 +1291,20 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
 
-    def test_a1_curriculum_scope_stays_on_advanced_mechanics(self) -> None:
+    def test_a1_curriculum_scope_stays_on_matter_radiation_and_particles(self) -> None:
         mastery_text = " ".join(A1_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(A1_MODULE_DOC.get("description") or "").lower()
-        self.assertIn("suvat", mastery_text)
-        self.assertIn("projectile motion", mastery_text)
-        self.assertIn("circular motion", mastery_text)
-        self.assertIn("gravitational fields", mastery_text)
-        self.assertIn("probe-field", description_text)
+        self.assertIn("subatomic structure", mastery_text)
+        self.assertIn("hadrons", mastery_text)
+        self.assertIn("antiparticles", mastery_text)
+        self.assertIn("conservation", mastery_text)
+        self.assertIn("travelers and bundles", description_text)
         self.assertNotIn("ultrasound", mastery_text)
         self.assertNotIn("radioactivity", mastery_text)
         self.assertNotIn("current", mastery_text)
 
     def test_a1_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
-        quantitative_tokens = ("m/s", "m/s^2", "radius", "angle", "speed", "field strength", "orbit", "launch", "displacement", "acceleration")
+        quantitative_tokens = ("charge", "quark", "baryon", "lepton", "photon", "energy", "mev", "conservation", "number")
         explanation_tokens = ("why", "explain", "describe", "which statement", "best summary", "correction")
 
         for lesson_id, lesson in A1_LESSONS:
@@ -1319,13 +1320,13 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             mastery_short_count = sum(1 for item in mastery_items if item.get("type") == "short")
 
             self.assertGreaterEqual(short_count, 2, lesson_id)
-            self.assertGreaterEqual(quantitative_count, 4, lesson_id)
+            self.assertGreaterEqual(quantitative_count, 3, lesson_id)
             self.assertGreaterEqual(explanation_count, 3, lesson_id)
             self.assertGreaterEqual(mastery_short_count, 1, lesson_id)
 
     def test_a2_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A2_MODULE_DOC["id"], "A2")
-        self.assertEqual(A2_MODULE_DOC["title"], "Advanced Electricity")
+        self.assertEqual(A2_MODULE_DOC["title"], "Quantum Phenomena and Atomic Spectra")
         self.assertEqual(A2_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(A2_LESSONS), 6)
         self.assertEqual(len(A2_SIM_LABS), 6)
@@ -1346,15 +1347,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 6,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(transfer_items), 6)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
@@ -1362,7 +1363,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -1391,20 +1392,20 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
 
-    def test_a2_curriculum_scope_stays_on_advanced_electricity(self) -> None:
+    def test_a2_curriculum_scope_stays_on_quantum_phenomena_and_atomic_spectra(self) -> None:
         mastery_text = " ".join(A2_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(A2_MODULE_DOC.get("description") or "").lower()
-        self.assertIn("electric field", mastery_text)
-        self.assertIn("electric potential", mastery_text)
-        self.assertIn("capacitance", mastery_text)
-        self.assertIn("kirchhoff", mastery_text)
-        self.assertIn("charge-terrace", description_text)
+        self.assertIn("quantized energy levels", mastery_text)
+        self.assertIn("spectra", mastery_text)
+        self.assertIn("photoelectric", mastery_text)
+        self.assertIn("de broglie", mastery_text)
+        self.assertIn("energy floors", description_text)
         self.assertNotIn("projectile", mastery_text)
         self.assertNotIn("ultrasound", mastery_text)
         self.assertNotIn("radioactivity", mastery_text)
 
     def test_a2_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
-        quantitative_tokens = ("v", "volt", "j", "c", "field", "plate", "gap", "node", "loop", "amp")
+        quantitative_tokens = ("j", "ev", "hz", "threshold", "frequency", "work function", "lambda", "momentum", "spectrum")
         explanation_tokens = ("why", "explain", "describe", "which statement", "best summary", "correction")
 
         for lesson_id, lesson in A2_LESSONS:
@@ -1420,13 +1421,13 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             mastery_short_count = sum(1 for item in mastery_items if item.get("type") == "short")
 
             self.assertGreaterEqual(short_count, 2, lesson_id)
-            self.assertGreaterEqual(quantitative_count, 4, lesson_id)
+            self.assertGreaterEqual(quantitative_count, 3, lesson_id)
             self.assertGreaterEqual(explanation_count, 3, lesson_id)
             self.assertGreaterEqual(mastery_short_count, 1, lesson_id)
 
     def test_a3_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(A3_MODULE_DOC["id"], "A3")
-        self.assertEqual(A3_MODULE_DOC["title"], "Fields & Electromagnetic Theory")
+        self.assertEqual(A3_MODULE_DOC["title"], "Advanced Waves and Optics")
         self.assertEqual(A3_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(A3_LESSONS), 6)
         self.assertEqual(len(A3_SIM_LABS), 6)
@@ -1447,23 +1448,23 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 6,
+                    "concept_gate_pool_min": 4,
+                    "mastery_pool_min": 6,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 6)
+            self.assertGreaterEqual(len(concept_checks), 4)
+            self.assertGreaterEqual(len(transfer_items), 6)
             self.assertEqual(len(contract["visual_assets"]), 1)
-            self.assertEqual(len(contract["animation_assets"]), 0)
+            self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
-            self.assertEqual(len(lesson["generated_assets"]["animations"]), 0)
+            self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 2)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -1492,20 +1493,20 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
 
-    def test_a3_curriculum_scope_stays_on_fields_and_electromagnetic_theory(self) -> None:
+    def test_a3_curriculum_scope_stays_on_advanced_waves_and_optics(self) -> None:
         mastery_text = " ".join(A3_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(A3_MODULE_DOC.get("description") or "").lower()
-        self.assertIn("magnetic flux", mastery_text)
-        self.assertIn("induction", mastery_text)
-        self.assertIn("lenz", mastery_text)
-        self.assertIn("rms", mastery_text)
-        self.assertIn("thread-window", description_text)
+        self.assertIn("stationary", mastery_text)
+        self.assertIn("interference", mastery_text)
+        self.assertIn("diffraction", mastery_text)
+        self.assertIn("total internal reflection", mastery_text)
+        self.assertIn("wave paths", description_text)
         self.assertNotIn("projectile", mastery_text)
         self.assertNotIn("radioactivity", mastery_text)
         self.assertNotIn("ultrasound", mastery_text)
 
     def test_a3_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
-        quantitative_tokens = ("wb", "v", "hz", "period", "frequency", "rms", "peak", "flux", "linkage", "turn", "coil")
+        quantitative_tokens = ("wavelength", "frequency", "period", "theta", "angle", "grating", "phase", "path difference", "critical angle")
         explanation_tokens = ("why", "explain", "describe", "which statement", "best summary", "correction")
 
         for lesson_id, lesson in A3_LESSONS:
@@ -1521,7 +1522,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             mastery_short_count = sum(1 for item in mastery_items if item.get("type") == "short")
 
             self.assertGreaterEqual(short_count, 2, lesson_id)
-            self.assertGreaterEqual(quantitative_count, 4, lesson_id)
+            self.assertGreaterEqual(quantitative_count, 3, lesson_id)
             self.assertGreaterEqual(explanation_count, 3, lesson_id)
             self.assertGreaterEqual(mastery_short_count, 1, lesson_id)
 

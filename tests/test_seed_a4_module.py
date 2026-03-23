@@ -6,11 +6,11 @@ from scripts.seed_a4_module import A4_LESSONS, A4_MODULE_DOC, A4_SIM_LABS
 class SeedA4ModuleTests(unittest.TestCase):
     def test_bundle_has_expected_module_shape(self) -> None:
         self.assertEqual(A4_MODULE_DOC["module_id"], "A4")
-        self.assertEqual(A4_MODULE_DOC["title"], "Thermal & Statistical Physics")
+        self.assertEqual(A4_MODULE_DOC["title"], "Advanced Mechanics and Materials")
         self.assertEqual(len(A4_LESSONS), 6)
         self.assertEqual(len(A4_SIM_LABS), 6)
 
-    def test_lessons_cover_bounce_chamber_scope(self) -> None:
+    def test_lessons_cover_vector_rig_scope(self) -> None:
         lesson_ids = [lesson_id for lesson_id, _ in A4_LESSONS]
         self.assertEqual(
             lesson_ids,
@@ -24,12 +24,12 @@ class SeedA4ModuleTests(unittest.TestCase):
         self.assertEqual(
             authored_concepts,
             [
-                "bounce_chamber_pressure",
-                "gas_law_balance",
-                "kinetic_theory_bridge",
-                "average_dash_energy",
-                "partition_expansion",
-                "entropy_option_count",
+                "vector_rig_balance",
+                "kinematics_component_map",
+                "projectile_split",
+                "collision_ledger",
+                "circular_turning",
+                "materials_response",
             ],
         )
 

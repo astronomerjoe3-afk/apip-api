@@ -15,6 +15,7 @@ class SeedA2ModuleTests(unittest.TestCase):
         module = importlib.import_module("scripts.seed_a2_module")
 
         self.assertEqual(module.A2_MODULE_DOC["id"], "A2")
+        self.assertEqual(module.A2_MODULE_DOC["title"], "Quantum Phenomena and Atomic Spectra")
         self.assertEqual(len(module.A2_LESSONS), 6)
         self.assertEqual(len(module.A2_SIM_LABS), 6)
 
@@ -26,7 +27,7 @@ class SeedA2ModuleTests(unittest.TestCase):
             self.assertGreater(len(visuals), 0)
             for visual in visuals:
                 self.assertEqual(visual.get("template"), "general_visual")
-                self.assertTrue((visual.get("meta") or {}).get("subject"))
+                self.assertTrue(visual.get("title"))
 
 
 if __name__ == "__main__":

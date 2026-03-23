@@ -15,7 +15,7 @@ class SeedA5ModuleTests(unittest.TestCase):
         module = importlib.import_module("scripts.seed_a5_module")
 
         self.assertEqual(module.A5_MODULE_DOC["id"], "A5")
-        self.assertEqual(module.A5_MODULE_DOC["title"], "Modern Physics")
+        self.assertEqual(module.A5_MODULE_DOC["title"], "Oscillations")
         self.assertEqual(len(module.A5_LESSONS), 6)
         self.assertEqual(len(module.A5_SIM_LABS), 6)
 
