@@ -1328,6 +1328,23 @@ F5_MODULE_DOC, F5_LESSONS, F5_SIM_LABS = _build_generated_bundle(
     lessons=_F5_BLUEPRINTS,
 )
 _upgrade_f5_bundle(F5_MODULE_DOC, F5_LESSONS, _F5_BLUEPRINTS)
+F5_MODULE_DOC.update(
+    {
+        "analogy_model_name": "Lantern-Ring Skycourt Model",
+        "anchor_sentence": "One lantern lights the court, Earth spins for day and night, tilted laps make seasons, and the Moon's changing face depends on where it rides around Earth.",
+        "curriculum_focus": [
+            "Earth-Moon-Sun relationships",
+            "day and night",
+            "seasons",
+            "phases of the Moon",
+            "eclipses",
+            "solar system overview",
+            "apparent motion in the sky",
+            "gravity as an introduction to orbits",
+            "scale of Earth, Sun, and planets",
+        ],
+    }
+)
 
 
 M9_CONTENT_VERSION = "20260323_m9_carrier_switchyard_v1"

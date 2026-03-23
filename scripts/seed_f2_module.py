@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F2_MODULE_ID = "F2"
-F2_CONTENT_VERSION = "20260313_f2_intro_v10"
+F2_CONTENT_VERSION = "20260323_f2_mission_track_curriculum_v11"
 F2_ALLOWLIST = [
     "distance_displacement_confusion",
     "speed_calculation_error",
@@ -115,25 +115,46 @@ def f2_micro_prompts(doc_id: str) -> List[Dict[str, Any]]:
 F2_MODULE_DOC: Dict[str, Any] = {
     "id": F2_MODULE_ID,
     "module_id": F2_MODULE_ID,
-    "title": "Motion, Forces & Graphs",
+    "title": "Motion, Forces and Energy",
     "description": (
-        "A deeper follow-on from F1: compare total path with net change, connect speed, velocity, and acceleration, "
-        "read motion graphs segment by segment, and explain how resultant force changes motion through F = ma."
+        "A mover runs along a track, arrows change its motion, and energy tokens pay for every change. "
+        "Foundation 2 covers distance and displacement, speed and velocity, acceleration, resultant force, Newton's laws at an intuitive level, "
+        "friction and air resistance, work done, power, energy stores and transfers, conservation of energy, and simple motion graphs."
+    ),
+    "module_description": (
+        "A mover runs along a track, arrows change its motion, and energy tokens pay for every change. "
+        "Foundation 2 covers distance and displacement, speed and velocity, acceleration, resultant force, Newton's laws at an intuitive level, "
+        "friction and air resistance, work done, power, energy stores and transfers, conservation of energy, and simple motion graphs."
     ),
     "sequence": 2,
     "level": "Foundation 2",
     "estimated_minutes": 120,
     "content_version": F2_CONTENT_VERSION,
     "mastery_outcomes": [
-        "Separate total path, net change, and average rate in multi-stage journeys.",
-        "Use signed velocity changes to calculate and interpret acceleration.",
-        "Interpret distance-time graphs segment by segment instead of by shape alone.",
-        "Use slope and area on velocity-time graphs, including constant and changing velocity intervals.",
-        "Explain why balanced forces can mean rest or constant velocity and find resultant force with direction.",
-        "Use F = ma in either direction, compare proportional changes, and connect inertia to safety situations.",
+        "Separate distance from displacement and explain speed, velocity, and acceleration in words and simple calculations.",
+        "Use simple motion graphs as mission-track records instead of reading them as pictures of the path.",
+        "Explain resultant force, balanced and unbalanced cases, and Newton's laws at an intuitive foundation level.",
+        "Describe how friction and air resistance act as drag zones that resist motion change.",
+        "Explain work done, power, and energy stores or transfers as linked change-and-payment ideas.",
+        "Use conservation of energy as a simple check on where motion and change payments come from and go to.",
     ],
     "misconception_tag_allowlist": F2_ALLOWLIST,
     "updated_utc": utc_now(),
+    "analogy_model_name": "Mission-Track Model",
+    "anchor_sentence": "A mover runs along a track, arrows change its motion, and energy tokens pay for every change.",
+    "curriculum_focus": [
+        "distance and displacement",
+        "speed and velocity",
+        "acceleration",
+        "resultant force",
+        "Newton's laws at intuitive level",
+        "friction and air resistance",
+        "work done",
+        "power",
+        "energy stores and transfers",
+        "conservation of energy",
+        "simple motion graphs",
+    ],
 }
 F2_SIM_LABS: List[Tuple[str, Dict[str, Any]]] = [
     (

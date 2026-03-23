@@ -1527,7 +1527,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_f1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(F1_MODULE_DOC["id"], "F1")
-        self.assertEqual(F1_MODULE_DOC["title"], "Physical Quantities & Measurement")
+        self.assertEqual(F1_MODULE_DOC["title"], "Scientific Measurement and Representation")
         self.assertEqual(len(F1_LESSONS), 6)
         self.assertEqual(len(F1_SIM_LABS), 6)
         self.assertEqual(

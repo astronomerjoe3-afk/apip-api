@@ -18,7 +18,7 @@ except ModuleNotFoundError:
 
 
 F1_MODULE_ID = "F1"
-F1_CONTENT_VERSION = "20260317_f1_foundations_v2"
+F1_CONTENT_VERSION = "20260323_f1_measure_map_curriculum_v3"
 F1_ALLOWLIST = [
     "unit_label_confusion",
     "prefix_scale_error",
@@ -129,16 +129,17 @@ def assessment_targets(diagnostic_pool_min: int, concept_gate_pool_min: int, mas
 
 F1_SPEC: Dict[str, Any] = {
     "module_description": (
-        "Foundation 1 builds the language of measurement in physics through SI units, vectors, "
-        "instrument choice, significant figures, density, and introductory uncertainty reasoning."
+        "Physics begins when the world is tagged with units, checked with tools, and turned into maps that show pattern instead of guesswork. "
+        "Foundation 1 covers SI units and conversion, base and derived quantities, scalar and vector first ideas, measuring length, mass, time, and temperature, "
+        "precision, accuracy, simple uncertainty, density, and reading, plotting, and interpreting simple graphs."
     ),
     "mastery_outcomes": [
-        "Use SI units and prefixes fluently while keeping measurements complete and comparable.",
-        "Separate scalar and vector quantities and use direction language correctly.",
-        "Choose suitable measuring instruments, read scales honestly, and discuss simple uncertainty.",
-        "Report results with justified significant figures and operation-dependent precision rules.",
-        "Calculate density, interpret it as mass packed into volume, and connect it to floating or sinking.",
-        "Distinguish accuracy, precision, and error types while giving a basic uncertainty estimate.",
+        "Use SI units and prefixes fluently while keeping complete measurements tied to the correct unit tag.",
+        "Recognize base and simple derived quantities and separate scalar descriptions from direction-tagged vector descriptions.",
+        "Choose suitable measuring instruments for length, mass, time, and temperature, then read scales honestly.",
+        "Distinguish precision, accuracy, and simple uncertainty while recognizing why repeated readings and confidence language matter.",
+        "Calculate density, interpret it as how much matter is packed into a chosen volume, and connect it to floating or sinking.",
+        "Read, plot, and interpret simple graphs as map-plots of pattern rather than as pictures of the apparatus.",
     ],
     "lessons": [],
 }
@@ -283,7 +284,7 @@ def _finalize_bundle() -> Tuple[Dict[str, Any], List[Tuple[str, Dict[str, Any]]]
     )
     return build_nextgen_module_bundle(
         module_id=F1_MODULE_ID,
-        module_title="Physical Quantities & Measurement",
+        module_title="Scientific Measurement and Representation",
         module_spec=F1_SPEC,
         allowlist=F1_ALLOWLIST,
         content_version=F1_CONTENT_VERSION,
@@ -922,6 +923,23 @@ F1_SPEC["lessons"].append(
 
 
 F1_MODULE_DOC, F1_LESSONS, F1_SIM_LABS = _finalize_bundle()
+F1_MODULE_DOC.update(
+    {
+        "description": F1_SPEC["module_description"],
+        "module_description": F1_SPEC["module_description"],
+        "analogy_model_name": "Measure-Map Studio Model",
+        "anchor_sentence": "Physics begins when the world is tagged with units, checked with tools, and turned into maps that show pattern instead of guesswork.",
+        "curriculum_focus": [
+            "SI units and unit conversion",
+            "base and derived quantities",
+            "scalars and vectors as first ideas",
+            "measuring length, mass, time, and temperature",
+            "precision, accuracy, and simple uncertainty",
+            "density",
+            "reading, plotting, and interpreting simple graphs",
+        ],
+    }
+)
 
 
 if __name__ == "__main__":

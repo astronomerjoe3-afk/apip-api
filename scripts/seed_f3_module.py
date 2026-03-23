@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F3_MODULE_ID = "F3"
-F3_CONTENT_VERSION = "20260313_f3_force_momentum_v5"
+F3_CONTENT_VERSION = "20260323_f3_pulse_hearth_curriculum_v6"
 F3_ALLOWLIST = [
     "work_energy_transfer_confusion",
     "kinetic_energy_relationship_error",
@@ -116,25 +116,43 @@ def f3_micro_prompts(doc_id: str) -> List[Dict[str, Any]]:
 F3_MODULE_DOC: Dict[str, Any] = {
     "id": F3_MODULE_ID,
     "module_id": F3_MODULE_ID,
-    "title": "Energy, Momentum & Interactions",
+    "title": "Matter, Particles and Thermal Behaviour",
     "description": (
-        "Build on F2 by tracing how forces transfer energy, comparing kinetic and gravitational energy stores, "
-        "using power and efficiency to judge processes, and explaining collisions, impulse, and braking through momentum."
+        "Matter is a crowd of tiny movers; their jiggle, spacing, and grip decide the state, and heat changes the crowd by touch, currents, or glow. "
+        "Foundation 3 covers the particle model of matter, solids, liquids, and gases, pressure as particle collisions, temperature and internal energy at a qualitative level, "
+        "expansion, contraction, change of state, conduction, convection, radiation, and heating or cooling in everyday systems."
+    ),
+    "module_description": (
+        "Matter is a crowd of tiny movers; their jiggle, spacing, and grip decide the state, and heat changes the crowd by touch, currents, or glow. "
+        "Foundation 3 covers the particle model of matter, solids, liquids, and gases, pressure as particle collisions, temperature and internal energy at a qualitative level, "
+        "expansion, contraction, change of state, conduction, convection, radiation, and heating or cooling in everyday systems."
     ),
     "sequence": 3,
     "level": "Foundation 3",
     "estimated_minutes": 135,
     "content_version": F3_CONTENT_VERSION,
     "mastery_outcomes": [
-        "Explain work as a force transferring energy through distance in the force direction.",
-        "Compare kinetic and gravitational potential energy and reason about how each changes.",
-        "Use power and efficiency to judge how quickly and how effectively a process transfers energy.",
-        "Treat momentum as a directed quantity and apply conservation in simple isolated interactions.",
-        "Use impulse and force-time reasoning to connect momentum change with collision safety.",
-        "Explain braking and crash safety using both momentum and energy ideas instead of one formula alone.",
+        "Use the particle model to compare solids, liquids, and gases through spacing, motion, and attraction ideas.",
+        "Explain pressure in gases as the effect of particle collisions rather than as a stored substance.",
+        "Describe temperature and internal energy qualitatively through particle motion and link spacing changes to expansion or contraction.",
+        "Explain change of state without treating heat as a material that is poured into or out of matter.",
+        "Compare conduction, convection, and radiation as different thermal-transfer routes in everyday systems.",
+        "Use the Pulse-Hearth story to explain heating and cooling situations with particle and transfer language.",
     ],
     "misconception_tag_allowlist": F3_ALLOWLIST,
     "updated_utc": utc_now(),
+    "analogy_model_name": "Pulse-Hearth Model",
+    "anchor_sentence": "Matter is a crowd of tiny movers; their jiggle, spacing, and grip decide the state, and heat changes the crowd by touch, currents, or glow.",
+    "curriculum_focus": [
+        "particle model of matter",
+        "solids, liquids, and gases",
+        "pressure as particle collisions",
+        "temperature and internal energy at qualitative level",
+        "expansion and contraction",
+        "change of state",
+        "conduction, convection, and radiation",
+        "heating and cooling in everyday systems",
+    ],
 }
 
 F3_SIM_LABS: List[Tuple[str, Dict[str, Any]]] = [

@@ -24,7 +24,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 F4_MODULE_ID = "F4"
-F4_CONTENT_VERSION = "20260321_f4_flow_grid_v4"
+F4_CONTENT_VERSION = "20260323_f4_signal_glow_curriculum_v5"
 F4_ALLOWLIST = [
     "charge_current_rate_confusion",
     "current_used_up_confusion",
@@ -175,8 +175,10 @@ RELEASE_CHECKS = [
 
 F4_MODULE_DOC, _LESSONS, _SIMS = build_nextgen_module_scaffold(
     F4_MODULE_ID,
-    "Electric Circuits & Energy Flow",
-    "Build on F3 by treating circuits as flow-grid systems where push, stream rate, and path difficulty explain the behavior before the formulas are introduced.",
+    "Waves, Light and Electricity",
+    "Patterns travel, light routes bend and bounce, charges circulate through safe loops, and currents can weave simple magnetic effects. "
+    "Foundation 4 covers waves and vibrations, amplitude, wavelength and frequency, sound and light as wave phenomena, reflection and refraction qualitatively, "
+    "simple circuits, current and voltage, series and parallel behaviour as first models, magnetic effects of current, and safe use of electrical components.",
     [
         "Charge, Current, and Closed Circuits",
         "Potential Difference and Energy per Charge",
@@ -192,16 +194,31 @@ F4_MODULE_DOC, _LESSONS, _SIMS = build_nextgen_module_scaffold(
 )
 F4_MODULE_DOC.update({
     "content_version": F4_CONTENT_VERSION,
+    "description": "Patterns travel, light routes bend and bounce, charges circulate through safe loops, and currents can weave simple magnetic effects. Foundation 4 covers waves and vibrations, amplitude, wavelength and frequency, sound and light as wave phenomena, reflection and refraction qualitatively, simple circuits, current and voltage, series and parallel behaviour as first models, magnetic effects of current, and safe use of electrical components.",
+    "module_description": "Patterns travel, light routes bend and bounce, charges circulate through safe loops, and currents can weave simple magnetic effects. Foundation 4 covers waves and vibrations, amplitude, wavelength and frequency, sound and light as wave phenomena, reflection and refraction qualitatively, simple circuits, current and voltage, series and parallel behaviour as first models, magnetic effects of current, and safe use of electrical components.",
     "mastery_outcomes": [
-        "Explain current as rate of charge flow.",
-        "Use potential difference as energy transferred per unit charge.",
-        "Reason with resistance and simple I-V graphs.",
-        "Explain current, voltage, and resistance in series circuits.",
-        "Explain current splitting and shared voltage in parallel circuits.",
-        "Use circuit power and energy ideas and connect them to safety.",
+        "Describe waves through amplitude, wavelength, frequency, and the idea of a traveling disturbance.",
+        "Compare sound and light as wave phenomena and use reflection or refraction as first qualitative route changes.",
+        "Explain current and voltage in simple circuits using closed-loop reasoning.",
+        "Use series and parallel first-model behaviour without collapsing the two network types into one rule.",
+        "Identify the magnetic effect of current as a simple consequence of moving charge in a loop.",
+        "Use safe-component language when describing power sources, loops, and classroom electrical setups.",
     ],
     "misconception_tag_allowlist": F4_ALLOWLIST,
     "authoring_standard": "lesson_authoring_spec_v1",
+    "analogy_model_name": "Signal-Glow Grid Model",
+    "anchor_sentence": "Patterns travel, light routes bend and bounce, charges circulate through safe loops, and currents can weave simple magnetic effects.",
+    "curriculum_focus": [
+        "waves and vibrations",
+        "amplitude, wavelength, and frequency",
+        "sound and light as wave phenomena",
+        "reflection and refraction qualitatively",
+        "simple circuits",
+        "current and voltage",
+        "series and parallel behaviour as first models",
+        "magnetic effects of current",
+        "safe use of electrical components",
+    ],
     "updated_utc": utc_now(),
 })
 LESSON_BY_ID = {str(lesson["lesson_id"]): lesson for lesson in _LESSONS}
