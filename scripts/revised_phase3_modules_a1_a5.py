@@ -5,9 +5,9 @@ from copy import deepcopy
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
-    from scripts.revised_core_curriculum_modules import _build_generated_bundle, auto_blueprint, tw
+    from scripts.revised_core_curriculum_modules import _build_generated_bundle, acceptance_groups, auto_blueprint, mcq, short, tw
 except ModuleNotFoundError:
-    from revised_core_curriculum_modules import _build_generated_bundle, auto_blueprint, tw
+    from revised_core_curriculum_modules import _build_generated_bundle, acceptance_groups, auto_blueprint, mcq, short, tw
 
 
 TermTuple = Tuple[str, str, str]
@@ -108,7 +108,188 @@ def _module(
     )
 
 
-A1_CONTENT_VERSION = "20260323_a1_particle_port_exchange_v1"
+def _definition_choices(terms: Sequence[Dict[str, str]], index: int) -> Tuple[str, List[str]]:
+    entries = list(terms)
+    target = entries[index % len(entries)]
+    distractors = [entry["meaning"] for entry in entries if entry["term"] != target["term"]][:3]
+    while len(distractors) < 3:
+        distractors.append("It is a different lesson idea, not the one being defined here.")
+    return target["term"], [target["meaning"], *distractors[:3]]
+
+
+def _generic_statement_choices(correct: str) -> List[str]:
+    return [
+        correct,
+        "The lesson can be answered from labels alone without checking the mechanism.",
+        "The lesson works best when the main relationship is ignored.",
+        "The lesson should be reduced to a memorized slogan instead of a physical explanation.",
+    ]
+
+
+def _generic_relation_choices(correct: str) -> List[str]:
+    return [
+        correct,
+        "The lesson has no reusable relation because only the labels matter.",
+        "The relation can be reversed universally without checking conditions.",
+        "Only one quantity matters, so the rest of the relation can be ignored.",
+    ]
+
+
+def _phase3_extra_question_banks(module_id: str, lesson_index: int, blueprint: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+    slug = str(blueprint["slug"])
+    lesson_id = f"{module_id}L{lesson_index}"
+    skills = [
+        f"{slug}_summary",
+        f"{slug}_mechanism",
+        f"{slug}_definition",
+        f"{slug}_relation",
+        f"{slug}_application",
+    ]
+    terms = list(blueprint["terms"])
+    title = str(blueprint["title"])
+    core_concepts = [str(item) for item in blueprint["core_concepts"]]
+    summary = str(blueprint["summary"])
+    equation = str(blueprint["formula"]["equation"])
+    why_answers = list(blueprint["why_answers"])
+    compare_answers = list(blueprint["compare_answers"])
+    why_groups = list(blueprint["why_groups"])
+    compare_groups = list(blueprint["compare_groups"])
+    term_a, choices_a = _definition_choices(terms, 2)
+    term_b, choices_b = _definition_choices(terms, 3)
+
+    return {
+        "diagnostic": [
+            mcq(
+                f"{lesson_id}_D7",
+                f"Which core idea should stay visible in {title.lower()}?",
+                _generic_statement_choices(core_concepts[0]),
+                0,
+                "Keep the main lesson mechanism visible before narrowing to a label.",
+                skill_tags=[skills[0]],
+            ),
+            mcq(
+                f"{lesson_id}_D8",
+                f"Which definition best matches {term_a} in {title.lower()}?",
+                choices_a,
+                0,
+                f"Keep {term_a} tied to the lesson's actual role.",
+                skill_tags=[skills[2]],
+            ),
+            short(
+                f"{lesson_id}_D9",
+                f"What mechanism should stay visible when you explain {title.lower()}?",
+                why_answers,
+                "Use the lesson's cause-and-effect language rather than a memorized slogan.",
+                skill_tags=[skills[1]],
+                acceptance_rules=acceptance_groups(*why_groups),
+            ),
+            mcq(
+                f"{lesson_id}_D10",
+                f"Which relation clue best belongs to {title.lower()}?",
+                _generic_relation_choices(equation),
+                0,
+                "Use the lesson relation as a compact summary of the physics.",
+                skill_tags=[skills[3]],
+            ),
+        ],
+        "concept": [
+            mcq(
+                f"{lesson_id}_C5",
+                f"Which summary best protects the main idea in {title.lower()}?",
+                _generic_statement_choices(summary),
+                0,
+                "Pick the option that keeps the lesson mechanism visible.",
+                skill_tags=[skills[0]],
+            ),
+            short(
+                f"{lesson_id}_C6",
+                f"Which contrast must you keep clear in {title.lower()}?",
+                compare_answers,
+                "State the contrast explicitly instead of collapsing the two ideas together.",
+                skill_tags=[skills[1]],
+                acceptance_rules=acceptance_groups(*compare_groups),
+            ),
+            mcq(
+                f"{lesson_id}_C7",
+                f"Which definition best matches {term_b} here?",
+                choices_b,
+                0,
+                f"Keep {term_b} attached to this lesson's meaning.",
+                skill_tags=[skills[2]],
+            ),
+            mcq(
+                f"{lesson_id}_C8",
+                f"Which relation or rule should guide a fresh {title.lower()} check?",
+                _generic_relation_choices(equation),
+                0,
+                "Use the lesson relation as a guide in the new case.",
+                skill_tags=[skills[3]],
+            ),
+        ],
+        "mastery": [
+            mcq(
+                f"{lesson_id}_M7",
+                f"Which transfer statement best fits {title.lower()} in a new case?",
+                list(blueprint["apply_choices"]),
+                int(blueprint["apply_answer_index"]),
+                "Keep the lesson mechanism visible in the new scenario.",
+                skill_tags=[skills[4]],
+            ),
+            short(
+                f"{lesson_id}_M8",
+                f"What lesson mechanism must remain visible in this new {title.lower()} case?",
+                why_answers,
+                "Use the same mechanism language you would trust in a worked explanation.",
+                skill_tags=[skills[1]],
+                acceptance_rules=acceptance_groups(*why_groups),
+            ),
+            mcq(
+                f"{lesson_id}_M9",
+                f"Which definition still matters most when you transfer {title.lower()}?",
+                choices_a,
+                0,
+                "A transfer question still depends on the core lesson definitions.",
+                skill_tags=[skills[2]],
+            ),
+            mcq(
+                f"{lesson_id}_M10",
+                f"Which summary best avoids the main trap in {title.lower()}?",
+                _generic_statement_choices(core_concepts[min(1, len(core_concepts) - 1)]),
+                0,
+                "Pick the option that keeps the weak shortcut out of the explanation.",
+                skill_tags=[skills[0]],
+            ),
+        ],
+    }
+
+
+def _upgrade_phase3_lessons(module_id: str, lesson_pairs: List[Tuple[str, Dict[str, Any]]], blueprints: Sequence[Dict[str, Any]]) -> None:
+    for lesson_index, ((_, lesson), blueprint) in enumerate(zip(lesson_pairs, blueprints), start=1):
+        contract = lesson["authoring_contract"]
+        diagnostic = lesson["phases"]["diagnostic"]["items"]
+        concept = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
+        mastery = lesson["phases"]["transfer"]["items"]
+        extras = _phase3_extra_question_banks(module_id, lesson_index, blueprint)
+
+        diagnostic.extend(deepcopy(extras["diagnostic"]))
+        concept.extend(deepcopy(extras["concept"]))
+        mastery.extend(deepcopy(extras["mastery"]))
+
+        contract["assessment_bank_targets"] = {
+            "diagnostic_pool_min": 10,
+            "concept_gate_pool_min": 8,
+            "mastery_pool_min": 10,
+            "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+        }
+
+        clarity_checks = [str(item) for item in contract.get("visual_clarity_checks") or []]
+        extra_clip_check = "No picture labels, angle marks, or callouts clip on desktop or mobile layouts."
+        if extra_clip_check not in clarity_checks:
+            clarity_checks.append(extra_clip_check)
+        contract["visual_clarity_checks"] = clarity_checks
+
+
+A1_CONTENT_VERSION = "20260323_a1_particle_port_exchange_v2"
 A1_MODULE_TITLE = "Matter, Radiation and Particles"
 A1_MODULE_DESCRIPTION = "Matter is built from a small cast of travelers and bundles, and every interaction is a swap checked by strict conservation gates."
 A1_MASTERY_OUTCOMES = [
@@ -137,9 +318,10 @@ A1_MODULE_DOC, A1_LESSONS, A1_SIM_LABS = _module(
     mastery_outcomes=A1_MASTERY_OUTCOMES,
     lessons=_A1_BLUEPRINTS,
 )
+_upgrade_phase3_lessons("A1", A1_LESSONS, _A1_BLUEPRINTS)
 
 
-A2_CONTENT_VERSION = "20260323_a2_ladder_gate_packet_v1"
+A2_CONTENT_VERSION = "20260323_a2_ladder_gate_packet_v2"
 A2_MODULE_TITLE = "Quantum Phenomena and Atomic Spectra"
 A2_MODULE_DESCRIPTION = "Atoms hold electrons on locked energy floors, packets of exactly the right size can lift or free them, and the return jumps paint spectral barcodes."
 A2_MASTERY_OUTCOMES = [
@@ -168,9 +350,10 @@ A2_MODULE_DOC, A2_LESSONS, A2_SIM_LABS = _module(
     mastery_outcomes=A2_MASTERY_OUTCOMES,
     lessons=_A2_BLUEPRINTS,
 )
+_upgrade_phase3_lessons("A2", A2_LESSONS, _A2_BLUEPRINTS)
 
 
-A3_CONTENT_VERSION = "20260323_a3_phase_loom_v1"
+A3_CONTENT_VERSION = "20260323_a3_phase_loom_v2"
 A3_MODULE_TITLE = "Advanced Waves and Optics"
 A3_MODULE_DESCRIPTION = "Wave paths can add, cancel, lock into standing patterns, and reveal structure through phase, diffraction, refraction, and guided-light routes."
 A3_MASTERY_OUTCOMES = [
@@ -445,9 +628,10 @@ A3_MODULE_DOC, A3_LESSONS, A3_SIM_LABS = _module(
     mastery_outcomes=A3_MASTERY_OUTCOMES,
     lessons=_A3_BLUEPRINTS,
 )
+_upgrade_phase3_lessons("A3", A3_LESSONS, _A3_BLUEPRINTS)
 
 
-A4_CONTENT_VERSION = "20260323_a4_vector_rig_v1"
+A4_CONTENT_VERSION = "20260323_a4_vector_rig_v2"
 A4_MODULE_TITLE = "Advanced Mechanics and Materials"
 A4_MODULE_DESCRIPTION = "Motion, balance, impacts, turning paths, springs, and stretched materials all become clearer when vectors, constraints, and stored response are read on one rig."
 A4_MASTERY_OUTCOMES = [
@@ -722,9 +906,10 @@ A4_MODULE_DOC, A4_LESSONS, A4_SIM_LABS = _module(
     mastery_outcomes=A4_MASTERY_OUTCOMES,
     lessons=_A4_BLUEPRINTS,
 )
+_upgrade_phase3_lessons("A4", A4_LESSONS, _A4_BLUEPRINTS)
 
 
-A5_CONTENT_VERSION = "20260323_a5_swing_return_v1"
+A5_CONTENT_VERSION = "20260323_a5_swing_return_v2"
 A5_MODULE_TITLE = "Oscillations"
 A5_MODULE_DESCRIPTION = "A good oscillator returns toward balance, swaps energy between stretch and speed, and responds very differently when the driving rhythm matches or misses its natural return pattern."
 A5_MASTERY_OUTCOMES = [
@@ -999,6 +1184,7 @@ A5_MODULE_DOC, A5_LESSONS, A5_SIM_LABS = _module(
     mastery_outcomes=A5_MASTERY_OUTCOMES,
     lessons=_A5_BLUEPRINTS,
 )
+_upgrade_phase3_lessons("A5", A5_LESSONS, _A5_BLUEPRINTS)
 
 
 def revised_phase3_bundle(module_id: str) -> Tuple[str, Dict[str, Any], List[Tuple[str, Dict[str, Any]]], List[Tuple[str, Dict[str, Any]]]]:

@@ -27,15 +27,15 @@ class A4QualityContractTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 6,
-                    "concept_gate_pool_min": 4,
-                    "mastery_pool_min": 6,
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 6)
-            self.assertGreaterEqual(len(concept_checks), 4)
-            self.assertGreaterEqual(len(transfer_items), 6)
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
@@ -43,7 +43,8 @@ class A4QualityContractTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 2)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
+            self.assertIn("No picture labels, angle marks, or callouts clip on desktop or mobile layouts.", contract["visual_clarity_checks"])
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -104,7 +105,7 @@ class A4QualityContractTests(unittest.TestCase):
             self.assertGreaterEqual(short_count, 2, lesson_id)
             self.assertGreaterEqual(quantitative_count, 3, lesson_id)
             self.assertGreaterEqual(explanation_count, 3, lesson_id)
-            self.assertGreaterEqual(mastery_short_count, 1, lesson_id)
+            self.assertGreaterEqual(mastery_short_count, 3, lesson_id)
 
 
 if __name__ == "__main__":
