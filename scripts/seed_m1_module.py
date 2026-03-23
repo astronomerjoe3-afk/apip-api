@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import json
 import os
 from datetime import datetime, timezone
@@ -25,7 +26,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M1_MODULE_ID = "M1"
-M1_CONTENT_VERSION = "20260323_m1_motion_kinematics_v6"
+M1_CONTENT_VERSION = "20260324_m1_motion_kinematics_v7"
 M1_ALLOWLIST = [
     "distance_time_story_confusion",
     "graph_shape_path_confusion",
@@ -2711,6 +2712,43 @@ def apply_m1_enhancements() -> None:
                     ],
                 },
             )
+            ,
+            vis(
+                "m1_l1_same_finish_graph",
+                "Compare two distance-time stories that finish at the same final time and distance so learners can see that equal endpoints do not force equal motion histories.",
+                "Same finish comparison: equal final point does not force one identical journey story.",
+                concept="distance_time_story",
+                title="Same Finish Comparison",
+                template="physics_graph",
+                meta={
+                    "graph_type": "generic_xy",
+                    "title": "Same Finish Comparison",
+                    "subtitle": "Run A pauses and catches up while Run B keeps one steady slope to the same final point.",
+                    "x_label": "Time (s)",
+                    "y_label": "Distance from start (m)",
+                    "show_legend": True,
+                    "x_min": 0,
+                    "x_max": 8,
+                    "y_min": 0,
+                    "y_max": 32,
+                    "series": [
+                        {
+                            "label": "Run A",
+                            "color": "#2563eb",
+                            "points": [[0, 0], [2, 8], [4, 8], [8, 32]],
+                        },
+                        {
+                            "label": "Run B",
+                            "color": "#10b981",
+                            "points": [[0, 0], [2, 8], [4, 16], [6, 24], [8, 32]],
+                        },
+                    ],
+                    "annotations": [
+                        {"x": 3.1, "y": 9.8, "text": "flat = pause in Run A", "color": "#fde68a"},
+                        {"x": 6.1, "y": 25.5, "text": "same final point", "color": "#86efac", "anchor": "start"},
+                    ],
+                },
+            ),
         ],
         "M1_L2": [
             vis(
