@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+import re
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
@@ -1167,6 +1168,170 @@ M4_MODULE_DOC, M4_LESSONS, M4_SIM_LABS = build_nextgen_module_bundle(
     plan_assets=True,
     public_base="/lesson_assets",
 )
+
+M4_SIMULATION_ENRICHMENTS: Dict[str, Dict[str, Any]] = {
+    "M4_L1": {
+        "focus_prompt": "Keep total push and patch load separate so pressure in solids is always read as force per area.",
+        "controls": ["force", "contact area", "surface type", "comparison footprint"],
+        "readouts": ["pressure", "force", "contact area", "safe or unsafe surface load"],
+    },
+    "M4_L2": {
+        "focus_prompt": "Treat pressure limits as design constraints by changing area and force without losing the force-per-area rule.",
+        "controls": ["safe pressure limit", "contact area", "applied force", "design footprint"],
+        "readouts": ["maximum safe force", "required area", "pressure reading", "design pass or fail"],
+    },
+    "M4_L3": {
+        "focus_prompt": "Hold depth and density in view together so hydrostatic pressure is built from the liquid column, not from container shape.",
+        "controls": ["liquid density", "depth", "gravitational field strength", "comparison liquid"],
+        "readouts": ["hydrostatic pressure", "depth reading", "density comparison", "layer-stack explanation"],
+    },
+    "M4_L4": {
+        "focus_prompt": "Compare equal-depth points first so vessel shape cannot distract from the same-depth pressure rule.",
+        "controls": ["window depth", "container shape", "liquid type", "comparison point"],
+        "readouts": ["pressure at point", "depth match", "shape comparison", "same-depth verdict"],
+    },
+    "M4_L5": {
+        "focus_prompt": "Connect local pressure to surface force by keeping area and pressure together before multiplying.",
+        "controls": ["pressure", "window area", "surface orientation", "comparison area"],
+        "readouts": ["surface force", "pressure", "area", "force comparison"],
+    },
+    "M4_L6": {
+        "focus_prompt": "Add atmospheric pressure to the liquid contribution explicitly so total pressure is not mistaken for rho g h alone.",
+        "controls": ["atmospheric pressure", "liquid depth", "liquid density", "altitude setting"],
+        "readouts": ["atmospheric contribution", "hydrostatic contribution", "total pressure", "open-surface comparison"],
+    },
+}
+
+M4_LESSON_SKILL_BUNDLES: Dict[str, List[str]] = {
+    "M4_L1": ["pressure_force_area", "solid_pressure_reasoning", "qualitative_pressure_comparison", "pressure_calculation"],
+    "M4_L2": ["pressure_design_constraint", "safe_limit_reasoning", "area_force_scaling", "design_calculation"],
+    "M4_L3": ["hydrostatic_pressure", "density_depth_reasoning", "liquid_column_model", "pressure_calculation"],
+    "M4_L4": ["same_depth_rule", "location_based_pressure", "shape_independence", "equal_depth_comparison"],
+    "M4_L5": ["surface_force_reasoning", "pressure_times_area", "window_force_analysis", "applied_pressure_calculation"],
+    "M4_L6": ["atmospheric_pressure_reasoning", "total_pressure_sum", "open_surface_model", "pressure_calculation"],
+}
+
+_M4_ACCEPTANCE_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "because",
+    "be",
+    "by",
+    "for",
+    "from",
+    "if",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "or",
+    "so",
+    "that",
+    "the",
+    "their",
+    "there",
+    "they",
+    "this",
+    "to",
+    "when",
+    "with",
+}
+
+
+def _m4_phrase_tokens(value: str) -> List[str]:
+    return [
+        token
+        for token in re.findall(r"[a-z0-9]+", value.lower())
+        if token not in _M4_ACCEPTANCE_STOP_WORDS and len(token) > 1
+    ]
+
+
+def _m4_auto_acceptance_rules(accepted_answers: Sequence[str]) -> Dict[str, Any] | None:
+    textual_answers: List[str] = []
+    for answer in accepted_answers:
+        candidate = str(answer or "").strip()
+        if not candidate:
+            continue
+        if re.fullmatch(r"[-+]?\d+(?:\.\d+)?(?:\s*[A-Za-z0-9/^.-]+)?", candidate):
+            continue
+        if len(re.findall(r"[A-Za-z]+", candidate)) <= 1:
+            continue
+        textual_answers.append(candidate)
+
+    if not textual_answers:
+        return None
+
+    token_counts: Dict[str, int] = {}
+    threshold = max(2, (len(textual_answers) + 1) // 2)
+    for answer in textual_answers:
+        for token in dict.fromkeys(_m4_phrase_tokens(answer)):
+            token_counts[token] = token_counts.get(token, 0) + 1
+
+    core_tokens = [token for token, count in token_counts.items() if count >= threshold][:4]
+    if len(core_tokens) >= 2:
+        return {"phrase_groups": [[token] for token in core_tokens]}
+    return {"phrase_groups": [textual_answers]}
+
+
+def _modernize_m4_contracts() -> None:
+    for lesson_id, lesson in M4_LESSONS:
+        contract = lesson["authoring_contract"]
+        simulation_contract = dict(contract.get("simulation_contract") or {})
+        simulation_contract.update(deepcopy(M4_SIMULATION_ENRICHMENTS[lesson_id]))
+        contract["simulation_contract"] = simulation_contract
+
+        core_concepts = list(
+            dict.fromkeys(
+                [str(item).strip() for item in contract.get("concept_targets") or [] if str(item).strip()]
+                + [
+                    str(formula_item.get("meaning") or "").strip()
+                    for formula_item in contract.get("formulas") or []
+                    if str(formula_item.get("meaning") or "").strip()
+                ]
+            )
+        )
+        contract["core_concepts"] = core_concepts[:5]
+
+        visual_checks = list(contract.get("visual_clarity_checks") or [])
+        for check in [
+            "Depth markers, area labels, and comparison callouts stay readable on desktop and mobile layouts.",
+            "No picture labels, equation annotations, or callouts clip against the board edges.",
+            "Each visual keeps force, area, depth, and pressure roles visually distinct.",
+        ]:
+            if check not in visual_checks:
+                visual_checks.append(check)
+        contract["visual_clarity_checks"] = visual_checks
+
+        release_checks = list(contract.get("release_checks") or [])
+        clip_check = "No picture labels, equation annotations, or callouts clip on desktop or mobile layouts."
+        if clip_check not in release_checks:
+            release_checks.append(clip_check)
+        contract["release_checks"] = release_checks
+
+        lesson_skill_bundle = list(M4_LESSON_SKILL_BUNDLES[lesson_id])
+        contract["mastery_skills"] = list(dict.fromkeys(list(contract.get("mastery_skills") or []) + lesson_skill_bundle))
+
+        question_sets = [
+            *lesson["phases"]["diagnostic"]["items"],
+            *lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"],
+            *lesson["phases"]["transfer"]["items"],
+        ]
+        for question in question_sets:
+            if not question.get("skill_tags"):
+                question["skill_tags"] = list(lesson_skill_bundle)
+            if question.get("type") == "short" and question.get("accepted_answers") and not question.get("acceptance_rules"):
+                rules = _m4_auto_acceptance_rules(list(question.get("accepted_answers") or []))
+                if rules:
+                    question["acceptance_rules"] = rules
+
+
+_modernize_m4_contracts()
 
 
 def main() -> None:

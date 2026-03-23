@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+import re
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
@@ -3093,6 +3094,170 @@ M3_MODULE_DOC, M3_LESSONS, M3_SIM_LABS = build_nextgen_module_bundle(
     plan_assets=True,
     public_base="/lesson_assets",
 )
+
+M3_SIMULATION_ENRICHMENTS: Dict[str, Dict[str, Any]] = {
+    "M3_L1": {
+        "focus_prompt": "Balance every mission hand-off with store gains and leak trails before you reach for the numbers.",
+        "controls": ["input energy", "useful store gain", "leak energy", "store type"],
+        "readouts": ["energy ledger", "useful output", "leak trail", "balance check"],
+    },
+    "M3_L2": {
+        "focus_prompt": "Keep mass, field strength, and height separate so Height Store is built from the right three factors.",
+        "controls": ["mass", "height change", "field strength", "reference level"],
+        "readouts": ["gravitational potential energy", "height change", "factor comparison", "reference note"],
+    },
+    "M3_L3": {
+        "focus_prompt": "Compare mass changes with speed changes so the squared speed effect stays visible in Motion Store.",
+        "controls": ["mass", "speed", "comparison speed", "comparison mass"],
+        "readouts": ["kinetic energy", "speed ratio", "mass ratio", "store comparison"],
+    },
+    "M3_L4": {
+        "focus_prompt": "Decide whether work is best tracked from force-times-distance or from the matching store change before solving.",
+        "controls": ["force", "distance", "angle choice", "store change"],
+        "readouts": ["work done", "displacement check", "equation route", "energy transfer result"],
+    },
+    "M3_L5": {
+        "focus_prompt": "Separate how fast the transfer happens from how much of it becomes useful so power and efficiency do not collapse together.",
+        "controls": ["energy transferred", "time", "efficiency fraction", "machine choice"],
+        "readouts": ["power", "useful output", "wasted output", "machine comparison"],
+    },
+    "M3_L6": {
+        "focus_prompt": "Map the whole multistage mission first so each leak, gain, and target is placed before the equations are chained together.",
+        "controls": ["target energy", "efficiency stage", "leak fraction", "mission stage order"],
+        "readouts": ["mission map", "required input", "useful output after each stage", "target check"],
+    },
+}
+
+M3_LESSON_SKILL_BUNDLES: Dict[str, List[str]] = {
+    "M3_L1": ["energy_ledger_reasoning", "store_transfer_distinction", "qualitative_energy_balance", "quantitative_energy_balance"],
+    "M3_L2": ["gravitational_potential_energy", "reference_level_reasoning", "factor_proportionality", "height_store_calculation"],
+    "M3_L3": ["kinetic_energy_reasoning", "speed_squared_effect", "motion_store_comparison", "kinetic_energy_calculation"],
+    "M3_L4": ["work_done_reasoning", "force_distance_link", "store_change_connection", "work_done_calculation"],
+    "M3_L5": ["power_reasoning", "efficiency_reasoning", "rate_vs_yield", "machine_comparison"],
+    "M3_L6": ["multistage_energy_planning", "backward_reasoning", "efficiency_chain", "target_threshold_analysis"],
+}
+
+_M3_ACCEPTANCE_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "because",
+    "be",
+    "by",
+    "for",
+    "from",
+    "if",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "or",
+    "so",
+    "that",
+    "the",
+    "their",
+    "there",
+    "they",
+    "this",
+    "to",
+    "when",
+    "with",
+}
+
+
+def _m3_phrase_tokens(value: str) -> List[str]:
+    return [
+        token
+        for token in re.findall(r"[a-z0-9]+", value.lower())
+        if token not in _M3_ACCEPTANCE_STOP_WORDS and len(token) > 1
+    ]
+
+
+def _m3_auto_acceptance_rules(accepted_answers: Sequence[str]) -> Dict[str, Any] | None:
+    textual_answers: List[str] = []
+    for answer in accepted_answers:
+        candidate = str(answer or "").strip()
+        if not candidate:
+            continue
+        if re.fullmatch(r"[-+]?\d+(?:\.\d+)?(?:\s*[A-Za-z0-9/^.-]+)?", candidate):
+            continue
+        if len(re.findall(r"[A-Za-z]+", candidate)) <= 1:
+            continue
+        textual_answers.append(candidate)
+
+    if not textual_answers:
+        return None
+
+    token_counts: Dict[str, int] = {}
+    threshold = max(2, (len(textual_answers) + 1) // 2)
+    for answer in textual_answers:
+        for token in dict.fromkeys(_m3_phrase_tokens(answer)):
+            token_counts[token] = token_counts.get(token, 0) + 1
+
+    core_tokens = [token for token, count in token_counts.items() if count >= threshold][:4]
+    if len(core_tokens) >= 2:
+        return {"phrase_groups": [[token] for token in core_tokens]}
+    return {"phrase_groups": [textual_answers]}
+
+
+def _modernize_m3_contracts() -> None:
+    for lesson_id, lesson in M3_LESSONS:
+        contract = lesson["authoring_contract"]
+        simulation_contract = dict(contract.get("simulation_contract") or {})
+        simulation_contract.update(deepcopy(M3_SIMULATION_ENRICHMENTS[lesson_id]))
+        contract["simulation_contract"] = simulation_contract
+
+        core_concepts = list(
+            dict.fromkeys(
+                [str(item).strip() for item in contract.get("concept_targets") or [] if str(item).strip()]
+                + [
+                    str(formula_item.get("meaning") or "").strip()
+                    for formula_item in contract.get("formulas") or []
+                    if str(formula_item.get("meaning") or "").strip()
+                ]
+            )
+        )
+        contract["core_concepts"] = core_concepts[:5]
+
+        visual_checks = list(contract.get("visual_clarity_checks") or [])
+        for check in [
+            "Labels, ledger arrows, and comparison callouts stay readable on desktop and mobile layouts.",
+            "No picture labels, graph annotations, or callouts clip against the board edges.",
+            "Each visual keeps stores, hand-offs, and comparison quantities visually distinct.",
+        ]:
+            if check not in visual_checks:
+                visual_checks.append(check)
+        contract["visual_clarity_checks"] = visual_checks
+
+        release_checks = list(contract.get("release_checks") or [])
+        clip_check = "No picture labels, graph annotations, or callouts clip on desktop or mobile layouts."
+        if clip_check not in release_checks:
+            release_checks.append(clip_check)
+        contract["release_checks"] = release_checks
+
+        lesson_skill_bundle = list(M3_LESSON_SKILL_BUNDLES[lesson_id])
+        contract["mastery_skills"] = list(dict.fromkeys(list(contract.get("mastery_skills") or []) + lesson_skill_bundle))
+
+        question_sets = [
+            *lesson["phases"]["diagnostic"]["items"],
+            *lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"],
+            *lesson["phases"]["transfer"]["items"],
+        ]
+        for question in question_sets:
+            if not question.get("skill_tags"):
+                question["skill_tags"] = list(lesson_skill_bundle)
+            if question.get("type") == "short" and question.get("accepted_answers") and not question.get("acceptance_rules"):
+                rules = _m3_auto_acceptance_rules(list(question.get("accepted_answers") or []))
+                if rules:
+                    question["acceptance_rules"] = rules
+
+
+_modernize_m3_contracts()
 
 
 def main() -> None:

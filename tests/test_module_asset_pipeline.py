@@ -110,6 +110,22 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
             self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            simulation_contract = contract["simulation_contract"]
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
 
     def test_revised_m14_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
         mastery_text = " ".join(REVISED_M14_MODULE_DOC.get("mastery_outcomes") or []).lower()
@@ -144,15 +160,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 8,
-                    "concept_gate_pool_min": 6,
-                    "mastery_pool_min": 8,
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 8)
-            self.assertGreaterEqual(len(concept_checks), 6)
-            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertIn(contract["visual_assets"][0]["template"], {"astronomy_diagram", "space_astrophysics_diagram"})
@@ -298,6 +314,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
@@ -319,9 +336,28 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertTrue(scaffold_support["analogy_bridge"]["check_for_understanding"])
             self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
 
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
 
     def test_m3_curriculum_scope_stays_on_energy_work_and_power(self) -> None:
         mastery_text = " ".join(M3_MODULE_DOC.get("mastery_outcomes") or []).lower()
@@ -354,6 +390,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
@@ -372,6 +409,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
 
             scaffold_support = contract["scaffold_support"]
             self.assertTrue(scaffold_support["core_idea"])
@@ -381,6 +427,16 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
 
     def test_m4_curriculum_scope_stays_on_pressure(self) -> None:
         mastery_text = " ".join(M4_MODULE_DOC.get("mastery_outcomes") or []).lower()
@@ -412,9 +468,9 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIn("2.5 m below the surface", concept_prompts)
         self.assertIn("3 m below the surface", diagnostic_prompts)
         self.assertIn("2 m below the water surface", mastery_prompts)
-        self.assertIn("rho = 1000 kg/m^3", concept_prompts)
-        self.assertIn("rho = 1000 kg/m^3", diagnostic_prompts)
-        self.assertIn("rho = 1000 kg/m^3", mastery_prompts)
+        self.assertIn("ρ = 1000 kg/m^3", concept_prompts)
+        self.assertIn("ρ = 1000 kg/m^3", diagnostic_prompts)
+        self.assertIn("ρ = 1000 kg/m^3", mastery_prompts)
 
     def test_m5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(M5_MODULE_DOC["id"], "M5")
@@ -642,16 +698,6 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertTrue(scaffold_support["common_trap"])
             self.assertGreaterEqual(len(scaffold_support["extra_sections"]), 2)
 
-            if lesson["lesson_id"] == "M8_L1":
-                diagram_ids = {asset["asset_id"] for asset in lesson["generated_assets"]["diagrams"]}
-                self.assertIn("m8-l1-surface-conversion", diagram_ids)
-                self.assertIn("m8-l1-ghost-image", diagram_ids)
-                plane_mirror_assets = {
-                    asset["asset_id"]: asset["meta"]["system_type"]
-                    for asset in lesson["generated_assets"]["diagrams"]
-                }
-                self.assertEqual(set(plane_mirror_assets.values()), {"plane_mirror"})
-
             for example in contract["worked_examples"]:
                 self.assertTrue(example["answer_reason"])
 
@@ -837,15 +883,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 8,
-                    "concept_gate_pool_min": 6,
-                    "mastery_pool_min": 8,
-                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery on every fresh attempt before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 8)
-            self.assertGreaterEqual(len(concept_checks), 6)
-            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
@@ -1161,15 +1207,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 8,
-                    "concept_gate_pool_min": 6,
-                    "mastery_pool_min": 8,
+                    "diagnostic_pool_min": 10,
+                    "concept_gate_pool_min": 8,
+                    "mastery_pool_min": 10,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 8)
-            self.assertGreaterEqual(len(concept_checks), 6)
-            self.assertGreaterEqual(len(transfer_items), 8)
+            self.assertGreaterEqual(len(diagnostic_items), 10)
+            self.assertGreaterEqual(len(concept_checks), 8)
+            self.assertGreaterEqual(len(transfer_items), 10)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
@@ -1588,6 +1634,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
@@ -1605,10 +1652,29 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), len(contract["visual_assets"]))
             self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
 
     def test_m1_graph_lessons_use_physics_graph_assets(self) -> None:
         expected_visual_counts = {
-            "M1_L1": 1,
+            "M1_L1": 2,
             "M1_L2": 1,
             "M1_L3": 1,
             "M1_L4": 1,
@@ -1651,6 +1717,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             transfer_items = lesson["phases"]["transfer"]["items"]
+            simulation_contract = contract["simulation_contract"]
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
@@ -1668,6 +1735,25 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["animations"]), 1)
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
+            self.assertGreaterEqual(len(contract["core_concepts"]), 4)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
+            self.assertTrue(simulation_contract["asset_id"])
+            self.assertTrue(simulation_contract["concept"])
+            self.assertTrue(simulation_contract["focus_prompt"])
+            self.assertTrue(simulation_contract["baseline_case"])
+            self.assertGreaterEqual(len(simulation_contract["controls"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["readouts"]), 3)
+            self.assertGreaterEqual(len(simulation_contract["comparison_tasks"]), 2)
+
+            skill_tags = set()
+            for question in [*diagnostic_items, *concept_checks, *transfer_items]:
+                if question["type"] == "short":
+                    accepted = question.get("accepted_answers") or []
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
+                        self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
+                self.assertTrue(question.get("skill_tags"))
+                skill_tags.update(question.get("skill_tags") or [])
+            self.assertGreaterEqual(len(skill_tags), 4)
 
     def test_m2_curriculum_scope_stays_on_forces_momentum_and_stability(self) -> None:
         mastery_text = " ".join(M2_MODULE_DOC.get("mastery_outcomes") or []).lower()

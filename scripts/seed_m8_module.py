@@ -572,6 +572,18 @@ def sim(lab_id: str, title: str, description: str, instructions: Sequence[str], 
 
 
 def lesson_spec(lesson_id: str, title: str, sim_meta: Dict[str, Any], diagnostic: Sequence[Dict[str, Any]], analogy_text: str, commitment_prompt: str, micro_prompts: Sequence[Dict[str, str]], inquiry: Sequence[Dict[str, str]], recon_prompts: Sequence[str], capsule_prompt: str, capsule_checks: Sequence[Dict[str, Any]], transfer: Sequence[Dict[str, Any]], contract_payload: Dict[str, Any]) -> Dict[str, Any]:
+    resolved_contract = deepcopy(contract_payload)
+    declared_skills = [
+        str(skill).strip()
+        for skill in resolved_contract.get("mastery_skills") or []
+        if str(skill).strip()
+    ]
+    for item in [*diagnostic, *capsule_checks, *transfer]:
+        for skill in item.get("skill_tags") or []:
+            cleaned = str(skill).strip()
+            if cleaned and cleaned not in declared_skills:
+                declared_skills.append(cleaned)
+    resolved_contract["mastery_skills"] = declared_skills
     lesson = {
         "id": lesson_id,
         "title": title,
@@ -585,7 +597,7 @@ def lesson_spec(lesson_id: str, title: str, sim_meta: Dict[str, Any], diagnostic
         "capsule_prompt": capsule_prompt,
         "capsule_checks": list(capsule_checks),
         "transfer": list(transfer),
-        "contract": deepcopy(contract_payload),
+        "contract": resolved_contract,
     }
     return enrich_m8_lesson(lesson)
 
@@ -1003,6 +1015,29 @@ M8_MODULE_DOC, M8_LESSONS, M8_SIM_LABS = build_nextgen_module_bundle(
     plan_assets=True,
     public_base="/lesson_assets",
 )
+
+
+def _sync_assessed_skills(lesson_pairs: Sequence[Tuple[str, Dict[str, Any]]]) -> None:
+    for _, lesson in lesson_pairs:
+        contract = lesson.get("authoring_contract") or {}
+        declared: List[str] = []
+        for skill in contract.get("mastery_skills") or []:
+            cleaned = str(skill).strip()
+            if cleaned and cleaned not in declared:
+                declared.append(cleaned)
+        concept_items: List[Dict[str, Any]] = []
+        for capsule in lesson.get("phases", {}).get("concept_reconstruction", {}).get("capsules", []):
+            concept_items.extend(capsule.get("checks") or [])
+        mastery_items = lesson.get("phases", {}).get("transfer", {}).get("items") or []
+        for item in [*concept_items, *mastery_items]:
+            for skill in item.get("skill_tags") or []:
+                cleaned = str(skill).strip()
+                if cleaned and cleaned not in declared:
+                    declared.append(cleaned)
+        contract["mastery_skills"] = declared
+
+
+_sync_assessed_skills(M8_LESSONS)
 
 
 def main() -> None:

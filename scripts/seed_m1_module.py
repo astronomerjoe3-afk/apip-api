@@ -4,6 +4,7 @@ import argparse
 from copy import deepcopy
 import json
 import os
+import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
@@ -3559,6 +3560,163 @@ for lesson_spec in M1_SPEC["lessons"]:
 
 M1_LESSONS: List[Tuple[str, Dict[str, Any]]] = [(str(lesson["lesson_id"]), lesson) for lesson in _LESSONS]
 M1_SIM_LABS: List[Tuple[str, Dict[str, Any]]] = [(str(sim["lab_id"]), sim) for sim in _SIMS]
+
+M1_SIMULATION_ENRICHMENTS: Dict[str, Dict[str, Any]] = {
+    "M1_L1": {
+        "focus_prompt": "Track how segment slope, flat pauses, and final height combine to tell one distance-time story.",
+        "controls": ["segment distance", "segment duration", "pause duration", "final segment choice"],
+        "readouts": ["distance-time graph", "segment gradient", "total distance", "pause interval"],
+    },
+    "M1_L2": {
+        "focus_prompt": "Keep graph height, rising slope, and flat sections separate when reading a speed-time graph.",
+        "controls": ["starting speed", "speed change", "time interval", "constant-speed section"],
+        "readouts": ["speed-time graph", "speed at chosen time", "acceleration", "final speed"],
+    },
+    "M1_L3": {
+        "focus_prompt": "Use the sign of the velocity and the sign of the slope together before deciding the sign of acceleration.",
+        "controls": ["positive direction", "initial velocity", "final velocity", "time interval"],
+        "readouts": ["velocity-time graph", "signed velocity", "signed acceleration", "direction summary"],
+    },
+    "M1_L4": {
+        "focus_prompt": "Match the knowns, the unknown, and the constant-acceleration condition before forecasting motion with equations.",
+        "controls": ["initial velocity", "acceleration", "time", "target unknown"],
+        "readouts": ["known variables", "chosen equation route", "predicted velocity or distance", "constant-acceleration check"],
+    },
+    "M1_L5": {
+        "focus_prompt": "Name the axes first so the gradient belongs to the right rate family before you calculate it.",
+        "controls": ["graph type", "rise", "run", "comparison graph"],
+        "readouts": ["graph pair", "gradient value", "gradient meaning", "units check"],
+    },
+    "M1_L6": {
+        "focus_prompt": "Build total distance from the shaded area under a speed-time graph instead of from the outline shape alone.",
+        "controls": ["base speed", "top speed", "time width", "shape selection"],
+        "readouts": ["shaded area", "distance from rectangle", "distance from triangle", "total distance"],
+    },
+}
+
+M1_LESSON_SKILL_BUNDLES: Dict[str, List[str]] = {
+    "M1_L1": ["distance_time_interpretation", "motion_story_reconstruction", "graph_feature_discrimination", "speed_from_gradient"],
+    "M1_L2": ["speed_time_interpretation", "speed_reading", "acceleration_from_slope", "representation_translation"],
+    "M1_L3": ["signed_velocity_reasoning", "signed_acceleration_reasoning", "direction_convention", "slope_sign_interpretation"],
+    "M1_L4": ["constant_acceleration_model", "equation_selection", "known_unknown_mapping", "forecast_reasoning"],
+    "M1_L5": ["gradient_context_switching", "distance_time_gradient", "speed_time_gradient", "axis_first_reasoning"],
+    "M1_L6": ["area_under_speed_time", "distance_from_area", "shape_vs_area_comparison", "average_speed_area_reasoning"],
+}
+
+_M1_ACCEPTANCE_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "because",
+    "be",
+    "by",
+    "for",
+    "from",
+    "gives",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "that",
+    "the",
+    "their",
+    "there",
+    "they",
+    "this",
+    "to",
+    "when",
+    "why",
+    "with",
+}
+
+
+def _m1_phrase_tokens(value: str) -> List[str]:
+    return [
+        token
+        for token in re.findall(r"[a-z0-9]+", value.lower())
+        if token not in _M1_ACCEPTANCE_STOP_WORDS and len(token) > 1
+    ]
+
+
+def _m1_auto_acceptance_rules(accepted_answers: List[str]) -> Dict[str, Any] | None:
+    textual_answers: List[str] = []
+    for answer in accepted_answers:
+        candidate = str(answer or "").strip()
+        if not candidate:
+            continue
+        if re.fullmatch(r"[-+]?\d+(?:\.\d+)?(?:\s*[A-Za-z0-9/^.-]+)?", candidate):
+            continue
+        if len(re.findall(r"[A-Za-z]+", candidate)) <= 1:
+            continue
+        textual_answers.append(candidate)
+
+    if not textual_answers:
+        return None
+
+    token_counts: Dict[str, int] = {}
+    threshold = max(2, (len(textual_answers) + 1) // 2)
+    for answer in textual_answers:
+        for token in dict.fromkeys(_m1_phrase_tokens(answer)):
+            token_counts[token] = token_counts.get(token, 0) + 1
+
+    core_tokens = [token for token, count in token_counts.items() if count >= threshold][:4]
+    if len(core_tokens) >= 2:
+        return {"phrase_groups": [[token] for token in core_tokens]}
+    return {"phrase_groups": [textual_answers]}
+
+
+def _modernize_m1_contracts() -> None:
+    for lesson_id, lesson in M1_LESSONS:
+        contract = lesson["authoring_contract"]
+        simulation_contract = dict(contract.get("simulation_contract") or {})
+        simulation_contract.update(deepcopy(M1_SIMULATION_ENRICHMENTS[lesson_id]))
+        contract["simulation_contract"] = simulation_contract
+
+        core_concepts = list(dict.fromkeys(
+            [str(item).strip() for item in contract.get("concept_targets") or [] if str(item).strip()]
+            + [str(formula_item.get("meaning") or "").strip() for formula_item in contract.get("formulas") or [] if str(formula_item.get("meaning") or "").strip()]
+        ))
+        contract["core_concepts"] = core_concepts[:5]
+
+        visual_checks = list(contract.get("visual_clarity_checks") or [])
+        for check in [
+            "Axes, labels, and callouts stay readable on desktop and mobile layouts.",
+            "No picture labels, graph annotations, or callouts clip against the board edges.",
+            "Each visual keeps the compared motion quantities visually distinct.",
+        ]:
+            if check not in visual_checks:
+                visual_checks.append(check)
+        contract["visual_clarity_checks"] = visual_checks
+
+        release_checks = list(contract.get("release_checks") or [])
+        clip_check = "No picture labels, graph annotations, or callouts clip on desktop or mobile layouts."
+        if clip_check not in release_checks:
+            release_checks.append(clip_check)
+        contract["release_checks"] = release_checks
+
+        lesson_skill_bundle = list(M1_LESSON_SKILL_BUNDLES[lesson_id])
+        contract["mastery_skills"] = list(dict.fromkeys(list(contract.get("mastery_skills") or []) + lesson_skill_bundle))
+
+        question_sets = [
+            *lesson["phases"]["diagnostic"]["items"],
+            *lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"],
+            *lesson["phases"]["transfer"]["items"],
+        ]
+        for question in question_sets:
+            if not question.get("skill_tags"):
+                question["skill_tags"] = list(lesson_skill_bundle)
+            if question.get("type") == "short" and question.get("accepted_answers") and not question.get("acceptance_rules"):
+                rules = _m1_auto_acceptance_rules(list(question.get("accepted_answers") or []))
+                if rules:
+                    question["acceptance_rules"] = rules
+
+
+_modernize_m1_contracts()
 
 validate_nextgen_module(M1_MODULE_DOC, [payload for _, payload in M1_LESSONS], [payload for _, payload in M1_SIM_LABS], M1_ALLOWLIST)
 plan_module_assets(M1_LESSONS, M1_SIM_LABS, public_base="/lesson_assets")

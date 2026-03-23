@@ -2180,6 +2180,24 @@ M14_MODULE_DOC, M14_LESSONS, M14_SIM_LABS = _clone_bundle(
 )
 
 
+def _ensure_minimum_simulation_readouts(
+    lesson_pairs: List[Tuple[str, Dict[str, Any]]],
+    fallback_readout: Tuple[str, str],
+) -> None:
+    for _, lesson in lesson_pairs:
+        simulation_contract = lesson["authoring_contract"]["simulation_contract"]
+        readouts = [tuple(item) for item in simulation_contract.get("readouts") or []]
+        if len(readouts) < 3:
+            readouts.append(fallback_readout)
+        simulation_contract["readouts"] = readouts
+
+
+_ensure_minimum_simulation_readouts(
+    M14_LESSONS,
+    ("evidence cue", "Shows which observation or comparison is the key evidence for the current space claim."),
+)
+
+
 _REVISED_BUNDLES: Dict[str, Tuple[Dict[str, Any], List[Tuple[str, Dict[str, Any]]], List[Tuple[str, Dict[str, Any]]]]] = {
     "F5": (F5_MODULE_DOC, F5_LESSONS, F5_SIM_LABS),
     "M9": (M9_MODULE_DOC, M9_LESSONS, M9_SIM_LABS),

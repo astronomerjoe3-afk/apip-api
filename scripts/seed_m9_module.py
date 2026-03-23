@@ -327,6 +327,18 @@ def lesson_spec(
     transfer: Sequence[Dict[str, Any]],
     contract_payload: Dict[str, Any],
 ) -> Dict[str, Any]:
+    resolved_contract = deepcopy(contract_payload)
+    declared_skills = [
+        str(skill).strip()
+        for skill in resolved_contract.get("mastery_skills") or []
+        if str(skill).strip()
+    ]
+    for item in [*diagnostic, *capsule_checks, *transfer]:
+        for skill in item.get("skill_tags") or []:
+            cleaned = str(skill).strip()
+            if cleaned and cleaned not in declared_skills:
+                declared_skills.append(cleaned)
+    resolved_contract["mastery_skills"] = declared_skills
     return {
         "id": lesson_id,
         "title": title,
@@ -340,7 +352,7 @@ def lesson_spec(
         "capsule_prompt": capsule_prompt,
         "capsule_checks": list(capsule_checks),
         "transfer": list(transfer),
-        "contract": deepcopy(contract_payload),
+        "contract": resolved_contract,
     }
 
 
@@ -724,8 +736,8 @@ def doppler_lesson() -> Dict[str, Any]:
     t = [
         mcq("M9L6_M1", "A return frequency lower than the transmitted pulse most strongly means...", ["the target is moving away", "the target is moving toward", "the target is stationary", "the medium vanished"], 0, "Receding motion lowers the returned frequency.", ["doppler_motion_confusion"], skill_tags=["away_shift"]),
         short("M9L6_M2", "How could a doctor use Doppler ultrasound to study a blood vessel?", ["By sending ultrasound into the vessel and using frequency shifts in the returning echoes to infer blood flow direction or speed.", "By comparing the transmitted and returned frequencies to track blood movement."], "Use motion-tracking language.", ["doppler_motion_confusion"], skill_tags=["doppler_use"], acceptance_rules=acceptance_groups(["ultrasound"], ["returned echoes", "returning sound", "echoes"], ["frequency shift", "compare frequencies"], ["blood flow", "movement", "direction", "speed"])) ,
-        mcq("M9L6_M3", "Which pair matches the correct shift story?", ["toward -> higher return frequency, away -> lower return frequency", "toward -> lower, away -> higher", "toward -> no shift, away -> no shift", "toward -> louder only, away -> quieter only"], 0, "Keep the shift directions straight.", ["doppler_motion_confusion"], skill_tags=["flow_direction"]),
-        mcq("M9L6_M4", "A transmitted pulse is 5.000 MHz and the return is 4.998 MHz. Best interpretation?", ["the target is moving away", "the target is moving toward", "the target is definitely still", "the signal is not ultrasound"], 0, "The return frequency fell slightly, so the target is receding.", ["doppler_motion_confusion"], skill_tags=["away_shift"]),
+        mcq("M9L6_M3", "Which pair matches the correct shift story for higher returned frequency and lower returned frequency?", ["toward -> higher return frequency, away -> lower return frequency", "toward -> lower, away -> higher", "toward -> no shift, away -> no shift", "toward -> louder only, away -> quieter only"], 0, "Keep the shift directions straight.", ["doppler_motion_confusion"], skill_tags=["flow_direction"]),
+        mcq("M9L6_M4", "A transmitted pulse is 5.000 MHz and the return is 4.998 MHz. What moving away clue does that give?", ["the target is moving away", "the target is moving toward", "the target is definitely still", "the signal is not ultrasound"], 0, "The return frequency fell slightly, so the target is receding.", ["doppler_motion_confusion"], skill_tags=["away_shift"]),
         short("M9L6_M5", "Why does zero Doppler shift not always mean 'no blood in the vessel'?", ["Because it mainly means no motion toward or away from the probe is being detected along that beam direction.", "Because Doppler reads motion along the probe direction, so zero shift does not prove the vessel is empty."], "Zero shift is not the same as 'nothing there.'", ["doppler_motion_confusion"], skill_tags=["zero_shift"], acceptance_rules=acceptance_groups(["zero shift"], ["not", "does not prove"], ["toward or away", "along the beam", "probe direction"], ["empty", "no blood", "nothing there"])) ,
         mcq("M9L6_M6", "Which description keeps Doppler and ordinary echo imaging linked correctly?", ["Both use ultrasound echoes, but Doppler focuses on motion through frequency shifts.", "Doppler uses light, while imaging uses sound.", "Doppler ignores echoes completely.", "Ordinary imaging already measures flow direction directly without shifts."], 0, "Doppler extends echo use to motion information.", ["doppler_motion_confusion", "ultrasound_not_sound_confusion"], skill_tags=["doppler_definition"]),
         short("M9L6_M7", "What single comparison lies at the heart of Doppler flow tracking?", ["Comparing the returned frequency with the transmitted frequency.", "Checking how the echo frequency shifts relative to the original pulse."], "Flow tracking starts from a frequency comparison.", ["doppler_motion_confusion"], skill_tags=["shift_reasoning"], acceptance_rules=acceptance_groups(["compare", "comparison"], ["returned frequency", "echo frequency"], ["transmitted", "original", "baseline"], ["shift"])) ,
@@ -806,6 +818,29 @@ M9_MODULE_DOC, M9_LESSONS, M9_SIM_LABS = build_nextgen_module_bundle(
     plan_assets=True,
     public_base="/lesson_assets",
 )
+
+
+def _sync_assessed_skills(lesson_pairs: Sequence[Tuple[str, Dict[str, Any]]]) -> None:
+    for _, lesson in lesson_pairs:
+        contract = lesson.get("authoring_contract") or {}
+        declared: List[str] = []
+        for skill in contract.get("mastery_skills") or []:
+            cleaned = str(skill).strip()
+            if cleaned and cleaned not in declared:
+                declared.append(cleaned)
+        concept_items: List[Dict[str, Any]] = []
+        for capsule in lesson.get("phases", {}).get("concept_reconstruction", {}).get("capsules", []):
+            concept_items.extend(capsule.get("checks") or [])
+        mastery_items = lesson.get("phases", {}).get("transfer", {}).get("items") or []
+        for item in [*concept_items, *mastery_items]:
+            for skill in item.get("skill_tags") or []:
+                cleaned = str(skill).strip()
+                if cleaned and cleaned not in declared:
+                    declared.append(cleaned)
+        contract["mastery_skills"] = declared
+
+
+_sync_assessed_skills(M9_LESSONS)
 
 
 def main() -> None:

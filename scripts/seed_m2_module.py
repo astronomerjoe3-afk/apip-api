@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
@@ -1019,6 +1020,171 @@ enrich_m2_lessons()
 
 M2_LESSONS: List[Tuple[str, Dict[str, Any]]] = [(str(lesson["lesson_id"]), lesson) for lesson in _LESSONS]
 M2_SIM_LABS: List[Tuple[str, Dict[str, Any]]] = [(str(sim["lab_id"]), sim) for sim in _SIMS]
+
+M2_SIMULATION_ENRICHMENTS: Dict[str, Dict[str, Any]] = {
+    "M2_L1": {
+        "focus_prompt": "Combine all the Drive Arrows first so the craft responds to the Master Arrow rather than to one force in isolation.",
+        "controls": ["forward arrow", "backward arrow", "side arrow", "initial motion state"],
+        "readouts": ["master arrow", "direction summary", "balanced or unbalanced status", "motion-change prediction"],
+    },
+    "M2_L2": {
+        "focus_prompt": "Compare the same Master Arrow on different Load Ratings so force, mass, and acceleration stay linked in one rule.",
+        "controls": ["net force", "craft mass", "force direction", "comparison craft"],
+        "readouts": ["master arrow", "mass", "acceleration", "response comparison"],
+    },
+    "M2_L3": {
+        "focus_prompt": "Keep the total Carry Score of the closed docking system visible before and after the exchange.",
+        "controls": ["craft masses", "incoming speeds", "collision type", "shared speed"],
+        "readouts": ["individual momentum", "system momentum", "before-after ledger", "post-collision motion"],
+    },
+    "M2_L4": {
+        "focus_prompt": "Treat Spin Pull as force times perpendicular reach so turning effect does not collapse into force alone.",
+        "controls": ["force size", "reach from pivot", "push direction", "pivot position"],
+        "readouts": ["moment", "clockwise or anticlockwise effect", "balanced-turn status", "force-reach pair"],
+    },
+    "M2_L5": {
+        "focus_prompt": "Track where the Balance Core sits relative to the support base before you talk about tipping.",
+        "controls": ["load position", "base width", "load mass", "platform tilt"],
+        "readouts": ["centre of mass", "line of action", "base overlap", "stability result"],
+    },
+    "M2_L6": {
+        "focus_prompt": "Resolve and rebuild the diagonal arrow so perpendicular components are combined without simple arithmetic shortcuts.",
+        "controls": ["east component", "north component", "resultant magnitude", "comparison vector"],
+        "readouts": ["resolved components", "resultant magnitude", "resultant direction", "vector triangle"],
+    },
+}
+
+M2_LESSON_SKILL_BUNDLES: Dict[str, List[str]] = {
+    "M2_L1": ["resultant_force_reasoning", "balanced_force_interpretation", "vector_combination", "motion_change_prediction"],
+    "M2_L2": ["force_mass_acceleration_link", "newtons_second_law_reasoning", "inertia_comparison", "quantitative_force_analysis"],
+    "M2_L3": ["momentum_reasoning", "closed_system_bookkeeping", "collision_analysis", "conservation_of_momentum"],
+    "M2_L4": ["moment_calculation", "turning_effect_reasoning", "perpendicular_distance", "pivot_analysis"],
+    "M2_L5": ["centre_of_mass_reasoning", "stability_analysis", "support_base_comparison", "tipping_threshold"],
+    "M2_L6": ["vector_resolution", "perpendicular_components", "resultant_reconstruction", "component_bookkeeping"],
+}
+
+_M2_ACCEPTANCE_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "because",
+    "be",
+    "by",
+    "for",
+    "from",
+    "if",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "so",
+    "that",
+    "the",
+    "their",
+    "then",
+    "there",
+    "they",
+    "this",
+    "to",
+    "when",
+    "with",
+}
+
+
+def _m2_phrase_tokens(value: str) -> List[str]:
+    return [
+        token
+        for token in re.findall(r"[a-z0-9]+", value.lower())
+        if token not in _M2_ACCEPTANCE_STOP_WORDS and len(token) > 1
+    ]
+
+
+def _m2_auto_acceptance_rules(accepted_answers: List[str]) -> Dict[str, Any] | None:
+    textual_answers: List[str] = []
+    for answer in accepted_answers:
+        candidate = str(answer or "").strip()
+        if not candidate:
+            continue
+        if re.fullmatch(r"[-+]?\d+(?:\.\d+)?(?:\s*[A-Za-z0-9/^.-]+)?", candidate):
+            continue
+        if len(re.findall(r"[A-Za-z]+", candidate)) <= 1:
+            continue
+        textual_answers.append(candidate)
+
+    if not textual_answers:
+        return None
+
+    token_counts: Dict[str, int] = {}
+    threshold = max(2, (len(textual_answers) + 1) // 2)
+    for answer in textual_answers:
+        for token in dict.fromkeys(_m2_phrase_tokens(answer)):
+            token_counts[token] = token_counts.get(token, 0) + 1
+
+    core_tokens = [token for token, count in token_counts.items() if count >= threshold][:4]
+    if len(core_tokens) >= 2:
+        return {"phrase_groups": [[token] for token in core_tokens]}
+    return {"phrase_groups": [textual_answers]}
+
+
+def _modernize_m2_contracts() -> None:
+    for lesson_id, lesson in M2_LESSONS:
+        contract = lesson["authoring_contract"]
+        simulation_contract = dict(contract.get("simulation_contract") or {})
+        simulation_contract.update(deepcopy(M2_SIMULATION_ENRICHMENTS[lesson_id]))
+        contract["simulation_contract"] = simulation_contract
+
+        core_concepts = list(
+            dict.fromkeys(
+                [str(item).strip() for item in contract.get("concept_targets") or [] if str(item).strip()]
+                + [
+                    str(formula_item.get("meaning") or "").strip()
+                    for formula_item in contract.get("formulas") or []
+                    if str(formula_item.get("meaning") or "").strip()
+                ]
+                + [str(simulation_contract.get("concept") or "").replace("_", " ").strip()]
+            )
+        )
+        contract["core_concepts"] = core_concepts[:5]
+
+        visual_checks = list(contract.get("visual_clarity_checks") or [])
+        for check in [
+            "Arrow labels, pivot markers, and comparison callouts stay readable on desktop and mobile layouts.",
+            "No picture labels, vector annotations, or callouts clip against the board edges.",
+            "Each visual keeps the compared force, momentum, or stability quantities visually distinct.",
+        ]:
+            if check not in visual_checks:
+                visual_checks.append(check)
+        contract["visual_clarity_checks"] = visual_checks
+
+        release_checks = list(contract.get("release_checks") or [])
+        clip_check = "No picture labels, vector annotations, or callouts clip on desktop or mobile layouts."
+        if clip_check not in release_checks:
+            release_checks.append(clip_check)
+        contract["release_checks"] = release_checks
+
+        lesson_skill_bundle = list(M2_LESSON_SKILL_BUNDLES[lesson_id])
+        contract["mastery_skills"] = list(dict.fromkeys(list(contract.get("mastery_skills") or []) + lesson_skill_bundle))
+
+        question_sets = [
+            *lesson["phases"]["diagnostic"]["items"],
+            *lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"],
+            *lesson["phases"]["transfer"]["items"],
+        ]
+        for question in question_sets:
+            if not question.get("skill_tags"):
+                question["skill_tags"] = list(lesson_skill_bundle)
+            if question.get("type") == "short" and question.get("accepted_answers") and not question.get("acceptance_rules"):
+                rules = _m2_auto_acceptance_rules(list(question.get("accepted_answers") or []))
+                if rules:
+                    question["acceptance_rules"] = rules
+
+
+_modernize_m2_contracts()
 
 validate_nextgen_module(M2_MODULE_DOC, [payload for _, payload in M2_LESSONS], [payload for _, payload in M2_SIM_LABS], M2_ALLOWLIST)
 plan_module_assets(M2_LESSONS, M2_SIM_LABS, public_base="/lesson_assets")

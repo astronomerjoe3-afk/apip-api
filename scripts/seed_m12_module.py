@@ -356,6 +356,18 @@ def lesson_spec(
     transfer: Sequence[Dict[str, Any]],
     contract_payload: Dict[str, Any],
 ) -> Dict[str, Any]:
+    resolved_contract = deepcopy(contract_payload)
+    declared_skills = [
+        str(skill).strip()
+        for skill in resolved_contract.get("mastery_skills") or []
+        if str(skill).strip()
+    ]
+    for item in [*diagnostic, *capsule_checks, *transfer]:
+        for skill in item.get("skill_tags") or []:
+            cleaned = str(skill).strip()
+            if cleaned and cleaned not in declared_skills:
+                declared_skills.append(cleaned)
+    resolved_contract["mastery_skills"] = declared_skills
     return {
         "id": lesson_id,
         "title": title,
@@ -369,7 +381,7 @@ def lesson_spec(
         "capsule_prompt": capsule_prompt,
         "capsule_checks": list(capsule_checks),
         "transfer": list(transfer),
-        "contract": deepcopy(contract_payload),
+        "contract": resolved_contract,
     }
 
 
@@ -1214,6 +1226,29 @@ M12_MODULE_DOC, M12_LESSONS, M12_SIM_LABS = build_nextgen_module_bundle(
     plan_assets=True,
     public_base="/lesson_assets",
 )
+
+
+def _sync_assessed_skills(lesson_pairs: Sequence[Tuple[str, Dict[str, Any]]]) -> None:
+    for _, lesson in lesson_pairs:
+        contract = lesson.get("authoring_contract") or {}
+        declared: List[str] = []
+        for skill in contract.get("mastery_skills") or []:
+            cleaned = str(skill).strip()
+            if cleaned and cleaned not in declared:
+                declared.append(cleaned)
+        concept_items: List[Dict[str, Any]] = []
+        for capsule in lesson.get("phases", {}).get("concept_reconstruction", {}).get("capsules", []):
+            concept_items.extend(capsule.get("checks") or [])
+        mastery_items = lesson.get("phases", {}).get("transfer", {}).get("items") or []
+        for item in [*concept_items, *mastery_items]:
+            for skill in item.get("skill_tags") or []:
+                cleaned = str(skill).strip()
+                if cleaned and cleaned not in declared:
+                    declared.append(cleaned)
+        contract["mastery_skills"] = declared
+
+
+_sync_assessed_skills(M12_LESSONS)
 
 
 def main() -> None:
