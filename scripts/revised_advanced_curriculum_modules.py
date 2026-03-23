@@ -68,6 +68,8 @@ except ModuleNotFoundError:
 _RIGOUR_OUTCOMES = [
     "Use units, conditions, and limiting cases to test whether a formal relation is being applied appropriately.",
     "Translate advanced equations back into mechanism-based physics language instead of leaving them as detached symbol strings.",
+    "Use the analogy as a bridge to the mechanism, then restate the result in formal physics language before finalizing the explanation.",
+    "Compare advanced cases by naming what changes, what stays fixed, and which invariant makes the comparison trustworthy.",
 ]
 
 
@@ -90,6 +92,22 @@ def _append_unique_strings(items: Sequence[str], additions: Sequence[str]) -> Li
             continue
         seen.add(key)
         merged.append(text)
+    return merged
+
+
+def _append_unique_dicts(items: Sequence[Dict[str, Any]], additions: Sequence[Dict[str, Any]], key: str) -> List[Dict[str, Any]]:
+    merged: List[Dict[str, Any]] = []
+    seen = set()
+    for entry in [*items, *additions]:
+        item = deepcopy(dict(entry))
+        value = str(item.get(key) or "").strip()
+        if not value:
+            continue
+        lowered = value.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        merged.append(item)
     return merged
 
 
@@ -140,6 +158,7 @@ def _extra_question_banks(lesson_id: str, lesson: Dict[str, Any]) -> Dict[str, L
     contract = dict(lesson["authoring_contract"])
     diagnostic = list(lesson["phases"]["diagnostic"]["items"])
     terms = [dict(item) for item in contract.get("technical_words") or []]
+    analogy_map = dict(contract.get("analogy_map") or {})
     skills = list(contract.get("mastery_skills") or [])
     while len(skills) < 5:
         skills.append(f"{lesson_id.lower()}_skill_{len(skills) + 1}")
@@ -148,6 +167,12 @@ def _extra_question_banks(lesson_id: str, lesson: Dict[str, Any]) -> Dict[str, L
     conditions = str(formula.get("conditions") or "the stated lesson condition holds")
     units_text = _units_text(formula.get("units") or [])
     title = str(lesson.get("title") or lesson_id)
+    focus = str(analogy_map.get("focus") or title.lower())
+    analogy_limit = str(
+        analogy_map.get("limit")
+        or "The analogy helps expose the mechanism, but the final statement still has to be written in formal physics language."
+    )
+    mapping = [str(item).strip() for item in analogy_map.get("mapping") or [] if str(item).strip()]
     term_a = str((terms[0] if terms else {}).get("term") or "the first lesson quantity")
     term_b = str((terms[1] if len(terms) > 1 else terms[0] if terms else {}).get("term") or "the second lesson quantity")
     why_item = dict(diagnostic[1] if len(diagnostic) > 1 else {})
@@ -158,6 +183,18 @@ def _extra_question_banks(lesson_id: str, lesson: Dict[str, Any]) -> Dict[str, L
     compare_groups = deepcopy((compare_item.get("acceptance_rules") or {}).get("phrase_groups") or [_term_group(term_a), _term_group(term_b), ["different", "separate"]])
     term_d, term_d_choices = _definition_choices(terms or [{"term": "lesson term", "meaning": "It is one of the technical ideas used in this lesson."}], 3)
     term_c, term_c_choices = _definition_choices(terms or [{"term": "lesson term", "meaning": "It is one of the technical ideas used in this lesson."}], 2)
+    mapping_line = mapping[0] if mapping else f"{term_a} = the lesson quantity that must stay visible in {title.lower()}"
+    mapping_choices = [
+        mapping_line,
+        f"{term_a} = only the final number written after the calculation is complete.",
+        f"{term_a} = a decorative label that can replace the mechanism in {title.lower()}.",
+        f"{term_a} = whichever quantity happens to appear first in {equation}.",
+    ]
+    formal_bridge_statement = f"Use the analogy to identify the mechanism, then translate it back into {equation} with {conditions.lower()}."
+    comparison_statement = f"Keep one variable fixed, change one variable deliberately, and read how {term_a} and {term_b} respond together."
+    analogy_bridge_statement = f"The analogy helps by making {focus.lower()} visible before the formal quantities are named."
+    condition_statement = f"Check whether {conditions.lower()} before trusting {equation} in a new case."
+    limit_statement = "A strong advanced answer keeps the analogy as a bridge, then switches back to formal physics language, units, and conditions."
 
     diagnostic_extra = [
         mcq(
@@ -200,6 +237,53 @@ def _extra_question_banks(lesson_id: str, lesson: Dict[str, Any]) -> Dict[str, L
             ],
             0,
             "Tie the relation to its physical condition before you use it.",
+            skill_tags=[skills[3]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_D11",
+            f"Which analogy mapping best keeps {title.lower()} readable?",
+            mapping_choices,
+            0,
+            "Use the mapping that protects the mechanism rather than hiding it behind a label.",
+            skill_tags=[skills[2]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_D12",
+            f"Which statement best translates the analogy back into formal physics in {title.lower()}?",
+            [
+                formal_bridge_statement,
+                "Keep the analogy wording only and skip the formal relation because the picture already said enough.",
+                "Use the equation name only and leave the analogy unconnected to the physics.",
+                "Treat the analogy as the final answer so no conditions or variables need to be checked.",
+            ],
+            0,
+            "Use the analogy as a bridge, then state the formal physics clearly.",
+            skill_tags=[skills[4]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_D13",
+            f"Which comparison move is strongest in {title.lower()}?",
+            [
+                comparison_statement,
+                "Change several controls at once so the answer feels more realistic.",
+                "Ignore what is fixed and compare only the final picture.",
+                "Use the analogy label only and let the responding quantity stay implied.",
+            ],
+            0,
+            "A trustworthy comparison names what changed, what stayed fixed, and what responded.",
+            skill_tags=[skills[4]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_D14",
+            f"Which limit check best protects {title.lower()}?",
+            [
+                condition_statement,
+                "If the equation is familiar, the condition can be ignored in transfer questions.",
+                "The condition matters only after the answer has already been chosen.",
+                "Advanced questions are safer when units and conditions stay hidden until the last line.",
+            ],
+            0,
+            "Carry the condition into the new case before trusting the relation.",
             skill_tags=[skills[3]],
         ),
     ]
@@ -247,6 +331,53 @@ def _extra_question_banks(lesson_id: str, lesson: Dict[str, Any]) -> Dict[str, L
             "Use units as a physics check, not only as decoration after the calculation.",
             skill_tags=[skills[3]],
         ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_C9",
+            f"What does the analogy help you see first in {title.lower()}?",
+            [
+                analogy_bridge_statement,
+                "It replaces the formal physics completely once the picture looks familiar.",
+                "It proves the final answer without any need for conditions or units.",
+                "It turns every advanced question into the same generic slogan.",
+            ],
+            0,
+            "The analogy should expose the mechanism before the formal language is applied.",
+            skill_tags=[skills[1]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_C10",
+            f"Which mapping pair is safest to keep in mind during {title.lower()}?",
+            mapping_choices,
+            0,
+            "Choose the mapping that preserves the lesson mechanism rather than a decorative label.",
+            skill_tags=[skills[2]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_C11",
+            f"Which sentence best protects the analogy limit in {title.lower()}?",
+            [
+                limit_statement,
+                "Once the analogy is memorable, the formal terms can be dropped safely.",
+                "A precise condition check is less useful than reusing the analogy wording exactly.",
+                "Advanced explanations are strongest when the analogy replaces the units and variables.",
+            ],
+            0,
+            "A strong answer uses the analogy as a bridge, not as a substitute for the formal physics.",
+            skill_tags=[skills[4]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_C12",
+            f"Which comparison statement is most rigorous in {title.lower()}?",
+            [
+                f"Name what changed, what stayed fixed, and how {equation} explains the response.",
+                "Summarize the new case from the final picture alone.",
+                "Use the analogy label only and assume the formal relation is understood.",
+                "Compare cases without naming the invariant or the responding quantity.",
+            ],
+            0,
+            "Rigorous comparison keeps the invariant, the change, and the response visible together.",
+            skill_tags=[skills[4]],
+        ),
     ]
 
     mastery_extra = [
@@ -292,6 +423,58 @@ def _extra_question_banks(lesson_id: str, lesson: Dict[str, Any]) -> Dict[str, L
             skill_tags=[skills[0]],
             acceptance_rules=acceptance_groups(*compare_groups),
         ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_M11",
+            f"Which transfer statement best uses the analogy without getting trapped by it in {title.lower()}?",
+            [
+                formal_bridge_statement,
+                "Use the analogy wording only and treat the formal relation as optional.",
+                "Name the topic and skip the mechanism because the analogy already implied it.",
+                "Trust the equation automatically because the analogy looks familiar.",
+            ],
+            0,
+            "The best transfer answer moves from analogy to formal physics cleanly.",
+            skill_tags=[skills[4]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_M12",
+            f"Which statement best keeps the main comparison visible in a new {title.lower()} case?",
+            [
+                comparison_statement,
+                "Change the whole setup at once and let the invariant stay hidden.",
+                "Use the analogy object names only and ignore which formal quantity responded.",
+                "Rely on the final numerical trend without checking what produced it.",
+            ],
+            0,
+            "Carry the controlled-comparison discipline into the transfer case.",
+            skill_tags=[skills[4]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_M13",
+            f"Which condition check should travel with {equation} into a fresh {title.lower()} problem?",
+            [
+                condition_statement,
+                "The condition matters only for worked examples, not for fresh transfer problems.",
+                "The relation becomes universal once the variables are remembered.",
+                "A new case is safest when the units are ignored until the last line.",
+            ],
+            0,
+            "The same relation still needs its condition when the context changes.",
+            skill_tags=[skills[3]],
+        ),
+        mcq(
+            f"{lesson_id.replace('_', '')}_M14",
+            f"Which statement best protects the analogy-to-formal bridge in {title.lower()}?",
+            [
+                limit_statement,
+                "The analogy is strongest when it replaces the formal physics vocabulary completely.",
+                "A precise answer should suppress the analogy and the mechanism and keep only the final symbol order.",
+                "Once the relation is written, the units, conditions, and comparison logic can all be dropped.",
+            ],
+            0,
+            "A strong advanced answer uses the bridge and then names the formal physics clearly.",
+            skill_tags=[skills[4]],
+        ),
     ]
 
     for item in [*diagnostic_extra, *concept_extra, *mastery_extra]:
@@ -318,9 +501,9 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
     mastery.extend(deepcopy(extras["mastery"]))
 
     contract["assessment_bank_targets"] = {
-        "diagnostic_pool_min": 10,
-        "concept_gate_pool_min": 8,
-        "mastery_pool_min": 10,
+        "diagnostic_pool_min": 14,
+        "concept_gate_pool_min": 12,
+        "mastery_pool_min": 14,
         "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
     }
 
@@ -329,12 +512,28 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
     conditions = str(formula.get("conditions") or "the stated physical condition holds")
     units_text = _units_text(formula.get("units") or [])
     title = str(lesson.get("title") or lesson_id)
+    analogy_map = dict(contract.get("analogy_map") or {})
+    focus = str(
+        analogy_map.get("focus")
+        or lesson.get("phases", {}).get("analogical_grounding", {}).get("analogy_text")
+        or title.lower()
+    )
+    analogy_limit = str(
+        analogy_map.get("limit")
+        or "The analogy helps expose the mechanism, but the final statement still has to be written in formal physics language."
+    )
+    mapping = [str(item).strip() for item in analogy_map.get("mapping") or [] if str(item).strip()]
+    mapping_line = mapping[0] if mapping else f"{title} bridge = the formal lesson mechanism"
 
     contract["core_concepts"] = _append_unique_strings(
         contract.get("core_concepts") or [],
         [
             "The formal relation must be read with its units and conditions, not as a detached symbol string.",
             "A strong answer keeps the underlying mechanism and the named quantities visible together.",
+            "A reliable comparison names what changed, what stayed fixed, and which quantity responded.",
+            "Analogy language should clarify the mechanism first, then be translated back into formal physics terms.",
+            "Limiting cases and invariant checks help expose when a formal relation is being overextended.",
+            "Advanced rigour means keeping the mechanism, the condition, and the formal relation visible in one explanation.",
         ],
     )
 
@@ -375,22 +574,60 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
             "This raises the conceptual depth of the lesson beyond naming the topic or formula alone.",
         )
     )
+    contract["worked_examples"].append(
+        worked(
+            f"How do you translate the analogy back into formal physics in {title.lower()}?",
+            [
+                "Name the part of the analogy that makes the mechanism easiest to see.",
+                "Match that analogy feature to the formal quantity or relation.",
+                "State the final lesson idea using the formal relation, condition, and units.",
+            ],
+            f"Use the analogy to expose the mechanism, then restate it with {equation} under {conditions.lower()}.",
+            "The answer works because the analogy is treated as a bridge into the formal statement, not as a replacement for it.",
+            "This makes the advanced lesson richer by keeping both the intuitive world and the formal world active together.",
+        )
+    )
+    contract["worked_examples"].append(
+        worked(
+            f"What makes a comparison in {title.lower()} rigorous?",
+            [
+                "State which variable is being changed deliberately.",
+                "Name the quantity or condition that is being held fixed.",
+                "Read the response in both the analogy language and the formal physics language.",
+            ],
+            "A rigorous comparison keeps the changed variable, the fixed variable, and the responding quantity visible together.",
+            "The answer works because it prevents several effects from being mixed into one vague outcome.",
+            "This strengthens advanced reasoning by turning the explorer into a controlled physics comparison.",
+        )
+    )
 
     scaffold_support = dict(contract.get("scaffold_support") or {})
     extra_sections = list(scaffold_support.get("extra_sections") or [])
-    extra_sections.append(
-        {
-            "heading": "Formal condition",
-            "body": f"Use {equation} only when {conditions}.",
-            "check_for_understanding": "What physical condition must be checked before this relation is used?",
-        }
-    )
-    extra_sections.append(
-        {
-            "heading": "Unit check",
-            "body": f"Keep the variables in {units_text} so the relation stays physically consistent.",
-            "check_for_understanding": "Which units keep this relation internally consistent before you substitute values?",
-        }
+    extra_sections = _append_unique_dicts(
+        extra_sections,
+        [
+            {
+                "heading": "Formal condition",
+                "body": f"Use {equation} only when {conditions}.",
+                "check_for_understanding": "What physical condition must be checked before this relation is used?",
+            },
+            {
+                "heading": "Unit check",
+                "body": f"Keep the variables in {units_text} so the relation stays physically consistent.",
+                "check_for_understanding": "Which units keep this relation internally consistent before you substitute values?",
+            },
+            {
+                "heading": "Analogy bridge",
+                "body": f"Use the analogy to make {focus.lower()} visible, then translate it back into the formal physics language of the lesson.",
+                "check_for_understanding": f"What does the analogy help you see first before you restate {title.lower()} formally?",
+            },
+            {
+                "heading": "Limit check",
+                "body": analogy_limit,
+                "check_for_understanding": "What limiting case, invariant, or condition would stop you from overusing the lesson relation?",
+            },
+        ],
+        "heading",
     )
     scaffold_support["extra_sections"] = extra_sections
     contract["scaffold_support"] = scaffold_support
@@ -400,46 +637,88 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
         [
             f"Which condition or unit check stops {title.lower()} from becoming a blind plug-in formula?",
             f"How would you explain {title.lower()} without collapsing its linked quantities into one vague label?",
+            f"Which part of the analogy makes {focus.lower()} easiest to see before you switch back to formal language?",
+            f"What limiting case or invariant would you check before trusting {equation} in a new {title.lower()} problem?",
+            f"How would you translate {mapping_line} into one clean formal-physics sentence?",
         ],
     )
 
     clarity_checks = list(contract.get("visual_clarity_checks") or [])
     clarity_checks.append("No picture labels, axes, arrows, or callouts clip on desktop or mobile layouts.")
     clarity_checks.append("Formal relation callouts stay readable without covering the main geometry, field, or comparison area.")
+    clarity_checks.append("Analogy labels and formal labels stay separated so both layers can be read together.")
+    clarity_checks.append("Comparison panels show which variable changed and which stayed fixed without overlap or ambiguity.")
     contract["visual_clarity_checks"] = _append_unique_strings([], clarity_checks)
 
     release_checks = list(contract.get("release_checks") or [])
-    release_checks.append("Every lesson keeps at least 10 diagnostic, 8 concept-gate, and 10 mastery questions with lesson-owned stems.")
+    release_checks.append("Every lesson keeps at least 14 diagnostic, 12 concept-gate, and 14 mastery questions with lesson-owned stems.")
     release_checks.append("Every lesson keeps units, conditions, and mechanism language visible instead of reducing the topic to one formula.")
+    release_checks.append("Every lesson includes an analogy-to-formal translation step before the final summary is accepted.")
+    release_checks.append("Every lesson includes controlled-comparison prompts that name the changing variable, the fixed variable, and the response.")
     contract["release_checks"] = _append_unique_strings([], release_checks)
 
     simulation_contract = dict(contract.get("simulation_contract") or {})
     comparison_tasks = list(simulation_contract.get("comparison_tasks") or [])
     comparison_tasks.append("Keep one variable fixed, change one variable deliberately, and state which physical quantity responded.")
     comparison_tasks.append("State the unit or condition check that keeps the comparison physically valid before you summarize it.")
+    comparison_tasks.append("Predict the trend in analogy language first, then restate the outcome in formal physics language.")
+    comparison_tasks.append("Name the invariant or limiting condition that keeps the comparison trustworthy before accepting the result.")
     simulation_contract["comparison_tasks"] = _append_unique_strings([], comparison_tasks)
 
-    controls = list(simulation_contract.get("controls") or [])
-    if len(controls) < 3:
-        controls.append(
+    controls = _append_unique_dicts(
+        list(simulation_contract.get("controls") or []),
+        [
             {
                 "variable": "comparison_mode",
                 "label": "Comparison mode",
                 "why_it_matters": "It keeps one advanced variable change visible at a time instead of mixing several effects together.",
-            }
-        )
-    readouts = list(simulation_contract.get("readouts") or [])
-    if len(readouts) < 3:
-        readouts.append(
+            },
+            {
+                "variable": "bridge_view",
+                "label": "Bridge view",
+                "why_it_matters": "It keeps the analogy picture and the formal physics reading side by side while the comparison changes.",
+            },
+        ],
+        "variable",
+    )
+    readouts = _append_unique_dicts(
+        list(simulation_contract.get("readouts") or []),
+        [
             {
                 "label": "Rigour check",
                 "meaning": "Keeps the condition, units, or invariant visible while the comparison is being made.",
-            }
-        )
+            },
+            {
+                "label": "Formal translation",
+                "meaning": "Restates the analogy reading as a formal physics statement before the case is accepted.",
+            },
+        ],
+        "label",
+    )
     simulation_contract["controls"] = controls
     simulation_contract["readouts"] = readouts
-    simulation_contract["takeaway"] = f"{simulation_contract.get('takeaway') or ''} Keep the condition, units, and mechanism visible while you compare cases.".strip()
+    simulation_contract["takeaway"] = (
+        f"{simulation_contract.get('takeaway') or ''} "
+        "Keep the condition, units, and mechanism visible while you compare cases, then translate the analogy back into formal physics."
+    ).strip()
     contract["simulation_contract"] = simulation_contract
+
+    analogical_grounding = dict(lesson["phases"].get("analogical_grounding") or {})
+    analogical_grounding["micro_prompts"] = _append_unique_dicts(
+        list(analogical_grounding.get("micro_prompts") or []),
+        [
+            {
+                "prompt": f"Which part of the analogy makes {focus.lower()} easiest to see first?",
+                "hint": "Name the bridge feature before you switch back to the formal quantity.",
+            },
+            {
+                "prompt": f"How would you translate that analogy move back into {equation}?",
+                "hint": "Use the analogy first, then state the formal relation and its condition.",
+            },
+        ],
+        "prompt",
+    )
+    lesson["phases"]["analogical_grounding"] = analogical_grounding
 
     lesson_sim = dict(lesson.get("sim") or {})
     lesson_sim["instructions"] = _append_unique_strings(
@@ -449,6 +728,8 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
             "State the unit or condition check that keeps the comparison physically valid before you summarize it.",
             "Run a second comparison case and say what stayed invariant while the main variable changed.",
             "Link the explorer result back to the formal relation instead of stopping at a visual description.",
+            "Predict the change in analogy language first, then restate the result in formal physics language.",
+            "Name the limiting case or invariant that tells you whether the same relation still applies.",
         ],
     )
     lesson_sim["outcomes"] = _append_unique_strings(
@@ -459,6 +740,8 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
             "Identify which variable changed, which stayed fixed, and why that matters physically.",
             "Compare two valid cases without collapsing a whole-system quantity into an average quantity.",
             "Summarize the mechanism, the condition, and the formal relation in one rigorous statement.",
+            "Translate the analogy insight back into formal physics language before finalizing the result.",
+            "Use a limiting case or invariant to test whether the comparison still makes physical sense.",
         ],
     )
     lesson_sim["fields"] = _append_unique_strings(lesson_sim.get("fields") or [], ["comparison_mode"])
@@ -466,6 +749,20 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
     lesson["sim"] = lesson_sim
 
     simulation_phase = dict(lesson["phases"].get("simulation_inquiry") or {})
+    simulation_phase["inquiry_prompts"] = _append_unique_dicts(
+        list(simulation_phase.get("inquiry_prompts") or []),
+        [
+            {
+                "prompt": f"Which variable are you changing, which stays fixed, and how should {title.lower()} respond?",
+                "hint": "A clean comparison names the change, the invariant, and the response before you move the controls.",
+            },
+            {
+                "prompt": f"How would you restate this explorer result with {equation} and its condition?",
+                "hint": f"Use the analogy as a bridge, then name the formal relation {equation} with {conditions.lower()}.",
+            },
+        ],
+        "prompt",
+    )
     generated_lab = dict(simulation_phase.get("generated_lab") or {})
     generated_lab["instructions"] = list(lesson_sim.get("instructions") or generated_lab.get("instructions") or [])
     generated_lab["outcomes"] = list(lesson_sim.get("outcomes") or generated_lab.get("outcomes") or [])
@@ -473,6 +770,17 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
     generated_lab["depth"] = lesson_sim.get("depth") or generated_lab.get("depth") or "advanced"
     simulation_phase["generated_lab"] = generated_lab
     lesson["phases"]["simulation_inquiry"] = simulation_phase
+
+    concept_reconstruction = dict(lesson["phases"].get("concept_reconstruction") or {})
+    concept_reconstruction["prompts"] = _append_unique_strings(
+        concept_reconstruction.get("prompts") or [],
+        [
+            "Translate the analogy language back into the formal physics language before you summarize the lesson.",
+            "State which quantity stays fixed and which quantity responds in the comparison you just explored.",
+            "Name a limiting case, threshold, or condition that would expose careless reuse of the formal relation.",
+        ],
+    )
+    lesson["phases"]["concept_reconstruction"] = concept_reconstruction
 
     sim_doc["description"] = f"{sim_doc.get('description') or ''} Keep units, conditions, and comparison logic visible as you explore.".strip()
     sim_doc["instructions"] = _append_unique_strings(
@@ -482,6 +790,8 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
             "State the unit or condition check that keeps the comparison physically valid before you summarize it.",
             "Run a second comparison case and say what stayed invariant while the main variable changed.",
             "Link the explorer result back to the formal relation instead of stopping at a visual description.",
+            "Predict the change in analogy language first, then restate the result in formal physics language.",
+            "Name the limiting case or invariant that tells you whether the same relation still applies.",
         ],
     )
     sim_doc["outcomes"] = _append_unique_strings(
@@ -492,6 +802,8 @@ def _enrich_lesson_payload(lesson: Dict[str, Any], sim_doc: Dict[str, Any]) -> N
             "Identify which variable changed, which stayed fixed, and why that matters physically.",
             "Compare two valid cases without collapsing a whole-system quantity into an average quantity.",
             "Summarize the mechanism, the condition, and the formal relation in one rigorous statement.",
+            "Translate the analogy insight back into formal physics language before finalizing the result.",
+            "Use a limiting case or invariant to test whether the comparison still makes physical sense.",
         ],
     )
     sim_doc["fields"] = _append_unique_strings(sim_doc.get("fields") or [], ["comparison_mode"])
@@ -518,8 +830,10 @@ def _enrich_bundle(
     enriched_module_doc["release_checks"] = _append_unique_strings(
         enriched_module_doc.get("release_checks") or [],
         [
-            "Every A6-A11 lesson uses 10 diagnostic, 8 concept-gate, and 10 mastery questions before any stem repeats.",
+            "Every A6-A11 lesson uses 14 diagnostic, 12 concept-gate, and 14 mastery questions before any stem repeats.",
             "Every A6-A11 explorer keeps the formal condition, units, and comparison logic visible during the task.",
+            "Every A6-A11 lesson includes explicit analogy-to-formal translation steps in both the lesson flow and the worked examples.",
+            "Every A6-A11 lesson names what changes, what stays fixed, and which invariant protects the comparison.",
         ],
     )
 
