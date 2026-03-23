@@ -942,7 +942,7 @@ def _upgrade_f5_bundle(
         simulation_contract["readouts"] = readouts
 
 
-F5_CONTENT_VERSION = "20260323_f5_lantern_ring_skycourt_v2"
+F5_CONTENT_VERSION = "20260323_f5_lantern_ring_skycourt_v3"
 F5_MODULE_TITLE = "Observable Earth and Sky"
 F5_MODULE_DESCRIPTION = "One lantern lights the skycourt, Earth spins for day and night, tilted laps make seasons, and changing viewpoints explain phases, eclipses, and Solar System patterns."
 F5_MASTERY_OUTCOMES = [

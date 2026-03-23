@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F3_MODULE_ID = "F3"
-F3_CONTENT_VERSION = "20260323_f3_pulse_hearth_curriculum_v6"
+F3_CONTENT_VERSION = "20260323_f3_pulse_hearth_curriculum_v7"
 F3_ALLOWLIST = [
     "work_energy_transfer_confusion",
     "kinetic_energy_relationship_error",

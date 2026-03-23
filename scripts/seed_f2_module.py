@@ -9,7 +9,7 @@ from google.cloud import firestore
 
 
 F2_MODULE_ID = "F2"
-F2_CONTENT_VERSION = "20260323_f2_mission_track_curriculum_v11"
+F2_CONTENT_VERSION = "20260323_f2_mission_track_curriculum_v12"
 F2_ALLOWLIST = [
     "distance_displacement_confusion",
     "speed_calculation_error",

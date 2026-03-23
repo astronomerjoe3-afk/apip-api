@@ -24,7 +24,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 F4_MODULE_ID = "F4"
-F4_CONTENT_VERSION = "20260323_f4_signal_glow_curriculum_v6"
+F4_CONTENT_VERSION = "20260323_f4_signal_glow_curriculum_v7"
 F4_ALLOWLIST = [
     "charge_current_rate_confusion",
     "current_used_up_confusion",

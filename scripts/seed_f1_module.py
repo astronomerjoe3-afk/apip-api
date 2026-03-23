@@ -18,7 +18,7 @@ except ModuleNotFoundError:
 
 
 F1_MODULE_ID = "F1"
-F1_CONTENT_VERSION = "20260323_f1_measure_map_curriculum_v3"
+F1_CONTENT_VERSION = "20260323_f1_measure_map_curriculum_v4"
 F1_ALLOWLIST = [
     "unit_label_confusion",
     "prefix_scale_error",

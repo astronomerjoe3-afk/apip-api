@@ -8,6 +8,24 @@ from scripts.seed_f4_module import F4_MODULE_DOC
 
 
 class FoundationCurriculumAlignmentTests(unittest.TestCase):
+    def test_f1_to_f5_title_sequence_matches_refined_curriculum(self) -> None:
+        self.assertEqual(
+            [
+                F1_MODULE_DOC["title"],
+                F2_MODULE_DOC["title"],
+                F3_MODULE_DOC["title"],
+                F4_MODULE_DOC["title"],
+                F5_MODULE_DOC["title"],
+            ],
+            [
+                "Scientific Measurement and Representation",
+                "Motion, Forces and Energy",
+                "Matter, Particles and Thermal Behaviour",
+                "Waves, Light and Electricity",
+                "Observable Earth and Sky",
+            ],
+        )
+
     def test_f1_matches_refined_curriculum_identity(self) -> None:
         mastery_text = " ".join(F1_MODULE_DOC.get("mastery_outcomes") or []).lower()
         focus = " ".join(F1_MODULE_DOC.get("curriculum_focus") or []).lower()
