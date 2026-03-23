@@ -20,21 +20,29 @@ from scripts.seed_m10_module import M10_LESSONS, M10_MODULE_DOC, M10_SIM_LABS
 from scripts.seed_m11_module import M11_LESSONS, M11_MODULE_DOC, M11_SIM_LABS
 from scripts.seed_m12_module import M12_LESSONS, M12_MODULE_DOC, M12_SIM_LABS
 from scripts.seed_m13_module import M13_LESSONS, M13_MODULE_DOC, M13_SIM_LABS
-from scripts.seed_m15_module import M15_LESSONS, M15_MODULE_DOC, M15_SIM_LABS
 from scripts.seed_a1_module import A1_LESSONS, A1_MODULE_DOC, A1_SIM_LABS
 from scripts.seed_a2_module import A2_LESSONS, A2_MODULE_DOC, A2_SIM_LABS
 from scripts.seed_a3_module import A3_LESSONS, A3_MODULE_DOC, A3_SIM_LABS
 from scripts.seed_a5_module import A5_LESSONS, A5_MODULE_DOC, A5_SIM_LABS
+from scripts.revised_core_curriculum_modules import F5_MODULE_DOC, F5_LESSONS, F5_SIM_LABS, M14_MODULE_DOC as REVISED_M14_MODULE_DOC, M14_LESSONS as REVISED_M14_LESSONS, M14_SIM_LABS as REVISED_M14_SIM_LABS
 
 
 class ModuleAssetPipelineTests(unittest.TestCase):
+    def test_catalog_bootstrap_includes_f5_bundle(self) -> None:
+        self.assertIn("F5", get_catalog_module_ids())
+
+        row = get_catalog_module_row("F5")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["id"], "F5")
+        self.assertEqual(row["title"], "Observable Earth and Sky")
+
     def test_catalog_bootstrap_includes_m12_bundle(self) -> None:
         self.assertIn("M12", get_catalog_module_ids())
 
         row = get_catalog_module_row("M12")
         self.assertIsNotNone(row)
         self.assertEqual(row["id"], "M12")
-        self.assertEqual(row["title"], "Magnetism & Electromagnetic Effects")
+        self.assertEqual(row["title"], "Nuclear Energy and Applications")
 
     def test_catalog_bootstrap_includes_a1_bundle(self) -> None:
         self.assertIn("A1", get_catalog_module_ids())
@@ -68,22 +76,18 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertEqual(row["id"], "A5")
         self.assertEqual(row["title"], "Modern Physics")
 
-    def test_catalog_bootstrap_includes_m15_bundle(self) -> None:
-        self.assertIn("M15", get_catalog_module_ids())
+    def test_catalog_bootstrap_excludes_m15_bundle(self) -> None:
+        self.assertNotIn("M15", get_catalog_module_ids())
+        self.assertIsNone(get_catalog_module_row("M15"))
 
-        row = get_catalog_module_row("M15")
-        self.assertIsNotNone(row)
-        self.assertEqual(row["id"], "M15")
-        self.assertEqual(row["title"], "Universe")
+    def test_revised_m14_bundle_uses_generated_assets_and_space_contracts(self) -> None:
+        self.assertEqual(REVISED_M14_MODULE_DOC["id"], "M14")
+        self.assertEqual(REVISED_M14_MODULE_DOC["title"], "Stars and the Universe")
+        self.assertEqual(REVISED_M14_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(REVISED_M14_LESSONS), 6)
+        self.assertEqual(len(REVISED_M14_SIM_LABS), 6)
 
-    def test_m15_bundle_uses_generated_assets_and_space_contracts(self) -> None:
-        self.assertEqual(M15_MODULE_DOC["id"], "M15")
-        self.assertEqual(M15_MODULE_DOC["title"], "Universe")
-        self.assertEqual(M15_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
-        self.assertEqual(len(M15_LESSONS), 6)
-        self.assertEqual(len(M15_SIM_LABS), 6)
-
-        for _, lesson in M15_LESSONS:
+        for _, lesson in REVISED_M14_LESSONS:
             contract = lesson["authoring_contract"]
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
@@ -107,10 +111,10 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
             self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 4)
 
-    def test_m15_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
-        mastery_text = " ".join(M15_MODULE_DOC.get("mastery_outcomes") or []).lower()
-        description_text = str(M15_MODULE_DOC.get("description") or "").lower()
-        self.assertIn("fusion", mastery_text)
+    def test_revised_m14_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
+        mastery_text = " ".join(REVISED_M14_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(REVISED_M14_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("star", mastery_text)
         self.assertIn("milky way", mastery_text)
         self.assertIn("light-year", mastery_text)
         self.assertIn("redshift", mastery_text)

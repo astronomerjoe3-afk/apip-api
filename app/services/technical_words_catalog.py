@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import re
 from typing import Any, Dict, List, Sequence
 
 
@@ -42,6 +43,12 @@ DEFAULT_TECHNICAL_WORDS_BY_MODULE: Dict[str, List[Dict[str, str]]] = {
         _tw("Current", "Current is the rate of charge flow in a circuit.", "It is not the same as voltage or stored energy."),
         _tw("Voltage", "Voltage is the energy transferred per unit charge between two points.", "It tells what each charge gets, not how many charges pass."),
     ],
+    "F5": [
+        _tw("Rotation", "Rotation is the turning of a body about its own axis.", "It explains day and night in the Earth-sky story."),
+        _tw("Orbit", "An orbit is the curved path a body follows around another body because of gravity.", "It links year, Moon motion, and Solar System structure."),
+        _tw("Tilt", "Tilt is the leaning of Earth's axis relative to its orbit.", "It is the main idea behind seasons."),
+        _tw("Moon phase", "A Moon phase is the visible shape of the lit part of the Moon seen from Earth.", "It separates ordinary monthly geometry from rare eclipse events."),
+    ],
     "M1": [
         _tw("Distance-time graph", "A distance-time graph shows how total distance changes with time.", "Its slope tells speed, not acceleration."),
         _tw("Speed-time graph", "A speed-time graph shows how speed changes with time.", "Its slope and area answer different motion questions."),
@@ -79,54 +86,60 @@ DEFAULT_TECHNICAL_WORDS_BY_MODULE: Dict[str, List[Dict[str, str]]] = {
         _tw("Convection", "Convection is thermal energy transfer by the bulk movement of a fluid.", "Warmer, less dense fluid can rise and carry energy with it."),
     ],
     "M7": [
+        _tw("Wave", "A wave is a travelling disturbance that transfers energy without the whole medium moving with it.", "It is the anchor idea behind reflection, refraction, and wave properties."),
         _tw("Transverse wave", "A transverse wave has local disturbance perpendicular to the direction of travel.", "Wave type depends on the relation between local motion and propagation."),
         _tw("Longitudinal wave", "A longitudinal wave has local disturbance parallel to the direction of travel.", "It contrasts with transverse motion."),
         _tw("Frequency", "Frequency is the number of wave cycles each second.", "It is set by the source."),
+        _tw("Wavelength", "Wavelength is the spacing between matching points on successive wavefronts.", "It changes when wave speed changes while frequency stays fixed."),
+        _tw("Wave speed", "Wave speed is how fast the wavefront travels through the medium.", "It is linked to frequency and wavelength by v = f lambda."),
+        _tw("Reflection", "Reflection is the turning back of a wave at a boundary.", "It follows a predictable geometry rather than random bouncing."),
+        _tw("Refraction", "Refraction is the change in direction caused when a wave changes speed in a new medium.", "It is a speed-change story, not a strange kind of reflection."),
         _tw("Diffraction", "Diffraction is the bending or spreading of a wave around an opening or obstacle.", "It becomes more noticeable when the opening is comparable to the wavelength."),
+        _tw("Wavefront", "A wavefront joins points that are oscillating in the same phase.", "It makes reflection, refraction, and diffraction geometry easier to read."),
     ],
     "M8": [
         _tw("Normal", "The normal is the line drawn perpendicular to a surface at the point where a ray hits.", "Angles of incidence and reflection are measured from it."),
+        _tw("Incident ray", "The incident ray is the ray approaching a surface or boundary.", "It sets the incoming angle for reflection or refraction."),
+        _tw("Reflected ray", "The reflected ray is the ray leaving a mirror after bouncing from it.", "Its angle to the normal matches the incident angle in a plane mirror."),
         _tw("Refraction", "Refraction is the change in direction caused when light changes speed in a new medium.", "It is a turning-by-speed-change story, not just a bend to memorize."),
+        _tw("Principal axis", "The principal axis is the straight reference line through the centre of a lens or mirror.", "It organizes focal points and standard rays in ray diagrams."),
+        _tw("Focal point", "The focal point is the point where parallel rays meet, or appear to come from, after passing through a lens or reflecting from a curved surface.", "It is one of the anchor landmarks for proper ray diagrams."),
         _tw("Virtual image", "A virtual image is an apparent image where light only seems to come from a point.", "It is found using backward extensions, not real ray crossings."),
+        _tw("Real image", "A real image is formed where light rays actually meet.", "It can usually be projected onto a screen."),
         _tw("Critical angle", "The critical angle is the last angle that still allows a refracted ray to escape before total internal reflection begins.", "It is the boundary limit between escape and lock-bounce."),
+        _tw("Total internal reflection", "Total internal reflection happens when light inside a denser medium hits the boundary above the critical angle and reflects entirely back inside.", "It explains optical fibres and strong internal mirror-like behaviour."),
     ],
     "M9": [
-        _tw("Sound wave", "A sound wave is a longitudinal wave made of compressions and rarefactions in a medium.", "It links hearing to particle vibration and wave travel."),
-        _tw("Frequency", "Frequency is the number of vibrations each second.", "It helps explain pitch."),
-        _tw("Amplitude", "Amplitude is the maximum size of the oscillation.", "It helps explain loudness."),
-        _tw("Ultrasound", "Ultrasound is sound with a frequency above the human hearing range.", "It is useful for imaging and sensing because of how it reflects."),
-    ],
-    "M10": [
         _tw("Charge", "Charge is the conserved carrier quantity moving around the circuit.", "It is the moving stuff, not the same thing as current."),
         _tw("Current", "Current is the rate of charge flow past a point.", "It tells how many carriers pass each second."),
         _tw("Voltage", "Voltage is the energy transferred per unit charge.", "It is the boost given to each carrier, not the current itself."),
         _tw("Resistance", "Resistance is how strongly a path limits the current for a given voltage.", "It belongs to the route, not to the battery."),
     ],
-    "M11": [
-        _tw("Series circuit", "A series circuit has one path, so the same current passes through each component in that path.", "One open component can stop the whole chain."),
-        _tw("Parallel circuit", "A parallel circuit has branches connected between the same two junctions.", "Each branch shares the same potential difference while current can split."),
-        _tw("Equivalent resistance", "Equivalent resistance is the single resistance that would have the same overall effect as the whole network.", "It simplifies mixed networks step by step."),
-        _tw("Short circuit", "A short circuit is an unintended very-low-resistance path that allows a dangerously large current.", "It can overheat wires quickly and must be interrupted by protection."),
-    ],
-    "M12": [
+    "M10": [
         _tw("Magnetic field", "A magnetic field is the region where a magnetic force would act.", "It is the invisible structure behind many magnetic effects."),
         _tw("Electromagnet", "An electromagnet is a magnet created by electric current, often using a coil and an iron core.", "It links electricity and magnetism in a controllable way."),
         _tw("Electromagnetic induction", "Electromagnetic induction is the creation of an emf when magnetic flux changes.", "It is the central idea behind generators and transformers."),
         _tw("Transformer", "A transformer is a device that uses induction between coils to change voltage in alternating-current systems.", "It is essential for efficient power transmission."),
     ],
-    "M13": [
+    "M11": [
         _tw("Isotope", "Isotopes are atoms of the same element with the same number of protons but different numbers of neutrons.", "Some isotopes are stable and some are radioactive."),
         _tw("Radioactive decay", "Radioactive decay is the spontaneous change of an unstable nucleus into a more stable form.", "It is random for one nucleus but predictable for large numbers."),
         _tw("Half-life", "Half-life is the time taken for the number of undecayed nuclei, or the activity, to fall to half its value.", "It turns random decay into a measurable pattern."),
         _tw("Ionisation", "Ionisation is the process of removing or adding electrons so atoms become charged.", "It is central to radiation hazard and detection."),
     ],
-    "M14": [
+    "M12": [
+        _tw("Fission", "Fission is the splitting of a heavy nucleus into smaller nuclei.", "It is central to nuclear power stations and chain reactions."),
+        _tw("Fusion", "Fusion is the joining of light nuclei into a heavier nucleus.", "It explains stellar energy and contrasts with fission."),
+        _tw("Chain reaction", "A chain reaction happens when products of one nuclear event trigger further nuclear events.", "It is the control challenge inside a reactor."),
+        _tw("Radioisotope", "A radioisotope is an isotope that is radioactive.", "It links nuclear physics to medicine and industrial uses."),
+    ],
+    "M13": [
         _tw("Orbit", "An orbit is the curved path one body follows around another because of gravity.", "It explains planetary years, moon motion, and changing viewpoints."),
         _tw("Axis", "An axis is the imaginary line about which an object rotates.", "Tilt and rotation about the axis shape many astronomy patterns."),
         _tw("Moon phase", "A moon phase is the visible shape of the lit part of the Moon as seen from Earth.", "Phases come from viewpoint change, not ordinary eclipses."),
         _tw("Eclipse", "An eclipse happens when one astronomical body moves into the shadow of another or blocks its light.", "It is a special alignment event, not the normal explanation for phases."),
     ],
-    "M15": [
+    "M14": [
         _tw("Star", "A star is a self-luminous ball of gas powered by nuclear fusion in its core.", "It makes stars different from planets that only reflect light."),
         _tw("Galaxy", "A galaxy is a huge gravity-bound collection of stars, gas, dust, and dark matter.", "It is far larger than a star system but smaller than the whole universe."),
         _tw("Light-year", "A light-year is a distance: the distance light travels in one year.", "The word year is part of the definition, but the quantity measured is distance."),
@@ -181,6 +194,41 @@ def default_technical_words_for_module(module_code: str) -> List[Dict[str, str]]
     return deepcopy(DEFAULT_TECHNICAL_WORDS_BY_MODULE.get(canonical_module_code(module_code), []))
 
 
+def _normalize(value: Any) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", str(value or "").lower())).strip()
+
+
+def _collect_lesson_strings(value: Any, sink: List[str], depth: int = 0) -> None:
+    if depth > 7 or value is None:
+        return
+    if isinstance(value, str):
+        if value.strip():
+            sink.append(value)
+        return
+    if isinstance(value, list):
+        for item in value:
+            _collect_lesson_strings(item, sink, depth + 1)
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "technical_words":
+                continue
+            _collect_lesson_strings(item, sink, depth + 1)
+
+
+def _lesson_corpus(lesson: Dict[str, Any] | None) -> str:
+    strings: List[str] = []
+    _collect_lesson_strings(lesson or {}, strings)
+    return _normalize(" ".join(strings))
+
+
+def _score_entry_against_corpus(source: Dict[str, Any], corpus: str) -> int:
+    term = _normalize(source.get("term"))
+    if not term:
+        return 0
+    return max(1, len(term.split())) if term in corpus else 0
+
+
 def _normalized_technical_word(source: Dict[str, Any], default_source: str) -> Dict[str, str]:
     return {
         "term": str(source.get("term") or "").strip(),
@@ -194,6 +242,7 @@ def ensure_minimum_technical_words(
     existing: Sequence[Dict[str, Any]] | None,
     module_code: str,
     *,
+    lesson: Dict[str, Any] | None = None,
     minimum: int = 4,
     maximum: int = 6,
 ) -> List[Dict[str, str]]:
@@ -201,7 +250,15 @@ def ensure_minimum_technical_words(
     seen = set()
 
     existing_items = [(item, "authored") for item in list(existing or [])]
-    fallback_items = [(item, "generated") for item in default_technical_words_for_module(module_code)]
+    default_source = "lesson_generated" if lesson else "generated"
+    fallback_items = [(item, default_source) for item in default_technical_words_for_module(module_code)]
+    corpus = _lesson_corpus(lesson)
+    if corpus:
+        fallback_items = sorted(
+            fallback_items,
+            key=lambda item: _score_entry_against_corpus(item[0], corpus),
+            reverse=True,
+        )
 
     for source, default_source in existing_items + fallback_items:
         term = str(source.get("term") or "").strip()

@@ -17,6 +17,7 @@ from app.repositories.catalog_repository import (
 )
 from app.services.catalog_bootstrap import ensure_catalog_seeded, get_catalog_module_ids, get_catalog_module_row
 from app.services.content_normalizer import to_student_lesson_view, to_student_lessons_view
+from app.services.curriculum_alignment import apply_module_curriculum_alignment
 from app.services.monetization_service import enrich_module_for_student
 
 
@@ -45,6 +46,15 @@ def _retry_seeded_modules_if_missing(modules: List[Dict[str, Any]], curriculum_i
     return list_modules(curriculum_id=curriculum_id)
 
 
+def _filter_to_bootstrap_modules(modules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    filtered: List[Dict[str, Any]] = []
+    for module in modules:
+        normalized = normalize_module_id(module.get("id") or module.get("module_id"))
+        if normalized in _BOOTSTRAP_MODULE_IDS:
+            filtered.append(module)
+    return filtered
+
+
 def fetch_curricula() -> List[Dict[str, Any]]:
     return list_curricula()
 
@@ -52,11 +62,14 @@ def fetch_curricula() -> List[Dict[str, Any]]:
 def fetch_modules(curriculum_id: Optional[str] = None, uid: Optional[str] = None, role: Optional[str] = None) -> List[Dict[str, Any]]:
     modules = list_modules(curriculum_id=curriculum_id)
     modules = _retry_seeded_modules_if_missing(modules, curriculum_id=curriculum_id)
-    return [enrich_module_for_student(module, uid, role=role) for module in modules]
+    modules = _filter_to_bootstrap_modules(modules)
+    return [apply_module_curriculum_alignment(enrich_module_for_student(module, uid, role=role)) for module in modules]
 
 
 def fetch_module(module_id: str, uid: Optional[str] = None, role: Optional[str] = None) -> Dict[str, Any]:
     normalized_module_id = normalize_module_id(module_id)
+    if normalized_module_id not in _BOOTSTRAP_MODULE_IDS:
+        raise HTTPException(status_code=404, detail="Module not found")
     module = get_module_by_id(normalized_module_id)
     if not module and normalized_module_id in _BOOTSTRAP_MODULE_IDS:
         ensure_catalog_seeded()
@@ -65,21 +78,24 @@ def fetch_module(module_id: str, uid: Optional[str] = None, role: Optional[str] 
         module = get_catalog_module_row(normalized_module_id)
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
-    return enrich_module_for_student(module, uid, role=role)
+    return apply_module_curriculum_alignment(enrich_module_for_student(module, uid, role=role))
 
 
 def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+    normalized_module_id = normalize_module_id(module_id)
+    if normalized_module_id not in _BOOTSTRAP_MODULE_IDS:
+        raise HTTPException(status_code=404, detail="Module not found")
     warnings: List[str] = []
 
     try:
-        lessons = list_lessons_for_module(module_id)
+        lessons = list_lessons_for_module(normalized_module_id)
         lessons = to_student_lessons_view(lessons)
         return lessons, warnings
     except Exception as e:
         if is_missing_index_error(e):
             warnings.append(f"lessons_ordering_fallback_missing_index: {str(e)[:200]}")
             try:
-                lessons = list_lessons_for_module_unordered(module_id)
+                lessons = list_lessons_for_module_unordered(normalized_module_id)
                 lessons.sort(key=lambda x: int(x.get("sequence", 10**9) or 10**9))
                 lessons = to_student_lessons_view(lessons)
                 return lessons, warnings
@@ -90,6 +106,8 @@ def fetch_module_lessons(module_id: str) -> Tuple[List[Dict[str, Any]], List[str
 
 def fetch_module_lesson(module_id: str, lesson_id: str) -> Dict[str, Any]:
     normalized_module_id = normalize_module_id(module_id)
+    if normalized_module_id not in _BOOTSTRAP_MODULE_IDS:
+        raise HTTPException(status_code=404, detail="Module not found")
     normalized_lesson_id = lesson_id.replace("-", "_")
 
     lesson = get_lesson_by_fields(normalized_module_id, normalized_lesson_id)

@@ -768,7 +768,7 @@ def _generic_lab(title: str, description: str) -> str:
   <div class="panel">
     <h1>__TITLE__</h1>
     <p>__DESCRIPTION__</p>
-    <p>This simulation scaffold is ready for a deeper Codex-generated implementation.</p>
+    <p>Use the controls to compare one change at a time and keep the main pattern visible.</p>
   </div>
 </body>
 </html>
