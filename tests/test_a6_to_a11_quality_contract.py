@@ -70,6 +70,10 @@ class A6ToA11QualityContractTests(unittest.TestCase):
                     self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 6)
                     self.assertGreaterEqual(len(contract.get("release_checks") or []), 8)
                     self.assertGreaterEqual(len(contract["technical_words"]), 4)
+                    for entry in contract["technical_words"]:
+                        self.assertTrue(entry["term"].strip())
+                        self.assertTrue(entry["meaning"].strip())
+                        self.assertNotIn(str(entry.get("source") or "").lower(), {"generated", "lesson_generated"})
                     self.assertGreaterEqual(len(lesson["phases"]["analogical_grounding"]["micro_prompts"]), 4)
                     self.assertGreaterEqual(len(lesson["phases"]["simulation_inquiry"]["inquiry_prompts"]), 4)
                     self.assertGreaterEqual(len(lesson["phases"]["concept_reconstruction"]["prompts"]), 4)
