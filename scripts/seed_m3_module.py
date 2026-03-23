@@ -20,8 +20,8 @@ except ModuleNotFoundError:
 
 
 M3_MODULE_ID = "M3"
-M3_CONTENT_VERSION = "20260320_m3_lift_launch_v3"
-M3_MODULE_TITLE = "Energy Stores, Hand-offs & Ledger Reasoning"
+M3_CONTENT_VERSION = "20260323_m3_momentum_energy_power_v7"
+M3_MODULE_TITLE = "Momentum, Work, Energy and Power"
 M3_ALLOWLIST = [
     "energy_force_confusion",
     "energy_used_up_confusion",
@@ -1929,9 +1929,8 @@ def lesson_l6() -> Dict[str, Any]:
 
 M3_SPEC = {
     "module_description": (
-        "Module 3 upgrades energy into a full Lift-Launch system: the pod carries Height Store and Motion Store, "
-        "machines perform Energy Hand-offs, Transfer Rate and Useful Yield stay distinct, and every multi-step mission "
-        "is solved by balancing an Energy Ledger across useful gains and leak trail."
+        "Momentum, work, energy and power through the Lift-Launch system: motion-change stories connect with energy stores, "
+        "energy hand-offs, transfer rate, and useful yield so mechanical changes can be tracked in one joined ledger."
     ),
     "mastery_outcomes": [
         "Explain energy as stores, hand-offs, leaks, and balanced ledger entries rather than as a disconnected list of formulas.",

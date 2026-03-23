@@ -20,8 +20,8 @@ except ModuleNotFoundError:
 
 
 M5_MODULE_ID = "M5"
-M5_CONTENT_VERSION = "20260321_m5_pulse_plaza_v1"
-M5_MODULE_TITLE = "Kinetic Particle Model"
+M5_CONTENT_VERSION = "20260323_m5_particle_internal_energy_v2"
+M5_MODULE_TITLE = "Particle Model and Internal Energy"
 M5_ALLOWLIST = [
     "particle_size_heating_confusion",
     "liquid_spacing_confusion",
@@ -1214,8 +1214,8 @@ def lesson_l6() -> Dict[str, Any]:
 M5_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
     "module_description": (
-        "States of matter, Brownian motion, and the difference between temperature and internal energy. "
-        "Use the kinetic particle model to compare solids, liquids, and gases and to explain particle motion, spacing, attraction, and state change."
+        "Particle model and internal energy: states of matter, Brownian motion, temperature, internal energy, "
+        "and state-change reasoning are kept inside one particle world."
     ),
     "mastery_outcomes": [
         "Describe solids, liquids, and gases using particle spacing, motion, and attraction.",

@@ -15,7 +15,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M2_MODULE_ID = "M2"
-M2_CONTENT_VERSION = "20260319_m2_force_systems_v3"
+M2_CONTENT_VERSION = "20260323_m2_forces_equilibrium_v4"
 M2_ALLOWLIST = [
     "motion_implies_force_confusion",
     "balanced_force_rest_confusion",
@@ -32,7 +32,7 @@ M2_ALLOWLIST = [
 ]
 M2_SPEC = json.loads(r'''
 {
-  "module_description": "Module 2 uses Thruster-Deck to connect force arrows, motion change, collisions, spin, balance, and vector resolution: what arrows act, where they act, and how hard the craft is to change.",
+  "module_description": "Forces and equilibrium through Thruster-Deck: resultant and balanced forces, Newton's laws, F = ma reasoning, moments, centre of mass, stability, and force-balance thinking stay visible while the craft's motion changes are explained from the combined force picture.",
   "mastery_outcomes": [
     "Combine drive arrows into one Master Arrow and explain why zero Master Arrow means no motion change rather than no motion.",
     "Use Newton's laws to connect resultant force, mass, inertia, and acceleration in words and calculations.",
@@ -701,7 +701,7 @@ RELEASE_CHECKS = [
 
 M2_MODULE_DOC, _LESSONS, _SIMS = build_nextgen_module_scaffold(
     M2_MODULE_ID,
-    "Forces, Momentum, Spin & Stability",
+    "Forces and Equilibrium",
     M2_SPEC["module_description"],
     [lesson["title"] for lesson in M2_SPEC["lessons"]],
     M2_ALLOWLIST,

@@ -25,7 +25,7 @@ except ModuleNotFoundError:
     from nextgen_module_scaffold import build_nextgen_module_scaffold
 
 M1_MODULE_ID = "M1"
-M1_CONTENT_VERSION = "20260321_m1_graph_reasoning_v5"
+M1_CONTENT_VERSION = "20260323_m1_motion_kinematics_v6"
 M1_ALLOWLIST = [
     "distance_time_story_confusion",
     "graph_shape_path_confusion",
@@ -42,7 +42,7 @@ M1_ALLOWLIST = [
 ]
 M1_SPEC = json.loads(r'''
 {
-  "module_description": "Module 1 uses Quest-Log to connect motion, graphs, acceleration, and constant acceleration: the lane is where motion happens, and the log is how it is recorded.",
+  "module_description": "Motion and kinematics through Quest-Log: distance-time graphs, speed-time graphs, acceleration, constant-acceleration equations, gradient meaning, and area-under-graph reasoning stay inside one motion-recording system.",
   "mastery_outcomes": [
     "Explain why the quest lane is the motion world while the mission log is the graph world.",
     "Read progress logs conceptually and use gradient on a distance-time graph as pace.",
@@ -3371,7 +3371,7 @@ RELEASE_CHECKS = [
 
 M1_MODULE_DOC, _LESSONS, _SIMS = build_nextgen_module_scaffold(
     M1_MODULE_ID,
-    "Kinematics, Graphs & Constant Acceleration",
+    "Motion and Kinematics",
     M1_SPEC["module_description"],
     [lesson["title"] for lesson in M1_SPEC["lessons"]],
     M1_ALLOWLIST,

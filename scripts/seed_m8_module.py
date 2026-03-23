@@ -20,8 +20,8 @@ except ModuleNotFoundError:
 
 
 M8_MODULE_ID = "M8"
-M8_CONTENT_VERSION = "20260321_m8_glow_route_v3"
-M8_MODULE_TITLE = "Light"
+M8_CONTENT_VERSION = "20260323_m8_light_optics_v4"
+M8_MODULE_TITLE = "Light and Optics"
 M8_ALLOWLIST = [
     "angle_from_surface_confusion",
     "normal_reference_confusion",
@@ -966,7 +966,7 @@ def route_sketch_lesson() -> Dict[str, Any]:
 
 M8_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
-    "module_description": "Reflection in mirrors, refraction in lenses, critical angle, total internal reflection, and ray diagrams taught through the Glow-Route model of light.",
+    "module_description": "Light and optics through the Glow-Route model: reflection in mirrors, refraction in lenses, critical angle, total internal reflection, and ray diagrams are taught as route geometry.",
     "mastery_outcomes": [
         "Explain mirror reflection using equal angles measured from the normal.",
         "Explain refraction as a speed-change effect across a boundary and predict bending toward or away from the normal.",

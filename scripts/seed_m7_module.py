@@ -20,8 +20,8 @@ except ModuleNotFoundError:
 
 
 M7_MODULE_ID = "M7"
-M7_CONTENT_VERSION = "20260321_m7_signal_stadium_v1"
-M7_MODULE_TITLE = "General Wave Properties"
+M7_CONTENT_VERSION = "20260323_m7_waves_vibrations_v2"
+M7_MODULE_TITLE = "Waves and Vibrations"
 M7_ALLOWLIST = [
     "medium_moves_with_wave_confusion",
     "energy_disturbance_confusion",
@@ -795,8 +795,8 @@ def lesson_l6() -> Dict[str, Any]:
 M7_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
     "module_description": (
-        "Transverse and longitudinal waves, wave speed, reflection, refraction, and diffraction. "
-        "Distinguish local motion from pattern travel, use v = f lambda conceptually, and explain how boundaries reshape wavefronts."
+        "Waves and vibrations: transverse and longitudinal waves, wave speed, reflection, refraction, and diffraction "
+        "are read as travelling patterns built from local vibrations."
     ),
     "mastery_outcomes": [
         "Distinguish wave travel from local motion in the medium.",

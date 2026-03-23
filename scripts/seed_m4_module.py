@@ -20,8 +20,8 @@ except ModuleNotFoundError:
 
 
 M4_MODULE_ID = "M4"
-M4_CONTENT_VERSION = "20260321_m4_pressure_units_v4"
-M4_MODULE_TITLE = "Pressure"
+M4_CONTENT_VERSION = "20260323_m4_materials_density_pressure_v5"
+M4_MODULE_TITLE = "Materials, Density and Pressure"
 M4_ALLOWLIST = [
     "pressure_force_confusion",
     "pressure_area_confusion",
@@ -1118,8 +1118,8 @@ def lesson_l6() -> Dict[str, Any]:
 M4_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V2,
     "module_description": (
-        "Pressure in solids, liquid pressure, and atmospheric pressure. Separate pressure from force, track how area and depth "
-        "matter, and use the main pressure equations carefully."
+        "Materials, density, and pressure: compare matter by density, separate pressure from force, track how area and depth "
+        "matter, and use the main pressure equations carefully across solids, liquids, gases, and atmospheric cases."
     ),
     "mastery_outcomes": [
         "Explain pressure in solids as force spread over area rather than force alone.",

@@ -20,8 +20,8 @@ except ModuleNotFoundError:
 
 
 M6_MODULE_ID = "M6"
-M6_CONTENT_VERSION = "20260321_m6_level_forge_v3"
-M6_MODULE_TITLE = "Thermal Properties & Transfer"
+M6_CONTENT_VERSION = "20260323_m6_thermal_transfer_gas_behaviour_v4"
+M6_MODULE_TITLE = "Thermal Transfer and Gas Behaviour"
 M6_ALLOWLIST = [
     "heat_temperature_confusion",
     "same_energy_same_temp_change_confusion",
@@ -1812,8 +1812,8 @@ def enrich_m6_lesson(lesson: Dict[str, Any]) -> Dict[str, Any]:
 M6_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
     "module_description": (
-        "Specific heat capacity, latent heat, and the three thermal transfer routes. "
-        "Separate temperature from heat transferred and use stage-by-stage energy bookkeeping for warming and phase changes."
+        "Thermal transfer and gas behaviour: heating and cooling, specific heat capacity, latent heat, conduction, "
+        "convection, radiation, and gas-behaviour preparation are tracked as staged thermal changes."
     ),
     "mastery_outcomes": [
         "Explain the difference between temperature and heat transferred.",

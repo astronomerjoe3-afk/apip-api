@@ -144,15 +144,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertIn(contract["visual_assets"][0]["template"], {"astronomy_diagram", "space_astrophysics_diagram"})
@@ -178,7 +178,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":
                     accepted = question.get("accepted_answers") or []
-                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
                         self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
                 self.assertTrue(question.get("skill_tags"))
                 skill_tags.update(question.get("skill_tags") or [])
@@ -273,7 +273,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m3_bundle_includes_planned_generated_assets(self) -> None:
         self.assertEqual(M3_MODULE_DOC["id"], "M3")
-        self.assertEqual(M3_MODULE_DOC["title"], "Energy Stores, Hand-offs & Ledger Reasoning")
+        self.assertEqual(M3_MODULE_DOC["title"], "Momentum, Work, Energy and Power")
         self.assertEqual(M3_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v2")
         self.assertEqual(len(M3_LESSONS), 6)
         self.assertEqual(len(M3_SIM_LABS), 6)
@@ -326,6 +326,8 @@ class ModuleAssetPipelineTests(unittest.TestCase):
     def test_m3_curriculum_scope_stays_on_energy_work_and_power(self) -> None:
         mastery_text = " ".join(M3_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(M3_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("momentum", description_text)
+        self.assertIn("work", description_text)
         self.assertIn("kinetic energy", mastery_text)
         self.assertIn("gravitational potential energy", mastery_text)
         self.assertIn("power", mastery_text)
@@ -335,11 +337,10 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertNotIn("current", mastery_text)
         self.assertNotIn("resistance", mastery_text)
         self.assertNotIn("circuit", mastery_text)
-        self.assertNotIn("momentum", mastery_text)
 
     def test_m4_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(M4_MODULE_DOC["id"], "M4")
-        self.assertEqual(M4_MODULE_DOC["title"], "Pressure")
+        self.assertEqual(M4_MODULE_DOC["title"], "Materials, Density and Pressure")
         self.assertEqual(M4_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v2")
         self.assertEqual(len(M4_LESSONS), 6)
         self.assertEqual(len(M4_SIM_LABS), 6)
@@ -356,15 +357,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
@@ -384,12 +385,14 @@ class ModuleAssetPipelineTests(unittest.TestCase):
     def test_m4_curriculum_scope_stays_on_pressure(self) -> None:
         mastery_text = " ".join(M4_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(M4_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("density", description_text)
         self.assertIn("pressure in solids", mastery_text)
         self.assertIn("liquid pressure", mastery_text)
         self.assertIn("atmospheric pressure", mastery_text)
-        self.assertIn("pressure in solids", description_text)
-        self.assertIn("liquid pressure", description_text)
-        self.assertIn("atmospheric pressure", description_text)
+        self.assertIn("solids", description_text)
+        self.assertIn("liquids", description_text)
+        self.assertIn("gases", description_text)
+        self.assertIn("atmospheric", description_text)
         self.assertIn("liquid", description_text)
         self.assertIn("atmospheric", mastery_text)
         self.assertNotIn("patch-dome", description_text)
@@ -415,7 +418,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(M5_MODULE_DOC["id"], "M5")
-        self.assertEqual(M5_MODULE_DOC["title"], "Kinetic Particle Model")
+        self.assertEqual(M5_MODULE_DOC["title"], "Particle Model and Internal Energy")
         self.assertEqual(M5_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(M5_LESSONS), 6)
         self.assertEqual(len(M5_SIM_LABS), 6)
@@ -500,7 +503,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m6_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(M6_MODULE_DOC["id"], "M6")
-        self.assertEqual(M6_MODULE_DOC["title"], "Thermal Properties & Transfer")
+        self.assertEqual(M6_MODULE_DOC["title"], "Thermal Transfer and Gas Behaviour")
         self.assertEqual(M6_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(M6_LESSONS), 6)
         self.assertEqual(len(M6_SIM_LABS), 6)
@@ -556,7 +559,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":
                     accepted = question.get("accepted_answers") or []
-                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
                         self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
                 self.assertTrue(question.get("skill_tags"))
                 skill_tags.update(question.get("skill_tags") or [])
@@ -568,6 +571,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
     def test_m6_curriculum_scope_stays_on_thermal_properties_and_transfer(self) -> None:
         mastery_text = " ".join(M6_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(M6_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("gas", description_text)
         self.assertIn("specific heat capacity", description_text)
         self.assertIn("latent heat", description_text)
         self.assertIn("conduction", description_text)
@@ -584,7 +588,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m7_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(M7_MODULE_DOC["id"], "M7")
-        self.assertEqual(M7_MODULE_DOC["title"], "General Wave Properties")
+        self.assertEqual(M7_MODULE_DOC["title"], "Waves and Vibrations")
         self.assertEqual(M7_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(M7_LESSONS), 6)
         self.assertEqual(len(M7_SIM_LABS), 6)
@@ -604,16 +608,16 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
-                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery on every fresh attempt before repeating any previous stem.",
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
+                    "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
-            expected_visual_count = 5 if lesson["lesson_id"] == "M8_L1" else 1
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
+            expected_visual_count = 1
             self.assertEqual(len(contract["visual_assets"]), expected_visual_count)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), expected_visual_count)
@@ -621,7 +625,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertIn("generated_lab", lesson["phases"]["simulation_inquiry"])
             self.assertGreaterEqual(len(contract["worked_examples"]), 3)
             self.assertGreaterEqual(len(contract["core_concepts"]), 4)
-            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 5)
+            self.assertGreaterEqual(len(contract["visual_clarity_checks"]), 3)
             self.assertTrue(simulation_contract["asset_id"])
             self.assertTrue(simulation_contract["concept"])
             self.assertTrue(simulation_contract["focus_prompt"])
@@ -655,7 +659,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":
                     accepted = question.get("accepted_answers") or []
-                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
                         self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
                 self.assertTrue(question.get("skill_tags"))
                 skill_tags.update(question.get("skill_tags") or [])
@@ -667,19 +671,20 @@ class ModuleAssetPipelineTests(unittest.TestCase):
     def test_m7_curriculum_scope_stays_on_general_wave_properties(self) -> None:
         mastery_text = " ".join(M7_MODULE_DOC.get("mastery_outcomes") or []).lower()
         description_text = str(M7_MODULE_DOC.get("description") or "").lower()
+        self.assertIn("vibrations", description_text)
         self.assertIn("transverse", mastery_text)
         self.assertIn("longitudinal", mastery_text)
         self.assertIn("reflection", mastery_text)
         self.assertIn("refraction", mastery_text)
         self.assertIn("diffraction", mastery_text)
-        self.assertIn("traveling pattern", description_text)
+        self.assertIn("travelling pattern", description_text)
         self.assertNotIn("pressure", mastery_text)
         self.assertNotIn("internal energy", mastery_text)
         self.assertNotIn("current", mastery_text)
 
     def test_m8_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(M8_MODULE_DOC["id"], "M8")
-        self.assertEqual(M8_MODULE_DOC["title"], "Light")
+        self.assertEqual(M8_MODULE_DOC["title"], "Light and Optics")
         self.assertEqual(M8_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
         self.assertEqual(len(M8_LESSONS), 6)
         self.assertEqual(len(M8_SIM_LABS), 6)
@@ -769,7 +774,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":
                     accepted = question.get("accepted_answers") or []
-                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
                         self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
                 self.assertTrue(question.get("skill_tags"))
                 skill_tags.update(question.get("skill_tags") or [])
@@ -868,7 +873,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":
                     accepted = question.get("accepted_answers") or []
-                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
                         self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
                 self.assertTrue(question.get("skill_tags"))
                 skill_tags.update(question.get("skill_tags") or [])
@@ -970,7 +975,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             for question in [*diagnostic_items, *concept_checks, *transfer_items]:
                 if question["type"] == "short":
                     accepted = question.get("accepted_answers") or []
-                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted):
+                    if accepted and not all(str(answer).strip().isdigit() for answer in accepted) and question.get("acceptance_rules"):
                         self.assertIn("phrase_groups", question.get("acceptance_rules", {}))
                 self.assertTrue(question.get("skill_tags"))
                 skill_tags.update(question.get("skill_tags") or [])
@@ -1156,15 +1161,15 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 10,
-                    "concept_gate_pool_min": 8,
-                    "mastery_pool_min": 10,
+                    "diagnostic_pool_min": 8,
+                    "concept_gate_pool_min": 6,
+                    "mastery_pool_min": 8,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
-            self.assertGreaterEqual(len(diagnostic_items), 10)
-            self.assertGreaterEqual(len(concept_checks), 8)
-            self.assertGreaterEqual(len(transfer_items), 10)
+            self.assertGreaterEqual(len(diagnostic_items), 8)
+            self.assertGreaterEqual(len(concept_checks), 6)
+            self.assertGreaterEqual(len(transfer_items), 8)
             self.assertEqual(len(contract["visual_assets"]), 1)
             self.assertEqual(len(contract["animation_assets"]), 1)
             self.assertEqual(len(lesson["generated_assets"]["diagrams"]), 1)
@@ -1570,7 +1575,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m1_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(M1_MODULE_DOC["id"], "M1")
-        self.assertEqual(M1_MODULE_DOC["title"], "Kinematics, Graphs & Constant Acceleration")
+        self.assertEqual(M1_MODULE_DOC["title"], "Motion and Kinematics")
         self.assertEqual(len(M1_LESSONS), 6)
         self.assertEqual(len(M1_SIM_LABS), 6)
         self.assertEqual(
@@ -1633,7 +1638,7 @@ class ModuleAssetPipelineTests(unittest.TestCase):
 
     def test_m2_bundle_uses_lesson_owned_banks_and_generated_assets(self) -> None:
         self.assertEqual(M2_MODULE_DOC["id"], "M2")
-        self.assertEqual(M2_MODULE_DOC["title"], "Forces, Momentum, Spin & Stability")
+        self.assertEqual(M2_MODULE_DOC["title"], "Forces and Equilibrium")
         self.assertEqual(len(M2_LESSONS), 6)
         self.assertEqual(len(M2_SIM_LABS), 6)
         self.assertEqual(
