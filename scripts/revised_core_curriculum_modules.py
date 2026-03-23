@@ -624,7 +624,7 @@ def _f5_l4_extras(lesson_tag: str, skills: Sequence[str]) -> Dict[str, List[Dict
             mcq(f"{lesson_tag}_C5", "Which alignment best matches a lunar eclipse?", ["Earth between Sun and Moon", "Moon between Earth and Sun every month", "Sun between Earth and Moon", "No special alignment is needed"], 0, "A lunar eclipse is a shadow event with Earth in the middle.", skill_tags=[skills[2]]),
             short(f"{lesson_tag}_C6", "At first quarter, what fraction of the Moon's orbit has passed since new moon?", ["one quarter", "1/4", "quarter"], "First quarter matches about one quarter of the orbit from new moon.", skill_tags=[skills[3]], acceptance_rules=acceptance_groups(["quarter", "1/4", "one quarter"])),
             mcq(f"{lesson_tag}_C7", "Which sentence best protects the phase model?", ["A crescent means we see only a small part of the Moon's lit half", "A crescent means most of the Moon is unlit by the Sun", "A crescent means Earth's shadow is nearly covering the Moon", "A crescent means the Moon has stopped reflecting sunlight"], 0, "Use visible part of the lit half.", skill_tags=[skills[4]]),
-            short(f"{lesson_tag}_C8", "Why can a crescent Moon still belong to a half-lit Moon?", ["because the Sun still lights half the Moon even though we see only a small part of that half", "because the lit half stays the same while our view changes", "because the visible part changes, not the fact that half is sunlit"], "Keep constant lighting separate from changing viewpoint.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["half lit", "half", "sun lights half"], ["see", "view", "visible part", "small part"])),
+            short(f"{lesson_tag}_C8", "Why can a crescent Moon still belong to a half-lit Moon?", ["because the Sun still lights half the Moon even though we see only a small part of that half", "because the lit half stays the same while our view changes", "because the visible part changes, not the fact that half is sunlit"], "Keep constant lighting separate from changing viewpoint.", skill_tags=[skills[1]], acceptance_rules=acceptance_groups(["lit half", "half lit", "half", "sun lights half", "sunlit"], ["see", "view", "visible part", "small part"])),
         ],
         "mastery": [
             mcq(f"{lesson_tag}_M7", "A diagram shows Earth, Moon, and Sun at right angles with the Moon half-way around from new moon. Which phase is strongest?", ["first quarter", "full moon", "new moon", "lunar eclipse"], 0, "A right-angle position from Earth gives a quarter phase.", skill_tags=[skills[4]]),
@@ -944,7 +944,7 @@ def _upgrade_f5_bundle(
 
 F5_CONTENT_VERSION = "20260323_f5_lantern_ring_skycourt_v2"
 F5_MODULE_TITLE = "Observable Earth and Sky"
-F5_MODULE_DESCRIPTION = "One lantern lights the court, Earth spins for day and night, tilted laps make seasons, and changing viewpoints explain phases, eclipses, and Solar System patterns."
+F5_MODULE_DESCRIPTION = "One lantern lights the skycourt, Earth spins for day and night, tilted laps make seasons, and changing viewpoints explain phases, eclipses, and Solar System patterns."
 F5_MASTERY_OUTCOMES = [
     "Explain day and night as Earth's rotation.",
     "Explain seasons with tilt and orbit position rather than simple distance claims.",
