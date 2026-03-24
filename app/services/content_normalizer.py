@@ -315,6 +315,8 @@ def _student_authoring_contract(authoring: Any, lesson: Dict[str, Any]) -> Dict[
     return {
         "core_concepts": deepcopy(authoring.get("core_concepts") or []),
         "technical_words": ensure_minimum_technical_words(authoring.get("technical_words") or [], module_code),
+        "formulas": deepcopy(authoring.get("formulas") or []),
+        "analogy_map": deepcopy(authoring.get("analogy_map") or {}),
         "worked_examples": deepcopy(authoring.get("worked_examples") or []),
         "visual_assets": deepcopy(authoring.get("visual_assets") or []),
         "animation_assets": deepcopy(authoring.get("animation_assets") or []),
