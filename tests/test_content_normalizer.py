@@ -224,11 +224,11 @@ class ContentNormalizerTests(unittest.TestCase):
         )
         self.assertTrue(all(entry["source"] == "generated" for entry in technical_words))
 
-    def test_student_view_expands_short_answer_acceptance_margin_to_ten_to_fifteen_versions(self) -> None:
+    def test_student_view_expands_short_answer_acceptance_margin_to_ten_to_fourteen_versions(self) -> None:
         lesson = {
-            "id": "M15_L2",
-            "lesson_id": "M15_L2",
-            "module_id": "M15",
+            "id": "M14_L2",
+            "lesson_id": "M14_L2",
+            "module_id": "M14",
             "title": "Choose the Star Path",
             "sequence": 2,
             "phases": {
@@ -240,7 +240,7 @@ class ContentNormalizerTests(unittest.TestCase):
                             "prompt": "Capsule",
                             "checks": [
                                 {
-                                    "id": "M15L2_C8",
+                                    "id": "M14L2_C8",
                                     "type": "short",
                                     "prompt": "Why does the same beginning not guarantee the same ending?",
                                     "accepted_answers": [

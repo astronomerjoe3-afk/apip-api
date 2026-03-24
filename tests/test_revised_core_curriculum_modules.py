@@ -86,10 +86,9 @@ class RevisedCoreCurriculumModuleTests(unittest.TestCase):
         module_ids = get_catalog_module_ids()
         self.assertIn("F5", module_ids)
         self.assertIn("M14", module_ids)
-        self.assertNotIn("M15", module_ids)
+        self.assertEqual(max(int(module_id[1:]) for module_id in module_ids if module_id.startswith("M")), 14)
         for module_id, expected_title in self.EXPECTED_M1_TO_M14_TITLES.items():
             self.assertEqual(get_catalog_module_row(module_id)["title"], expected_title)
-        self.assertIsNone(get_catalog_module_row("M15"))
 
 
 if __name__ == "__main__":

@@ -1,23 +1,23 @@
 import unittest
 
-from scripts.seed_m15_module import M15_LESSONS, M15_MODULE_DOC, M15_SIM_LABS
+from scripts.seed_m14_stars_universe_module import M14_LESSONS, M14_MODULE_DOC, M14_SIM_LABS
 
 
-class M15QualityContractTests(unittest.TestCase):
-    def test_m15_bundle_uses_v3_contract_and_generated_assets(self) -> None:
-        self.assertEqual(M15_MODULE_DOC["id"], "M15")
-        self.assertEqual(M15_MODULE_DOC["title"], "Universe")
-        self.assertEqual(M15_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
-        self.assertEqual(len(M15_LESSONS), 6)
-        self.assertEqual(len(M15_SIM_LABS), 6)
+class M14StarsUniverseQualityContractTests(unittest.TestCase):
+    def test_m14_stars_bundle_uses_v3_contract_and_generated_assets(self) -> None:
+        self.assertEqual(M14_MODULE_DOC["id"], "M14")
+        self.assertEqual(M14_MODULE_DOC["title"], "Stars and the Universe")
+        self.assertEqual(M14_MODULE_DOC["authoring_standard"], "lesson_authoring_spec_v3")
+        self.assertEqual(len(M14_LESSONS), 6)
+        self.assertEqual(len(M14_SIM_LABS), 6)
         self.assertEqual(
-            [lesson_id for lesson_id, _ in M15_LESSONS],
-            ["M15_L1", "M15_L2", "M15_L3", "M15_L4", "M15_L5", "M15_L6"],
+            [lesson_id for lesson_id, _ in M14_LESSONS],
+            ["M14_L1", "M14_L2", "M14_L3", "M14_L4", "M14_L5", "M14_L6"],
         )
 
         simulation_concepts = set()
         focus_prompts = set()
-        for _, lesson in M15_LESSONS:
+        for _, lesson in M14_LESSONS:
             contract = lesson["authoring_contract"]
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
@@ -74,8 +74,8 @@ class M15QualityContractTests(unittest.TestCase):
         self.assertEqual(len(simulation_concepts), 6)
         self.assertEqual(len(focus_prompts), 6)
 
-    def test_m15_lesson_three_includes_authored_technical_words(self) -> None:
-        lesson = dict(M15_LESSONS)["M15_L3"]
+    def test_m14_lesson_three_includes_authored_technical_words(self) -> None:
+        lesson = dict(M14_LESSONS)["M14_L3"]
         technical_words = lesson["authoring_contract"]["technical_words"]
         terms = {entry["term"] for entry in technical_words}
 
@@ -84,9 +84,9 @@ class M15QualityContractTests(unittest.TestCase):
         self.assertIn("Solar System", terms)
         self.assertIn("Gravity-bound", terms)
 
-    def test_m15_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
-        mastery_text = " ".join(M15_MODULE_DOC.get("mastery_outcomes") or []).lower()
-        description_text = str(M15_MODULE_DOC.get("description") or "").lower()
+    def test_m14_curriculum_scope_stays_on_universe_and_expansion(self) -> None:
+        mastery_text = " ".join(M14_MODULE_DOC.get("mastery_outcomes") or []).lower()
+        description_text = str(M14_MODULE_DOC.get("description") or "").lower()
         self.assertIn("fusion", mastery_text)
         self.assertIn("stellar lifecycle", mastery_text)
         self.assertIn("milky way", mastery_text)
@@ -99,7 +99,7 @@ class M15QualityContractTests(unittest.TestCase):
         self.assertNotIn("half-life", mastery_text)
         self.assertNotIn("pressure", mastery_text)
 
-    def test_m15_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
+    def test_m14_lessons_balance_conceptual_and_quantitative_reasoning(self) -> None:
         comparison_tokens = (
             "nm",
             "light-year",
@@ -142,7 +142,7 @@ class M15QualityContractTests(unittest.TestCase):
             "what broad model",
         )
 
-        for lesson_id, lesson in M15_LESSONS:
+        for lesson_id, lesson in M14_LESSONS:
             diagnostic_items = lesson["phases"]["diagnostic"]["items"]
             concept_checks = lesson["phases"]["concept_reconstruction"]["capsules"][0]["checks"]
             mastery_items = lesson["phases"]["transfer"]["items"]
@@ -159,12 +159,12 @@ class M15QualityContractTests(unittest.TestCase):
             self.assertGreaterEqual(explanation_count, 4, lesson_id)
             self.assertGreaterEqual(mastery_short_count, 2, lesson_id)
 
-    def test_m15_star_brightness_short_answer_accepts_source_language(self) -> None:
-        lesson = dict(M15_LESSONS)["M15_L1"]
+    def test_m14_star_brightness_short_answer_accepts_source_language(self) -> None:
+        lesson = dict(M14_LESSONS)["M14_L1"]
         question = next(
             item
             for item in lesson["phases"]["diagnostic"]["items"]
-            if item.get("id") == "M15L1_D8"
+            if item.get("id") == "M14L1_D8"
         )
 
         phrase_groups = question.get("acceptance_rules", {}).get("phrase_groups", [])
@@ -174,12 +174,12 @@ class M15QualityContractTests(unittest.TestCase):
         self.assertIn("source of light", flattened)
         self.assertIn("makes its own light", flattened)
 
-    def test_m15_mastery_brightness_short_answer_accepts_concise_valid_wording(self) -> None:
-        lesson = dict(M15_LESSONS)["M15_L1"]
+    def test_m14_mastery_brightness_short_answer_accepts_concise_valid_wording(self) -> None:
+        lesson = dict(M14_LESSONS)["M14_L1"]
         question = next(
             item
             for item in lesson["phases"]["transfer"]["items"]
-            if item.get("id") == "M15L1_M9"
+            if item.get("id") == "M14L1_M9"
         )
 
         accepted = {str(answer) for answer in question.get("accepted_answers", [])}
@@ -192,12 +192,12 @@ class M15QualityContractTests(unittest.TestCase):
         self.assertIn("reflective", flattened)
         self.assertIn("both", flattened)
 
-    def test_m15_stellar_path_diagnostic_accepts_mass_determines_ending_wording(self) -> None:
-        lesson = dict(M15_LESSONS)["M15_L2"]
+    def test_m14_stellar_path_diagnostic_accepts_mass_determines_ending_wording(self) -> None:
+        lesson = dict(M14_LESSONS)["M14_L2"]
         question = next(
             item
             for item in lesson["phases"]["diagnostic"]["items"]
-            if item.get("id") == "M15L2_D9"
+            if item.get("id") == "M14L2_D9"
         )
 
         accepted = {str(answer) for answer in question.get("accepted_answers", [])}

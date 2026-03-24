@@ -11,7 +11,7 @@ from scripts.seed_m11_module import M11_LESSONS
 from scripts.seed_m12_module import M12_LESSONS
 from scripts.seed_m13_module import M13_LESSONS
 from scripts.seed_m14_module import M14_LESSONS, M14_MODULE_DOC
-from scripts.seed_m15_module import M15_LESSONS
+from scripts.seed_m14_stars_universe_module import M14_LESSONS as M14_STARS_UNIVERSE_LESSONS
 from scripts.seed_a1_module import A1_LESSONS
 from scripts.seed_a2_module import A2_LESSONS
 from scripts.seed_a3_module import A3_LESSONS
@@ -56,7 +56,7 @@ class LessonAssessmentScopeContractTests(unittest.TestCase):
             M12_LESSONS,
             M13_LESSONS,
             M14_LESSONS,
-            M15_LESSONS,
+            M14_STARS_UNIVERSE_LESSONS,
             A1_LESSONS,
             A2_LESSONS,
             A3_LESSONS,

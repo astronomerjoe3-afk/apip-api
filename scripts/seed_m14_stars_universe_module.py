@@ -19,10 +19,10 @@ except ModuleNotFoundError:
     from seed_m1_module import get_project_id, init_firebase, print_preview, upsert_doc
 
 
-M15_MODULE_ID = "M15"
-M15_CONTENT_VERSION = "20260322_m15_beacon_city_stretchmap_v3"
-M15_MODULE_TITLE = "Universe"
-M15_ALLOWLIST = [
+M14_MODULE_ID = "M14"
+M14_CONTENT_VERSION = "20260322_m14u_beacon_city_stretchmap_v3"
+M14_MODULE_TITLE = "Stars and the Universe"
+M14_ALLOWLIST = [
     "star_reflects_light_confusion",
     "fusion_core_energy_confusion",
     "mass_same_star_fate_confusion",
@@ -39,7 +39,7 @@ M15_ALLOWLIST = [
 
 
 def safe_tags(tags: Sequence[str]) -> List[str]:
-    allowed = set(M15_ALLOWLIST)
+    allowed = set(M14_ALLOWLIST)
     return [str(tag) for tag in tags if str(tag) in allowed]
 
 
@@ -284,43 +284,43 @@ def contract(
     }
 
 
-def m15_technical_words(lesson_id: str) -> List[Dict[str, str]]:
-    if lesson_id == "M15_L1":
+def m14u_technical_words(lesson_id: str) -> List[Dict[str, str]]:
+    if lesson_id == "M14_L1":
         return [
             technical_word("Star", "A star is a self-luminous ball of gas that makes its own light.", "It keeps stars separate from planets that only reflect light."),
             technical_word("Fusion", "Fusion is the joining of light nuclei in a star's core, releasing energy.", "It is the process that powers starlight."),
             technical_word("Luminous", "A luminous object produces its own light.", "It is the key classification word for a star in this lesson."),
             technical_word("Reflected light", "Reflected light is light that bounces off an object after coming from another source.", "It explains why a planet can look bright without being a star."),
         ]
-    if lesson_id == "M15_L2":
+    if lesson_id == "M14_L2":
         return [
             technical_word("Protostar", "A protostar is a young forming star before the long stable stage begins.", "It helps students place the early stellar stages in the right order."),
             technical_word("Main sequence", "The main sequence is the long steady stage when a star spends most of its life.", "It is the shared middle stage before later branching."),
             technical_word("Supernova", "A supernova is a violent explosion near the end of some high-mass stars' lives.", "It belongs to the higher-mass route, not every stellar ending."),
             technical_word("Remnant", "A remnant is the dense object left after a star's later evolution or explosion.", "The remnant type depends strongly on stellar mass."),
         ]
-    if lesson_id == "M15_L3":
+    if lesson_id == "M14_L3":
         return [
             technical_word("Galaxy", "A galaxy is a huge gravity-bound system of stars, gas, and dust.", "It is much larger than one star system but smaller than the whole universe."),
             technical_word("Milky Way", "The Milky Way is the galaxy that contains our Solar System.", "It is our home galaxy, not another name for the universe."),
             technical_word("Solar System", "The Solar System is the Sun and the objects held by its gravity.", "It sits inside the Milky Way rather than equaling it."),
             technical_word("Gravity-bound", "A gravity-bound system is held together by gravitational attraction.", "It explains why a galaxy counts as one system instead of a loose scatter of stars."),
         ]
-    if lesson_id == "M15_L4":
+    if lesson_id == "M14_L4":
         return [
             technical_word("Light-year", "A light-year is the distance light travels in one year.", "It is a distance unit even though the word year appears in the name."),
             technical_word("Distance scale", "A distance scale is a ladder of distances used to compare sizes or separations.", "It helps students place nearby stars and galaxy sizes on one board."),
             technical_word("Unit", "A unit is the agreed measurement size used with a quantity.", "It keeps the number and the quantity tied together."),
             technical_word("Astronomical distance", "An astronomical distance is a very large separation in space between objects.", "It explains why ordinary units like kilometres become awkward at cosmic scales."),
         ]
-    if lesson_id == "M15_L5":
+    if lesson_id == "M14_L5":
         return [
             technical_word("Redshift", "Redshift is the increase in observed wavelength compared with the emitted wavelength.", "It is the measurable clue used in the expansion story."),
             technical_word("Wavelength", "Wavelength is the distance between matching points on a wave.", "Redshift is explained through wavelength change, not a vague color name alone."),
             technical_word("Observed light", "Observed light is the light measured when it reaches the observer.", "It may differ from the emitted light after traveling through expanding space."),
             technical_word("Expansion", "Expansion means the space between distant galaxies increases over time.", "It provides the stretching story behind cosmological redshift."),
         ]
-    if lesson_id == "M15_L6":
+    if lesson_id == "M14_L6":
         return [
             technical_word("Big Bang", "The Big Bang model describes the universe expanding from an earlier hot, dense state.", "It is a model of cosmic history, not an ordinary explosion from one point."),
             technical_word("Universe", "The universe is all of space, time, matter, and energy.", "It is larger than any one galaxy."),
@@ -398,7 +398,7 @@ def build_shorts(
 def lesson_one() -> Dict[str, Any]:
     diagnostic = build_mcqs([
         (
-            "M15L1_D1",
+            "M14L1_D1",
             "In the Beacon-City model, a beacon stands for a...",
             ["star", "planet", "moon", "galaxy"],
             0,
@@ -407,7 +407,7 @@ def lesson_one() -> Dict[str, Any]:
             ["identify_star"],
         ),
         (
-            "M15L1_D2",
+            "M14L1_D2",
             "Which object is best described as self-lit?",
             ["the Sun", "the Moon", "Earth", "Venus by reflection"],
             0,
@@ -417,7 +417,7 @@ def lesson_one() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L1_D3",
+            "M14L1_D3",
             "Why is a star better modeled as a beacon than as a mirror?",
             [
                 "Because a star makes its own light, while a mirror only reflects light from somewhere else.",
@@ -436,7 +436,7 @@ def lesson_one() -> Dict[str, Any]:
     ])
     concept = build_mcqs([
         (
-            "M15L1_C1",
+            "M14L1_C1",
             "Which comparison is strongest?",
             [
                 "star: self-lit, planet: mostly reflective",
@@ -451,7 +451,7 @@ def lesson_one() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L1_C2",
+            "M14L1_C2",
             "Explain why a bright planet still is not a star.",
             [
                 "Because the planet is bright mainly by reflecting starlight, while a star makes its own light.",
@@ -471,7 +471,7 @@ def lesson_one() -> Dict[str, Any]:
     ])
     mastery = build_mcqs([
         (
-            "M15L1_M1",
+            "M14L1_M1",
             "Which object is most likely to be a star?",
             [
                 "a body producing its own light by core fusion",
@@ -485,7 +485,7 @@ def lesson_one() -> Dict[str, Any]:
             ["identify_star", "luminous_vs_reflective", "fusion_energy"],
         ),
         (
-            "M15L1_M3",
+            "M14L1_M3",
             "Which statement keeps astronomy language accurate?",
             [
                 "The Sun is a star because it is a luminous sphere powered by fusion.",
@@ -500,7 +500,7 @@ def lesson_one() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L1_M2",
+            "M14L1_M2",
             "Summarize the beacon idea in one strong sentence.",
             [
                 "A star is a self-lit beacon because fusion in its core releases the energy that makes it shine.",
@@ -519,10 +519,10 @@ def lesson_one() -> Dict[str, Any]:
         ),
     ])
     return lesson_spec(
-        "M15_L1",
+        "M14_L1",
         "Light the Beacon",
         sim(
-            "m15_light_beacon_lab",
+            "m14u_light_beacon_lab",
             "Light the beacon",
             "Compare self-lit and reflective objects so the star-versus-planet distinction stays physical instead of visual only.",
             [
@@ -565,7 +565,7 @@ def lesson_one() -> Dict[str, Any]:
                 "Fusion in a star's core releases the energy that makes it shine.",
                 "Apparent brightness alone does not decide whether something is a star.",
             ],
-            technical_words=m15_technical_words("M15_L1"),
+            technical_words=m14u_technical_words("M14_L1"),
             prerequisite_lessons=["M14_L1"],
             misconception_focus=["star_reflects_light_confusion", "fusion_core_energy_confusion"],
             formulas=[
@@ -609,7 +609,7 @@ def lesson_one() -> Dict[str, Any]:
             ],
             visual_assets=[
                 visual(
-                    "m15-l1-star-vs-planet",
+                    "m14u-l1-star-vs-planet",
                     "Self-lit beacons are different from reflective worlds",
                     "Show a fusion-powered star and a reflective planet on one board so luminous and illuminated bodies stay distinct.",
                     "The lesson 1 board keeps core fusion and reflected light apart before galaxies and redshift are introduced.",
@@ -618,7 +618,7 @@ def lesson_one() -> Dict[str, Any]:
             ],
             animation_assets=[],
             simulation_contract=sim_contract(
-                "m15_l1_beacon_sim",
+                "m14u_l1_beacon_sim",
                 "self_lit_beacon",
                 "Switch between self-made light and reflected light until the star rule feels automatic.",
                 "Start with one beacon and one reflective world under the same comparison light.",
@@ -665,7 +665,7 @@ def lesson_one() -> Dict[str, Any]:
 def lesson_two() -> Dict[str, Any]:
     diagnostic = build_mcqs([
         (
-            "M15L2_D1",
+            "M14L2_D1",
             "In the Beacon-City model, a glow cradle stands for a...",
             ["nebula / stellar nursery", "galaxy", "black hole", "light-year"],
             0,
@@ -674,7 +674,7 @@ def lesson_two() -> Dict[str, Any]:
             ["identify_stellar_birth"],
         ),
         (
-            "M15L2_D2",
+            "M14L2_D2",
             "A young spark stands for a...",
             ["protostar", "white dwarf", "galaxy", "redshift"],
             0,
@@ -683,7 +683,7 @@ def lesson_two() -> Dict[str, Any]:
             ["identify_stellar_birth"],
         ),
         (
-            "M15L2_D3",
+            "M14L2_D3",
             "Case 1: two stars begin with very different masses. What is most likely to differ later?",
             [
                 "their life path and final remnant",
@@ -698,7 +698,7 @@ def lesson_two() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L2_D4",
+            "M14L2_D4",
             "Why do not all stars end the same way?",
             [
                 "Because a star's mass changes its life path and final remnant.",
@@ -712,7 +712,7 @@ def lesson_two() -> Dict[str, Any]:
     ])
     concept = build_mcqs([
         (
-            "M15L2_C1",
+            "M14L2_C1",
             "Which path is strongest for a low-mass beacon?",
             [
                 "glow cradle -> young spark -> steady beacon -> swollen ember -> white ember",
@@ -726,7 +726,7 @@ def lesson_two() -> Dict[str, Any]:
             ["mass_life_path"],
         ),
         (
-            "M15L2_C2",
+            "M14L2_C2",
             "Case 2: star A ends as a white dwarf and star B ends as a neutron star. What is the best inference?",
             [
                 "star B began with greater mass",
@@ -741,7 +741,7 @@ def lesson_two() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L2_C3",
+            "M14L2_C3",
             "Explain why a stellar lifecycle diagram branches rather than staying as one single line.",
             [
                 "Because stars with different masses follow different later paths and end in different remnants.",
@@ -755,7 +755,7 @@ def lesson_two() -> Dict[str, Any]:
     ])
     mastery = build_mcqs([
         (
-            "M15L2_M1",
+            "M14L2_M1",
             "Which remnant is most consistent with a lower-mass star?",
             ["white dwarf", "black hole", "galaxy city", "redshift trail"],
             0,
@@ -764,7 +764,7 @@ def lesson_two() -> Dict[str, Any]:
             ["stellar_remnants"],
         ),
         (
-            "M15L2_M2",
+            "M14L2_M2",
             "Case 3: star X is 2 solar masses and star Y is 25 solar masses. Which one is more likely to follow the blast-bloom path?",
             ["star Y", "star X", "both equally", "neither because only galaxies explode"],
             0,
@@ -774,7 +774,7 @@ def lesson_two() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L2_M3",
+            "M14L2_M3",
             "Summarize the mass rule in one strong sentence.",
             [
                 "A star's mass shapes its later life path and final remnant, so not all stars die the same way.",
@@ -787,10 +787,10 @@ def lesson_two() -> Dict[str, Any]:
         ),
     ])
     return lesson_spec(
-        "M15_L2",
+        "M14_L2",
         "Choose the Star Path",
         sim(
-            "m15_star_path_lab",
+            "m14u_star_path_lab",
             "Choose the star path",
             "Move one forming star onto low-mass or high-mass branches so the lifecycle becomes a mass-shaped story rather than a memorized chain.",
             ["Start at a glow cradle.", "Adjust stellar mass and compare the later path."],
@@ -824,8 +824,8 @@ def lesson_two() -> Dict[str, Any]:
                 "Lower-mass and higher-mass stars do not share identical endings.",
                 "Massive stars can explode as supernovae and leave neutron stars or black holes.",
             ],
-            technical_words=m15_technical_words("M15_L2"),
-            prerequisite_lessons=["M15_L1"],
+            technical_words=m14u_technical_words("M14_L2"),
+            prerequisite_lessons=["M14_L1"],
             misconception_focus=["mass_same_star_fate_confusion"],
             formulas=[
                 relation(
@@ -868,7 +868,7 @@ def lesson_two() -> Dict[str, Any]:
             ],
             visual_assets=[
                 visual(
-                    "m15-l2-stellar-lifecycle",
+                    "m14u-l2-stellar-lifecycle",
                     "Mass changes the later star path",
                     "Show one stellar lifecycle board with low-mass and high-mass branches so remnant differences stay visible.",
                     "The lesson 2 visual keeps stellar birth, stable shining, swelling, explosion, and remnant paths on one clear map.",
@@ -877,7 +877,7 @@ def lesson_two() -> Dict[str, Any]:
             ],
             animation_assets=[],
             simulation_contract=sim_contract(
-                "m15_l2_stellar_path_sim",
+                "m14u_l2_stellar_path_sim",
                 "stellar_path_branch",
                 "Change the star's mass and watch the later lifecycle path branch.",
                 "Start with a medium-mass forming star in a glow cradle.",
@@ -921,7 +921,7 @@ def lesson_two() -> Dict[str, Any]:
 def lesson_three() -> Dict[str, Any]:
     diagnostic = build_mcqs([
         (
-            "M15L3_D1",
+            "M14L3_D1",
             "In the Beacon-City model, a beacon-city stands for a...",
             ["galaxy", "single star", "light-year", "redshift"],
             0,
@@ -930,7 +930,7 @@ def lesson_three() -> Dict[str, Any]:
             ["identify_galaxy"],
         ),
         (
-            "M15L3_D2",
+            "M14L3_D2",
             "Our home spiral city is the...",
             ["Milky Way", "Sun", "Earth", "Andromeda"],
             0,
@@ -939,7 +939,7 @@ def lesson_three() -> Dict[str, Any]:
             ["identify_milky_way"],
         ),
         (
-            "M15L3_D3",
+            "M14L3_D3",
             "Which statement is strongest?",
             [
                 "The Solar System is inside the Milky Way.",
@@ -954,7 +954,7 @@ def lesson_three() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L3_D4",
+            "M14L3_D4",
             "Why is the Milky Way stronger as a beacon-city than as a single beacon?",
             [
                 "Because the Milky Way contains many stars, gas, and dust bound together by gravity, not just one star.",
@@ -968,7 +968,7 @@ def lesson_three() -> Dict[str, Any]:
     ])
     concept = build_mcqs([
         (
-            "M15L3_C1",
+            "M14L3_C1",
             "Which statement best matches a galaxy?",
             [
                 "A gravity-bound system of stars, gas, and dust",
@@ -982,7 +982,7 @@ def lesson_three() -> Dict[str, Any]:
             ["gravity_bound_galaxy"],
         ),
         (
-            "M15L3_C2",
+            "M14L3_C2",
             "Which comparison is strongest?",
             [
                 "star = one beacon, galaxy = many beacons bound together",
@@ -997,7 +997,7 @@ def lesson_three() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L3_C3",
+            "M14L3_C3",
             "Explain why a galaxy is stronger as a city of beacons than as a single beacon.",
             [
                 "Because a galaxy contains many stars together, while a single star is only one beacon.",
@@ -1011,7 +1011,7 @@ def lesson_three() -> Dict[str, Any]:
     ])
     mastery = build_mcqs([
         (
-            "M15L3_M1",
+            "M14L3_M1",
             "Which object is the better example of a galaxy?",
             ["a spiral system containing billions of stars", "one star with planets", "one bright comet", "one Moon"],
             0,
@@ -1020,7 +1020,7 @@ def lesson_three() -> Dict[str, Any]:
             ["identify_galaxy"],
         ),
         (
-            "M15L3_M2",
+            "M14L3_M2",
             "The Milky Way is best described as...",
             ["our home spiral galaxy", "the whole universe", "one star near Earth", "a unit of time"],
             0,
@@ -1030,7 +1030,7 @@ def lesson_three() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L3_M3",
+            "M14L3_M3",
             "Summarize the beacon-city idea in one strong sentence.",
             [
                 "A galaxy is a gravity-bound beacon-city containing many stars, and the Milky Way is our home spiral galaxy.",
@@ -1043,10 +1043,10 @@ def lesson_three() -> Dict[str, Any]:
         ),
     ])
     return lesson_spec(
-        "M15_L3",
+        "M14_L3",
         "Build the Beacon-City",
         sim(
-            "m15_beacon_city_lab",
+            "m14u_beacon_city_lab",
             "Build the beacon-city",
             "Compare one star, one Solar System, and one galaxy so the Milky Way scale story stays organized.",
             ["Place the Sun inside the Milky Way map.", "Compare a star with a galaxy city."],
@@ -1077,8 +1077,8 @@ def lesson_three() -> Dict[str, Any]:
                 "The Milky Way is our home galaxy.",
                 "The Solar System is inside the Milky Way rather than equal to it.",
             ],
-            technical_words=m15_technical_words("M15_L3"),
-            prerequisite_lessons=["M15_L1"],
+            technical_words=m14u_technical_words("M14_L3"),
+            prerequisite_lessons=["M14_L1"],
             misconception_focus=["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"],
             formulas=[
                 relation(
@@ -1121,7 +1121,7 @@ def lesson_three() -> Dict[str, Any]:
             ],
             visual_assets=[
                 visual(
-                    "m15-l3-galaxy-milky-way",
+                    "m14u-l3-galaxy-milky-way",
                     "Galaxies are gravity-bound beacon-cities",
                     "Show the Milky Way as a spiral beacon-city with the Sun marked inside it so scale stays readable.",
                     "The lesson 3 visual keeps one star, one Solar System, and one galaxy on clearly separated scales.",
@@ -1130,7 +1130,7 @@ def lesson_three() -> Dict[str, Any]:
             ],
             animation_assets=[],
             simulation_contract=sim_contract(
-                "m15_l3_galaxy_sim",
+                "m14u_l3_galaxy_sim",
                 "galaxy_city_builder",
                 "Place the Sun and compare one beacon with one beacon-city.",
                 "Start with a spiral galaxy map and no labels turned on.",
@@ -1174,7 +1174,7 @@ def lesson_three() -> Dict[str, Any]:
 def lesson_four() -> Dict[str, Any]:
     diagnostic = build_mcqs([
         (
-            "M15L4_D1",
+            "M14L4_D1",
             "A signal-year stands for a...",
             ["distance", "time only", "brightness level", "star stage"],
             0,
@@ -1183,7 +1183,7 @@ def lesson_four() -> Dict[str, Any]:
             ["identify_light_year"],
         ),
         (
-            "M15L4_D2",
+            "M14L4_D2",
             "Which statement is strongest?",
             [
                 "A light-year is the distance light travels in one year.",
@@ -1197,7 +1197,7 @@ def lesson_four() -> Dict[str, Any]:
             ["identify_light_year"],
         ),
         (
-            "M15L4_D3",
+            "M14L4_D3",
             "Case 1: two stars are 4 signal-years and 400 signal-years away. Which one is farther?",
             ["the 400 signal-year star", "the 4 signal-year star", "both are equally far", "cannot be compared"],
             0,
@@ -1207,7 +1207,7 @@ def lesson_four() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L4_D4",
+            "M14L4_D4",
             "Why is a light-year about distance rather than time?",
             [
                 "Because it names how far light travels in one year, so it is a distance unit.",
@@ -1221,7 +1221,7 @@ def lesson_four() -> Dict[str, Any]:
     ])
     concept = build_mcqs([
         (
-            "M15L4_C1",
+            "M14L4_C1",
             "Case 2: star A is 8 light-years away and star B is 80 light-years away. Which statement is strongest?",
             ["Star B is 10 times farther away.", "Star A is farther away.", "They are the same distance because both use light-years.", "You cannot compare distances in light-years."],
             0,
@@ -1230,7 +1230,7 @@ def lesson_four() -> Dict[str, Any]:
             ["compare_distances"],
         ),
         (
-            "M15L4_C2",
+            "M14L4_C2",
             "What idea makes the light-year useful in astronomy?",
             ["Cosmic scales are enormous.", "Stars shine by reflection.", "Galaxies are always identical.", "Redshift is a unit of length."],
             0,
@@ -1240,7 +1240,7 @@ def lesson_four() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L4_C3",
+            "M14L4_C3",
             "Explain why the word 'year' in light-year can mislead students.",
             [
                 "Because the word year looks like a time unit even though a light-year is actually a distance.",
@@ -1254,7 +1254,7 @@ def lesson_four() -> Dict[str, Any]:
     ])
     mastery = build_mcqs([
         (
-            "M15L4_M1",
+            "M14L4_M1",
             "Which object is farther away?",
             ["the object at 300 light-years", "the object at 30 light-years", "they are equal", "light-years cannot compare distance"],
             0,
@@ -1263,7 +1263,7 @@ def lesson_four() -> Dict[str, Any]:
             ["compare_distances"],
         ),
         (
-            "M15L4_M2",
+            "M14L4_M2",
             "Case 3: source A is 2 light-years away and source B is 6 light-years away. Which is 3 times farther?",
             ["source B", "source A", "both", "neither"],
             0,
@@ -1273,7 +1273,7 @@ def lesson_four() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L4_M3",
+            "M14L4_M3",
             "Summarize the signal-year idea in one strong sentence.",
             [
                 "A signal-year is the distance light travels in one year, so it is a distance unit for huge cosmic scales.",
@@ -1286,10 +1286,10 @@ def lesson_four() -> Dict[str, Any]:
         ),
     ])
     return lesson_spec(
-        "M15_L4",
+        "M14_L4",
         "Switch to Signal-Years",
         sim(
-            "m15_signal_year_lab",
+            "m14u_signal_year_lab",
             "Switch to signal-years",
             "Scale cosmic distance with one clear light-year ruler so astronomy distances stop sounding like times.",
             ["Compare two cosmic distances in light-years.", "Switch between kilometres and light-years."],
@@ -1320,8 +1320,8 @@ def lesson_four() -> Dict[str, Any]:
                 "Cosmic distances are huge.",
                 "Larger light-year values mean greater distance.",
             ],
-            technical_words=m15_technical_words("M15_L4"),
-            prerequisite_lessons=["M15_L3"],
+            technical_words=m14u_technical_words("M14_L4"),
+            prerequisite_lessons=["M14_L3"],
             misconception_focus=["light_year_time_confusion", "light_year_small_distance_confusion"],
             formulas=[
                 relation(
@@ -1364,7 +1364,7 @@ def lesson_four() -> Dict[str, Any]:
             ],
             visual_assets=[
                 visual(
-                    "m15-l4-light-year-scale",
+                    "m14u-l4-light-year-scale",
                     "Signal-years are distance markers, not clock readings",
                     "Show local and galactic distance scales with a light-year ruler so the unit reads as spatial scale.",
                     "The lesson 4 visual turns the light-year into a clear distance ladder rather than a time-like label.",
@@ -1373,7 +1373,7 @@ def lesson_four() -> Dict[str, Any]:
             ],
             animation_assets=[],
             simulation_contract=sim_contract(
-                "m15_l4_signal_year_sim",
+                "m14u_l4_signal_year_sim",
                 "signal_year_scale",
                 "Switch between kilometre-scale and light-year-scale views until the unit reads as distance automatically.",
                 "Start with one nearby star and one much farther star.",
@@ -1417,7 +1417,7 @@ def lesson_four() -> Dict[str, Any]:
 def lesson_five() -> Dict[str, Any]:
     diagnostic = build_mcqs([
         (
-            "M15L5_D1",
+            "M14L5_D1",
             "Stretch-red drift stands for...",
             ["redshift", "fusion", "stellar mass", "light-year"],
             0,
@@ -1426,7 +1426,7 @@ def lesson_five() -> Dict[str, Any]:
             ["identify_redshift"],
         ),
         (
-            "M15L5_D2",
+            "M14L5_D2",
             "What happens to light when the stretchmap expands while the light is traveling?",
             [
                 "its wavelength is stretched longer",
@@ -1440,7 +1440,7 @@ def lesson_five() -> Dict[str, Any]:
             ["stretch_wavelength"],
         ),
         (
-            "M15L5_D3",
+            "M14L5_D3",
             "Case 1: light from galaxy A is stretched more than light from galaxy B. Which one is more redshifted?",
             ["galaxy A", "galaxy B", "both equally", "cannot tell"],
             0,
@@ -1450,7 +1450,7 @@ def lesson_five() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L5_D4",
+            "M14L5_D4",
             "Why does stretching the map make light redder?",
             [
                 "Because the wavelength of the traveling light is stretched longer, which shifts it toward the red end.",
@@ -1464,7 +1464,7 @@ def lesson_five() -> Dict[str, Any]:
     ])
     concept = build_mcqs([
         (
-            "M15L5_C1",
+            "M14L5_C1",
             "Case 2: emitted wavelength 400 nm, observed wavelength 520 nm. Which is stronger?",
             ["redshift occurred", "blueshift occurred", "no wavelength change", "the source stopped emitting"],
             0,
@@ -1473,7 +1473,7 @@ def lesson_five() -> Dict[str, Any]:
             ["stretch_wavelength"],
         ),
         (
-            "M15L5_C2",
+            "M14L5_C2",
             "Which explanation best matches cosmological redshift?",
             [
                 "space stretching the traveling light",
@@ -1488,7 +1488,7 @@ def lesson_five() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L5_C3",
+            "M14L5_C3",
             "Why is the phrase 'farther city, bigger redshift' useful evidence language?",
             [
                 "Because more distant galaxies generally show greater wavelength stretch, which supports the expansion picture.",
@@ -1502,7 +1502,7 @@ def lesson_five() -> Dict[str, Any]:
     ])
     mastery = build_mcqs([
         (
-            "M15L5_M1",
+            "M14L5_M1",
             "Observed wavelength 700 nm compared with emitted wavelength 500 nm suggests...",
             ["redshift", "blueshift", "no shift", "star death"],
             0,
@@ -1511,7 +1511,7 @@ def lesson_five() -> Dict[str, Any]:
             ["stretch_wavelength"],
         ),
         (
-            "M15L5_M2",
+            "M14L5_M2",
             "Galaxy A has z = 0.05 and galaxy B has z = 0.50. Which broad conclusion is stronger?",
             [
                 "Galaxy B shows the greater redshift and is usually farther away.",
@@ -1526,7 +1526,7 @@ def lesson_five() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L5_M3",
+            "M14L5_M3",
             "Summarize stretch-red drift in one strong sentence.",
             [
                 "Stretch-red drift means light arrives with a longer wavelength because space expanded while the light was traveling.",
@@ -1539,10 +1539,10 @@ def lesson_five() -> Dict[str, Any]:
         ),
     ])
     return lesson_spec(
-        "M15_L5",
+        "M14_L5",
         "Read the Stretch-Red Drift",
         sim(
-            "m15_redshift_lab",
+            "m14u_redshift_lab",
             "Read the stretch-red drift",
             "Stretch one traveling wavelength across an expanding map so redshift becomes a geometry-and-wavelength story.",
             ["Change the map stretch factor.", "Compare near and far galaxy light."],
@@ -1573,8 +1573,8 @@ def lesson_five() -> Dict[str, Any]:
                 "Farther galaxies generally show larger cosmological redshifts.",
                 "Redshift is not explained merely by saying the source became cooler.",
             ],
-            technical_words=m15_technical_words("M15_L5"),
-            prerequisite_lessons=["M15_L4"],
+            technical_words=m14u_technical_words("M14_L5"),
+            prerequisite_lessons=["M14_L4"],
             misconception_focus=["redshift_cooling_confusion", "redshift_color_only_confusion", "farther_smaller_redshift_confusion"],
             formulas=[
                 relation(
@@ -1623,7 +1623,7 @@ def lesson_five() -> Dict[str, Any]:
             ],
             visual_assets=[
                 visual(
-                    "m15-l5-redshift-expansion",
+                    "m14u-l5-redshift-expansion",
                     "Stretching the map stretches the light",
                     "Show near and far beacon-city spectra with different wavelength stretch so redshift reads as evidence.",
                     "The lesson 5 visual keeps emitted wavelength, observed wavelength, and distance trend on one board.",
@@ -1632,7 +1632,7 @@ def lesson_five() -> Dict[str, Any]:
             ],
             animation_assets=[],
             simulation_contract=sim_contract(
-                "m15_l5_redshift_sim",
+                "m14u_l5_redshift_sim",
                 "stretch_red_drift",
                 "Change the stretch factor and compare how near and far galaxy light arrives.",
                 "Start with one emitted wavelength and no map stretch.",
@@ -1676,7 +1676,7 @@ def lesson_five() -> Dict[str, Any]:
 def lesson_six() -> Dict[str, Any]:
     diagnostic = build_mcqs([
         (
-            "M15L6_D1",
+            "M14L6_D1",
             "The Great Unfurling stands for the...",
             ["Big Bang and expanding universe", "death of the Sun", "one supernova", "Moon phases"],
             0,
@@ -1685,7 +1685,7 @@ def lesson_six() -> Dict[str, Any]:
             ["identify_big_bang"],
         ),
         (
-            "M15L6_D2",
+            "M14L6_D2",
             "Which statement is strongest?",
             [
                 "The Big Bang model says the universe began hot and dense and has been expanding.",
@@ -1699,7 +1699,7 @@ def lesson_six() -> Dict[str, Any]:
             ["identify_big_bang"],
         ),
         (
-            "M15L6_D3",
+            "M14L6_D3",
             "Case 1: if farther galaxies usually show larger redshifts, what broad model does that support?",
             ["an expanding universe", "a perfectly static universe", "a Solar-System-only model", "all galaxies collapsing toward us"],
             0,
@@ -1709,7 +1709,7 @@ def lesson_six() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L6_D4",
+            "M14L6_D4",
             "Why is 'expanding map' better than 'ordinary explosion' as a Big Bang analogy?",
             [
                 "Because the Big Bang model describes space itself expanding, not matter flying from one centre into empty space.",
@@ -1723,7 +1723,7 @@ def lesson_six() -> Dict[str, Any]:
     ])
     concept = build_mcqs([
         (
-            "M15L6_C1",
+            "M14L6_C1",
             "Which statement best fits the Great Unfurling model?",
             [
                 "The whole stretchmap expands, so distant light arrives redder.",
@@ -1737,7 +1737,7 @@ def lesson_six() -> Dict[str, Any]:
             ["identify_big_bang"],
         ),
         (
-            "M15L6_C2",
+            "M14L6_C2",
             "Case 2: if galaxy C has z = 0.01 and galaxy D has z = 0.40, which broad expansion inference is stronger?",
             [
                 "D is usually farther and fits the expansion trend more strongly.",
@@ -1752,7 +1752,7 @@ def lesson_six() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L6_C3",
+            "M14L6_C3",
             "Why do astronomers treat redshift as evidence for expansion and not just as an isolated color fact?",
             [
                 "Because the distance-redshift pattern across many galaxies fits the expansion model.",
@@ -1766,7 +1766,7 @@ def lesson_six() -> Dict[str, Any]:
     ])
     mastery = build_mcqs([
         (
-            "M15L6_M1",
+            "M14L6_M1",
             "Which statement is the best correction to 'the Big Bang was a blast from one spot into empty space'?",
             [
                 "The model describes space itself expanding from an early hot, dense state.",
@@ -1780,7 +1780,7 @@ def lesson_six() -> Dict[str, Any]:
             ["space_expands"],
         ),
         (
-            "M15L6_M2",
+            "M14L6_M2",
             "Case 3: galaxies with larger redshifts are generally...",
             [
                 "farther away in the expansion evidence pattern",
@@ -1795,7 +1795,7 @@ def lesson_six() -> Dict[str, Any]:
         ),
     ]) + build_shorts([
         (
-            "M15L6_M3",
+            "M14L6_M3",
             "Summarize the Great Unfurling idea in one strong sentence.",
             [
                 "The Great Unfurling means the universe began hot and dense and has been expanding, so distant galaxy light arrives redshifted.",
@@ -1808,10 +1808,10 @@ def lesson_six() -> Dict[str, Any]:
         ),
     ])
     return lesson_spec(
-        "M15_L6",
+        "M14_L6",
         "Great Unfurling Evidence",
         sim(
-            "m15_unfurling_lab",
+            "m14u_unfurling_lab",
             "Great Unfurling evidence",
             "Link redshift pattern and expansion language so the Big Bang model reads as evidence-based rather than slogan-based.",
             ["Compare several galaxy redshifts.", "Switch between centre-explosion and expanding-space descriptions."],
@@ -1842,8 +1842,8 @@ def lesson_six() -> Dict[str, Any]:
                 "Cosmological redshift supports expansion.",
                 "The farther-galaxy larger-redshift pattern is key evidence language.",
             ],
-            technical_words=m15_technical_words("M15_L6"),
-            prerequisite_lessons=["M15_L5"],
+            technical_words=m14u_technical_words("M14_L6"),
+            prerequisite_lessons=["M14_L5"],
             misconception_focus=["big_bang_center_explosion_confusion", "expansion_into_space_confusion", "farther_smaller_redshift_confusion"],
             formulas=[
                 relation(
@@ -1886,7 +1886,7 @@ def lesson_six() -> Dict[str, Any]:
             ],
             visual_assets=[
                 visual(
-                    "m15-l6-big-bang-timeline",
+                    "m14u-l6-big-bang-timeline",
                     "The Great Unfurling is an expanding map, not a centre explosion",
                     "Show hot-dense early conditions, expansion of space, and a redshift evidence trend on one board.",
                     "The lesson 6 visual closes the module by tying Big Bang language to the distance-redshift evidence pattern.",
@@ -1895,7 +1895,7 @@ def lesson_six() -> Dict[str, Any]:
             ],
             animation_assets=[],
             simulation_contract=sim_contract(
-                "m15_l6_unfurling_sim",
+                "m14u_l6_unfurling_sim",
                 "great_unfurling_evidence",
                 "Compare model language and redshift evidence until the expansion story becomes coherent.",
                 "Start with three galaxies at different distances on the same stretchmap.",
@@ -2023,7 +2023,7 @@ def _extend_phrase_group(group: Sequence[str]) -> List[str]:
     return expanded
 
 
-def _broaden_m15_short_acceptance(lesson: Dict[str, Any]) -> None:
+def _broaden_m14u_short_acceptance(lesson: Dict[str, Any]) -> None:
     question_sets = [
         lesson.get("diagnostic") or [],
         lesson.get("capsule_checks") or [],
@@ -2131,197 +2131,197 @@ def _quality_pass_lesson(
     for item in [*diagnostic_extra, *concept_extra, *mastery_extra]:
         extra_skills.extend([str(tag) for tag in item.get("skill_tags") or []])
     contract_payload["mastery_skills"] = _merge_unique_strings(contract_payload.get("mastery_skills") or [], extra_skills)
-    _broaden_m15_short_acceptance(upgraded)
+    _broaden_m14u_short_acceptance(upgraded)
     return upgraded
 
 
 def lesson_one_quality_pass(lesson: Dict[str, Any]) -> Dict[str, Any]:
     diagnostic_extra = build_mcqs([
-        ("M15L1_D4", "Which clue is strongest when separating a star from a planet?", ["where the light comes from", "which one looks larger in the sky", "which one is nearer Earth", "which one appears brighter tonight"], 0, "Classify by source of light first.", ["star_reflects_light_confusion"], ["classify_light_source"]),
-        ("M15L1_D5", "A bright object stays luminous even after outside illumination is removed. It is strongest as a...", ["star", "planet", "moon", "reflection only"], 0, "Self-produced light points to a star.", ["star_reflects_light_confusion"], ["identify_star", "classify_light_source"]),
-        ("M15L1_D6", "Which statement best protects against the brightness trap?", ["A reflective planet can look bright without being a star.", "Anything bright in the night sky must be a star.", "Dim objects can never be stars.", "Brightness tells the whole classification story."], 0, "Brightness alone is too weak.", ["star_reflects_light_confusion"], ["brightness_trap", "luminous_vs_reflective"]),
-        ("M15L1_D7", "What powers the light of an ordinary star in this module?", ["fusion in the core", "reflection from nearby planets", "Earth's atmosphere", "redshift"], 0, "Core fusion is the causal source.", ["fusion_core_energy_confusion"], ["fusion_energy"]),
-        ("M15L1_D9", "Which object pair best contrasts self-lit and reflective astronomy bodies?", ["Sun and Venus", "Sun and Sirius", "Earth and Mars", "Moon and Venus"], 0, "The Sun is self-lit while Venus mainly reflects sunlight.", ["star_reflects_light_confusion"], ["luminous_vs_reflective", "classify_light_source"]),
+        ("M14L1_D4", "Which clue is strongest when separating a star from a planet?", ["where the light comes from", "which one looks larger in the sky", "which one is nearer Earth", "which one appears brighter tonight"], 0, "Classify by source of light first.", ["star_reflects_light_confusion"], ["classify_light_source"]),
+        ("M14L1_D5", "A bright object stays luminous even after outside illumination is removed. It is strongest as a...", ["star", "planet", "moon", "reflection only"], 0, "Self-produced light points to a star.", ["star_reflects_light_confusion"], ["identify_star", "classify_light_source"]),
+        ("M14L1_D6", "Which statement best protects against the brightness trap?", ["A reflective planet can look bright without being a star.", "Anything bright in the night sky must be a star.", "Dim objects can never be stars.", "Brightness tells the whole classification story."], 0, "Brightness alone is too weak.", ["star_reflects_light_confusion"], ["brightness_trap", "luminous_vs_reflective"]),
+        ("M14L1_D7", "What powers the light of an ordinary star in this module?", ["fusion in the core", "reflection from nearby planets", "Earth's atmosphere", "redshift"], 0, "Core fusion is the causal source.", ["fusion_core_energy_confusion"], ["fusion_energy"]),
+        ("M14L1_D9", "Which object pair best contrasts self-lit and reflective astronomy bodies?", ["Sun and Venus", "Sun and Sirius", "Earth and Mars", "Moon and Venus"], 0, "The Sun is self-lit while Venus mainly reflects sunlight.", ["star_reflects_light_confusion"], ["luminous_vs_reflective", "classify_light_source"]),
     ]) + build_shorts([
-        ("M15L1_D8", "Why is brightness by itself too weak to prove something is a star?", ["Because a planet can look bright by reflecting starlight, so the stronger rule is whether the object makes its own light.", "Because apparent brightness can come from reflection, while stars are identified by self-produced light."], "Use source-of-light language.", ["star_reflects_light_confusion"], ["brightness_trap", "classify_light_source"], acceptance_groups(["brightness", "bright", "appear bright", "looks bright"], ["reflect", "reflection", "reflective", "reflected", "reflector"], ["source of light", "light source", "self-lit", "self-luminous", "makes its own light", "produces its own light"], ["star", "planet", "object", "body"])) ,
-        ("M15L1_D10", "Why does reflected light not turn a planet into a star?", ["Because reflected light is borrowed from another source, while a star produces its own light.", "Because the planet is illuminated rather than self-luminous."], "Contrast borrowed light with self-made light.", ["star_reflects_light_confusion"], ["luminous_vs_reflective", "classify_light_source"], acceptance_groups(["reflect", "borrowed"], ["light"], ["planet"], ["star", "self-lit", "produces its own light"])) ,
+        ("M14L1_D8", "Why is brightness by itself too weak to prove something is a star?", ["Because a planet can look bright by reflecting starlight, so the stronger rule is whether the object makes its own light.", "Because apparent brightness can come from reflection, while stars are identified by self-produced light."], "Use source-of-light language.", ["star_reflects_light_confusion"], ["brightness_trap", "classify_light_source"], acceptance_groups(["brightness", "bright", "appear bright", "looks bright"], ["reflect", "reflection", "reflective", "reflected", "reflector"], ["source of light", "light source", "self-lit", "self-luminous", "makes its own light", "produces its own light"], ["star", "planet", "object", "body"])) ,
+        ("M14L1_D10", "Why does reflected light not turn a planet into a star?", ["Because reflected light is borrowed from another source, while a star produces its own light.", "Because the planet is illuminated rather than self-luminous."], "Contrast borrowed light with self-made light.", ["star_reflects_light_confusion"], ["luminous_vs_reflective", "classify_light_source"], acceptance_groups(["reflect", "borrowed"], ["light"], ["planet"], ["star", "self-lit", "produces its own light"])) ,
     ])
     concept_extra = build_mcqs([
-        ("M15L1_C3", "A faint object is still releasing its own light from fusion. It is strongest as a...", ["star", "planet", "moon", "reflection only"], 0, "Source beats apparent brightness.", ["star_reflects_light_confusion", "fusion_core_energy_confusion"], ["identify_star", "fusion_energy"]),
-        ("M15L1_C4", "Which statement best keeps cause and appearance separate?", ["A reflective object can look bright, but it still does not make its own light.", "Anything dim cannot be a star.", "A star is only a star when it outshines every planet.", "Reflection and self-emission are the same thing."], 0, "Keep the cause of the light separate from how bright it looks.", ["star_reflects_light_confusion"], ["brightness_trap", "luminous_vs_reflective"]),
-        ("M15L1_C6", "Which comparison most strongly tests whether an object is a star?", ["Does it emit its own light or mainly reflect light?", "Is it the largest object nearby?", "Is it always visible at night?", "Is it farther away than Earth?"], 0, "The source of light is the deciding test.", ["star_reflects_light_confusion"], ["classify_light_source"]),
-        ("M15L1_C8", "Which statement is strongest about core fusion?", ["It powers the star's own light output.", "It only changes the star's color labels.", "It makes planets reflective.", "It is another word for redshift."], 0, "Fusion is the star's energy source.", ["fusion_core_energy_confusion"], ["fusion_energy"]),
+        ("M14L1_C3", "A faint object is still releasing its own light from fusion. It is strongest as a...", ["star", "planet", "moon", "reflection only"], 0, "Source beats apparent brightness.", ["star_reflects_light_confusion", "fusion_core_energy_confusion"], ["identify_star", "fusion_energy"]),
+        ("M14L1_C4", "Which statement best keeps cause and appearance separate?", ["A reflective object can look bright, but it still does not make its own light.", "Anything dim cannot be a star.", "A star is only a star when it outshines every planet.", "Reflection and self-emission are the same thing."], 0, "Keep the cause of the light separate from how bright it looks.", ["star_reflects_light_confusion"], ["brightness_trap", "luminous_vs_reflective"]),
+        ("M14L1_C6", "Which comparison most strongly tests whether an object is a star?", ["Does it emit its own light or mainly reflect light?", "Is it the largest object nearby?", "Is it always visible at night?", "Is it farther away than Earth?"], 0, "The source of light is the deciding test.", ["star_reflects_light_confusion"], ["classify_light_source"]),
+        ("M14L1_C8", "Which statement is strongest about core fusion?", ["It powers the star's own light output.", "It only changes the star's color labels.", "It makes planets reflective.", "It is another word for redshift."], 0, "Fusion is the star's energy source.", ["fusion_core_energy_confusion"], ["fusion_energy"]),
     ]) + build_shorts([
-        ("M15L1_C5", "Why does fusion belong in the star definition at this stage?", ["Because fusion is the internal process that releases the energy making a star self-luminous.", "Because fusion explains why a star can shine by itself instead of only reflecting light."], "Tie fusion to self-produced light.", ["fusion_core_energy_confusion"], ["fusion_energy"], acceptance_groups(["fusion"], ["internal", "core"], ["energy"], ["self-lit", "shine", "luminous"])) ,
-        ("M15L1_C7", "Why is 'ask where the light comes from' a stronger rule than 'ask which object looks brightest'?", ["Because the light source distinguishes self-lit stars from reflective bodies, while brightness can mislead.", "Because source of light gives the real classification rule and appearance alone does not."], "Keep cause ahead of appearance.", ["star_reflects_light_confusion"], ["classify_light_source", "brightness_trap"], acceptance_groups(["source", "where the light comes from"], ["stronger", "better"], ["brightness", "appearance"], ["mislead", "not enough"])) ,
+        ("M14L1_C5", "Why does fusion belong in the star definition at this stage?", ["Because fusion is the internal process that releases the energy making a star self-luminous.", "Because fusion explains why a star can shine by itself instead of only reflecting light."], "Tie fusion to self-produced light.", ["fusion_core_energy_confusion"], ["fusion_energy"], acceptance_groups(["fusion"], ["internal", "core"], ["energy"], ["self-lit", "shine", "luminous"])) ,
+        ("M14L1_C7", "Why is 'ask where the light comes from' a stronger rule than 'ask which object looks brightest'?", ["Because the light source distinguishes self-lit stars from reflective bodies, while brightness can mislead.", "Because source of light gives the real classification rule and appearance alone does not."], "Keep cause ahead of appearance.", ["star_reflects_light_confusion"], ["classify_light_source", "brightness_trap"], acceptance_groups(["source", "where the light comes from"], ["stronger", "better"], ["brightness", "appearance"], ["mislead", "not enough"])) ,
     ])
     mastery_extra = build_mcqs([
-        ("M15L1_M4", "Which object is strongest as a reflective world rather than a star?", ["Venus seen in sunlight", "the Sun", "a self-luminous beacon", "a fusion-powered sphere"], 0, "Venus is bright by reflection.", ["star_reflects_light_confusion"], ["luminous_vs_reflective"]),
-        ("M15L1_M5", "Which statement best classifies the Sun and Moon together?", ["The Sun is self-lit, while the Moon is usually visible by reflected light.", "Both are self-lit stars.", "Both are only reflective worlds.", "The Moon powers the Sun's light."], 0, "Keep the light sources distinct.", ["star_reflects_light_confusion"], ["identify_star", "luminous_vs_reflective"]),
-        ("M15L1_M7", "A body keeps emitting even when no other light shines on it. Which rule best classifies it?", ["self-produced light points to a star", "visible objects are always planets", "bright bodies are always moons", "red objects are always stars"], 0, "Use self-produced light as the test.", ["star_reflects_light_confusion"], ["classify_light_source", "identify_star"]),
-        ("M15L1_M8", "Which process most directly explains why a star can stay luminous?", ["fusion in the core", "reflection from dust", "a shadow cycle", "distance from Earth"], 0, "Fusion powers the star.", ["fusion_core_energy_confusion"], ["fusion_energy"]),
-        ("M15L1_M10", "Which summary best protects against confusing stars with bright reflective planets?", ["Classify by source of light first, then use brightness only as a secondary observation.", "Anything bright should be called a star until proven otherwise.", "If two objects look equally bright, they must be the same kind of object.", "Only large objects can be stars."], 0, "Use source before appearance.", ["star_reflects_light_confusion"], ["brightness_trap", "classify_light_source"]),
+        ("M14L1_M4", "Which object is strongest as a reflective world rather than a star?", ["Venus seen in sunlight", "the Sun", "a self-luminous beacon", "a fusion-powered sphere"], 0, "Venus is bright by reflection.", ["star_reflects_light_confusion"], ["luminous_vs_reflective"]),
+        ("M14L1_M5", "Which statement best classifies the Sun and Moon together?", ["The Sun is self-lit, while the Moon is usually visible by reflected light.", "Both are self-lit stars.", "Both are only reflective worlds.", "The Moon powers the Sun's light."], 0, "Keep the light sources distinct.", ["star_reflects_light_confusion"], ["identify_star", "luminous_vs_reflective"]),
+        ("M14L1_M7", "A body keeps emitting even when no other light shines on it. Which rule best classifies it?", ["self-produced light points to a star", "visible objects are always planets", "bright bodies are always moons", "red objects are always stars"], 0, "Use self-produced light as the test.", ["star_reflects_light_confusion"], ["classify_light_source", "identify_star"]),
+        ("M14L1_M8", "Which process most directly explains why a star can stay luminous?", ["fusion in the core", "reflection from dust", "a shadow cycle", "distance from Earth"], 0, "Fusion powers the star.", ["fusion_core_energy_confusion"], ["fusion_energy"]),
+        ("M14L1_M10", "Which summary best protects against confusing stars with bright reflective planets?", ["Classify by source of light first, then use brightness only as a secondary observation.", "Anything bright should be called a star until proven otherwise.", "If two objects look equally bright, they must be the same kind of object.", "Only large objects can be stars."], 0, "Use source before appearance.", ["star_reflects_light_confusion"], ["brightness_trap", "classify_light_source"]),
     ]) + build_shorts([
-        ("M15L1_M6", "Explain in one sentence why the Moon can look bright without being a star.", ["Because the Moon mainly reflects sunlight, while a star produces its own light.", "Because apparent brightness by reflection is not the same as self-luminous starlight."], "Keep reflection versus self-lighting visible.", ["star_reflects_light_confusion"], ["luminous_vs_reflective", "classify_light_source"], acceptance_groups(["Moon"], ["bright", "brightness"], ["reflect", "reflection"], ["star", "self-lit", "produces its own light"])) ,
-        ("M15L1_M9", "Why does a brightness ranking never settle the star-versus-planet question by itself?", ["Because both self-lit stars and reflective planets can appear bright, so the stronger rule is the source of the light.", "Because apparent brightness can come from different causes and does not by itself reveal whether the object is self-luminous.", "Because both stars and reflective planets can appear bright.", "Because both sources and reflectors can appear bright."], "Use brightness trap language clearly.", ["star_reflects_light_confusion"], ["brightness_trap", "classify_light_source"], acceptance_groups(["bright", "brightness", "appear bright"], ["both", "can both"], ["star", "self-lit", "source", "self-luminous"], ["planet", "reflect", "reflective", "reflector"])) ,
+        ("M14L1_M6", "Explain in one sentence why the Moon can look bright without being a star.", ["Because the Moon mainly reflects sunlight, while a star produces its own light.", "Because apparent brightness by reflection is not the same as self-luminous starlight."], "Keep reflection versus self-lighting visible.", ["star_reflects_light_confusion"], ["luminous_vs_reflective", "classify_light_source"], acceptance_groups(["Moon"], ["bright", "brightness"], ["reflect", "reflection"], ["star", "self-lit", "produces its own light"])) ,
+        ("M14L1_M9", "Why does a brightness ranking never settle the star-versus-planet question by itself?", ["Because both self-lit stars and reflective planets can appear bright, so the stronger rule is the source of the light.", "Because apparent brightness can come from different causes and does not by itself reveal whether the object is self-luminous.", "Because both stars and reflective planets can appear bright.", "Because both sources and reflectors can appear bright."], "Use brightness trap language clearly.", ["star_reflects_light_confusion"], ["brightness_trap", "classify_light_source"], acceptance_groups(["bright", "brightness", "appear bright"], ["both", "can both"], ["star", "self-lit", "source", "self-luminous"], ["planet", "reflect", "reflective", "reflector"])) ,
     ])
     return _quality_pass_lesson(lesson, diagnostic_extra=diagnostic_extra, concept_extra=concept_extra, mastery_extra=mastery_extra, worked_examples=[worked("Two objects look equally bright. One is fusion-powered and one only reflects sunlight. Which one is the star, and why?", ["Ignore apparent brightness for a moment.", "Ask which object produces its own light.", "Use fusion as the stronger classification clue."], "The fusion-powered object is the star.", "A star is defined by self-produced light from fusion, not by looking brighter than everything else.", "This keeps the opening lesson anchored in cause instead of appearance.")])
 
 
 def lesson_two_quality_pass(lesson: Dict[str, Any]) -> Dict[str, Any]:
     diagnostic_extra = build_mcqs([
-        ("M15L2_D5", "Which stage is the long stable shining stage for a star?", ["main sequence", "galaxy stage", "redshift stage", "light-year stage"], 0, "Main sequence is the long stable stage.", ["mass_same_star_fate_confusion"], ["main_sequence"]),
-        ("M15L2_D6", "A star of about 1 solar mass is more likely to end as a...", ["white dwarf", "black hole", "galaxy", "light-year"], 0, "Lower-mass stars end quietly as white dwarfs.", ["mass_same_star_fate_confusion"], ["stellar_remnants"]),
-        ("M15L2_D7", "A star of about 20 solar masses is stronger on which later route?", ["supernova branch", "quiet white-dwarf-only branch", "no remnant branch", "galaxy branch"], 0, "High mass opens the supernova route.", ["mass_same_star_fate_confusion"], ["supernova_path", "mass_life_path"]),
-        ("M15L2_D8", "Which variable is most useful before predicting a star's final remnant?", ["stellar mass", "the color of the classroom poster", "whether Earth has seasons", "the name of the galaxy"], 0, "Mass is the key path-shaping variable.", ["mass_same_star_fate_confusion"], ["mass_life_path"]),
+        ("M14L2_D5", "Which stage is the long stable shining stage for a star?", ["main sequence", "galaxy stage", "redshift stage", "light-year stage"], 0, "Main sequence is the long stable stage.", ["mass_same_star_fate_confusion"], ["main_sequence"]),
+        ("M14L2_D6", "A star of about 1 solar mass is more likely to end as a...", ["white dwarf", "black hole", "galaxy", "light-year"], 0, "Lower-mass stars end quietly as white dwarfs.", ["mass_same_star_fate_confusion"], ["stellar_remnants"]),
+        ("M14L2_D7", "A star of about 20 solar masses is stronger on which later route?", ["supernova branch", "quiet white-dwarf-only branch", "no remnant branch", "galaxy branch"], 0, "High mass opens the supernova route.", ["mass_same_star_fate_confusion"], ["supernova_path", "mass_life_path"]),
+        ("M14L2_D8", "Which variable is most useful before predicting a star's final remnant?", ["stellar mass", "the color of the classroom poster", "whether Earth has seasons", "the name of the galaxy"], 0, "Mass is the key path-shaping variable.", ["mass_same_star_fate_confusion"], ["mass_life_path"]),
     ]) + build_shorts([
-        ("M15L2_D9", "Why is a supernova not the ending for every star?", ["Because only sufficiently massive stars follow the supernova branch, while lower-mass stars can end as white dwarfs.", "Because stellar mass changes the later path, so not all stars reach the explosive route.", "Because their mass determines their ending.", "Because a star's mass determines its ending."], "Use mass-dependent branch language.", ["mass_same_star_fate_confusion"], ["supernova_path", "mass_life_path"], acceptance_groups(["mass"], ["determines", "decides", "sets", "depends"], ["ending", "fate", "path", "remnant"])) ,
-        ("M15L2_D10", "Why do white dwarfs and black holes belong to different later paths in this lesson?", ["Because different starting masses lead to different final remnants.", "Because the stellar lifecycle branches by mass, so the remnants need not match."], "Keep remnant difference tied to mass.", ["mass_same_star_fate_confusion"], ["stellar_remnants", "mass_life_path"], acceptance_groups(["different mass", "mass"], ["different", "branch"], ["remnant", "white dwarf", "black hole"])) ,
+        ("M14L2_D9", "Why is a supernova not the ending for every star?", ["Because only sufficiently massive stars follow the supernova branch, while lower-mass stars can end as white dwarfs.", "Because stellar mass changes the later path, so not all stars reach the explosive route.", "Because their mass determines their ending.", "Because a star's mass determines its ending."], "Use mass-dependent branch language.", ["mass_same_star_fate_confusion"], ["supernova_path", "mass_life_path"], acceptance_groups(["mass"], ["determines", "decides", "sets", "depends"], ["ending", "fate", "path", "remnant"])) ,
+        ("M14L2_D10", "Why do white dwarfs and black holes belong to different later paths in this lesson?", ["Because different starting masses lead to different final remnants.", "Because the stellar lifecycle branches by mass, so the remnants need not match."], "Keep remnant difference tied to mass.", ["mass_same_star_fate_confusion"], ["stellar_remnants", "mass_life_path"], acceptance_groups(["different mass", "mass"], ["different", "branch"], ["remnant", "white dwarf", "black hole"])) ,
     ])
     concept_extra = build_mcqs([
-        ("M15L2_C4", "Which path is strongest for a lower-mass star after the swollen stage?", ["toward a white dwarf remnant", "toward a black hole in every case", "straight into a galaxy", "into redshift only"], 0, "Lower-mass stars usually head toward white dwarfs.", ["mass_same_star_fate_confusion"], ["stellar_remnants"]),
-        ("M15L2_C5", "Which statement best fits a high-mass star after the steady beacon stage?", ["Its later path can include supernova and a dense remnant.", "It must quietly become a white dwarf only.", "It stops being a star immediately.", "It turns into a light-year."], 0, "High mass opens a more dramatic later branch.", ["mass_same_star_fate_confusion"], ["supernova_path", "stellar_remnants"]),
-        ("M15L2_C6", "Two stars share the same early stages but have very different masses. What is strongest later on?", ["their later branch can differ", "their entire lifecycle must stay identical", "neither can ever become a remnant", "both must end as black holes"], 0, "Shared beginnings do not force identical endings.", ["mass_same_star_fate_confusion"], ["mass_life_path"]),
+        ("M14L2_C4", "Which path is strongest for a lower-mass star after the swollen stage?", ["toward a white dwarf remnant", "toward a black hole in every case", "straight into a galaxy", "into redshift only"], 0, "Lower-mass stars usually head toward white dwarfs.", ["mass_same_star_fate_confusion"], ["stellar_remnants"]),
+        ("M14L2_C5", "Which statement best fits a high-mass star after the steady beacon stage?", ["Its later path can include supernova and a dense remnant.", "It must quietly become a white dwarf only.", "It stops being a star immediately.", "It turns into a light-year."], 0, "High mass opens a more dramatic later branch.", ["mass_same_star_fate_confusion"], ["supernova_path", "stellar_remnants"]),
+        ("M14L2_C6", "Two stars share the same early stages but have very different masses. What is strongest later on?", ["their later branch can differ", "their entire lifecycle must stay identical", "neither can ever become a remnant", "both must end as black holes"], 0, "Shared beginnings do not force identical endings.", ["mass_same_star_fate_confusion"], ["mass_life_path"]),
     ]) + build_shorts([
-        ("M15L2_C7", "Why does the lifecycle diagram branch instead of staying one straight chain?", ["Because stellar mass changes the later route and remnant, so one beginning can split into different endings.", "Because stars share broad early stages but later branch according to mass."], "Use branch-by-mass language.", ["mass_same_star_fate_confusion"], ["mass_life_path"], acceptance_groups(["branch"], ["mass"], ["later path", "ending", "remnant"], ["different", "split"])) ,
-        ("M15L2_C8", "Why does the same beginning in a glow cradle not guarantee the same ending for every star?", ["Because stars can begin similarly but diverge later if their masses are different.", "Because mass changes the later stellar route even when the early stages look similar."], "Keep shared start and different ending together.", ["mass_same_star_fate_confusion"], ["identify_stellar_birth", "mass_life_path"], acceptance_groups(["same beginning", "shared start", "glow cradle"], ["mass"], ["different ending", "different remnant", "later path"])) ,
+        ("M14L2_C7", "Why does the lifecycle diagram branch instead of staying one straight chain?", ["Because stellar mass changes the later route and remnant, so one beginning can split into different endings.", "Because stars share broad early stages but later branch according to mass."], "Use branch-by-mass language.", ["mass_same_star_fate_confusion"], ["mass_life_path"], acceptance_groups(["branch"], ["mass"], ["later path", "ending", "remnant"], ["different", "split"])) ,
+        ("M14L2_C8", "Why does the same beginning in a glow cradle not guarantee the same ending for every star?", ["Because stars can begin similarly but diverge later if their masses are different.", "Because mass changes the later stellar route even when the early stages look similar."], "Keep shared start and different ending together.", ["mass_same_star_fate_confusion"], ["identify_stellar_birth", "mass_life_path"], acceptance_groups(["same beginning", "shared start", "glow cradle"], ["mass"], ["different ending", "different remnant", "later path"])) ,
     ])
     mastery_extra = build_mcqs([
-        ("M15L2_M4", "Which remnant is strongest for a modest-mass star in this lesson?", ["white dwarf", "black hole", "galaxy core", "redshift"], 0, "Lower-mass stars point toward white dwarfs.", ["mass_same_star_fate_confusion"], ["stellar_remnants"]),
-        ("M15L2_M5", "Which statement best protects against the idea that all stars die the same way?", ["Mass changes the later path and remnant.", "All stars end as black holes.", "All stars end as white dwarfs.", "No star ever changes after it forms."], 0, "Mass is the key discriminator.", ["mass_same_star_fate_confusion"], ["mass_life_path"]),
-        ("M15L2_M6", "A 2-solar-mass star and an 18-solar-mass star are compared. Which is more likely on the supernova route?", ["the 18-solar-mass star", "the 2-solar-mass star", "both equally", "neither can be compared"], 0, "The more massive star is more likely on the supernova branch.", ["mass_same_star_fate_confusion"], ["supernova_path", "mass_life_path"]),
-        ("M15L2_M7", "Which pair is strongest as shared early stages before a later branch?", ["protostar and main sequence", "galaxy and redshift", "light-year and black hole", "Milky Way and big bang"], 0, "Those are shared early star stages.", ["mass_same_star_fate_confusion"], ["identify_stellar_birth", "main_sequence"]),
-        ("M15L2_M9", "Which statement best matches a very massive star?", ["Its later path can include supernova and a dense remnant.", "It must quietly become a white dwarf without any branch.", "It stops being governed by mass.", "It becomes a galaxy instead of a star remnant."], 0, "Massive stars can follow the explosive branch.", ["mass_same_star_fate_confusion"], ["supernova_path", "stellar_remnants"]),
+        ("M14L2_M4", "Which remnant is strongest for a modest-mass star in this lesson?", ["white dwarf", "black hole", "galaxy core", "redshift"], 0, "Lower-mass stars point toward white dwarfs.", ["mass_same_star_fate_confusion"], ["stellar_remnants"]),
+        ("M14L2_M5", "Which statement best protects against the idea that all stars die the same way?", ["Mass changes the later path and remnant.", "All stars end as black holes.", "All stars end as white dwarfs.", "No star ever changes after it forms."], 0, "Mass is the key discriminator.", ["mass_same_star_fate_confusion"], ["mass_life_path"]),
+        ("M14L2_M6", "A 2-solar-mass star and an 18-solar-mass star are compared. Which is more likely on the supernova route?", ["the 18-solar-mass star", "the 2-solar-mass star", "both equally", "neither can be compared"], 0, "The more massive star is more likely on the supernova branch.", ["mass_same_star_fate_confusion"], ["supernova_path", "mass_life_path"]),
+        ("M14L2_M7", "Which pair is strongest as shared early stages before a later branch?", ["protostar and main sequence", "galaxy and redshift", "light-year and black hole", "Milky Way and big bang"], 0, "Those are shared early star stages.", ["mass_same_star_fate_confusion"], ["identify_stellar_birth", "main_sequence"]),
+        ("M14L2_M9", "Which statement best matches a very massive star?", ["Its later path can include supernova and a dense remnant.", "It must quietly become a white dwarf without any branch.", "It stops being governed by mass.", "It becomes a galaxy instead of a star remnant."], 0, "Massive stars can follow the explosive branch.", ["mass_same_star_fate_confusion"], ["supernova_path", "stellar_remnants"]),
     ]) + build_shorts([
-        ("M15L2_M8", "Explain in one sentence why mass is the first thing to check before predicting a stellar remnant.", ["Because stellar mass is the main variable that changes the later lifecycle path and remnant.", "Because the remnant depends strongly on how massive the star is."], "Keep mass and remnant together.", ["mass_same_star_fate_confusion"], ["mass_life_path", "stellar_remnants"], acceptance_groups(["mass"], ["first", "main"], ["path", "branch"], ["remnant", "ending"])) ,
-        ("M15L2_M10", "Why is a black hole not the default ending for every star in this module?", ["Because black holes belong to the highest-mass endings, while many stars follow lower-mass routes to white dwarfs.", "Because only very massive stars reach the dark-well route."], "Use lower-mass versus high-mass route language.", ["mass_same_star_fate_confusion"], ["supernova_path", "stellar_remnants"], acceptance_groups(["black hole", "dark well"], ["not every", "only very massive"], ["white dwarf", "lower-mass"], ["route", "branch", "ending"])) ,
+        ("M14L2_M8", "Explain in one sentence why mass is the first thing to check before predicting a stellar remnant.", ["Because stellar mass is the main variable that changes the later lifecycle path and remnant.", "Because the remnant depends strongly on how massive the star is."], "Keep mass and remnant together.", ["mass_same_star_fate_confusion"], ["mass_life_path", "stellar_remnants"], acceptance_groups(["mass"], ["first", "main"], ["path", "branch"], ["remnant", "ending"])) ,
+        ("M14L2_M10", "Why is a black hole not the default ending for every star in this module?", ["Because black holes belong to the highest-mass endings, while many stars follow lower-mass routes to white dwarfs.", "Because only very massive stars reach the dark-well route."], "Use lower-mass versus high-mass route language.", ["mass_same_star_fate_confusion"], ["supernova_path", "stellar_remnants"], acceptance_groups(["black hole", "dark well"], ["not every", "only very massive"], ["white dwarf", "lower-mass"], ["route", "branch", "ending"])) ,
     ])
     return _quality_pass_lesson(lesson, diagnostic_extra=diagnostic_extra, concept_extra=concept_extra, mastery_extra=mastery_extra, worked_examples=[worked("Two stars share the glow cradle, young spark, and main-sequence stages. One is far more massive. What should you predict about the later path?", ["Keep the shared early stages in view.", "Check which variable changes between the two stars.", "Use mass to predict different later branches and remnants."], "The more massive star is more likely to take a supernova branch and end with a denser remnant.", "Mass is the main reason the later stellar path branches.", "This makes the branching logic explicit instead of list-like.")])
 
 
 def lesson_three_quality_pass(lesson: Dict[str, Any]) -> Dict[str, Any]:
     diagnostic_extra = build_mcqs([
-        ("M15L3_D5", "Which object is larger in scale than the Solar System but smaller than the whole universe?", ["the Milky Way galaxy", "one planet", "one Moon", "one comet tail"], 0, "A galaxy sits above a Solar System on the scale ladder.", ["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"], ["scale_hierarchy"]),
-        ("M15L3_D6", "What keeps a beacon-city together as one system?", ["gravity", "surface color", "redshift alone", "the Earth's atmosphere"], 0, "Gravity is the binding cause.", ["galaxy_equals_universe_confusion"], ["gravity_bound_galaxy"]),
-        ("M15L3_D7", "A structure contains many stars, gas, and dust bound together. It is strongest as a...", ["galaxy", "single star", "light-year", "planet"], 0, "That is the galaxy definition.", ["galaxy_equals_universe_confusion"], ["identify_galaxy"]),
-        ("M15L3_D8", "Which size ladder is strongest?", ["star < Solar System < galaxy < universe", "galaxy < star < Solar System < universe", "Solar System < star < universe < galaxy", "universe < galaxy < Solar System < star"], 0, "Keep the scales in order.", ["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"], ["scale_hierarchy"]),
+        ("M14L3_D5", "Which object is larger in scale than the Solar System but smaller than the whole universe?", ["the Milky Way galaxy", "one planet", "one Moon", "one comet tail"], 0, "A galaxy sits above a Solar System on the scale ladder.", ["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"], ["scale_hierarchy"]),
+        ("M14L3_D6", "What keeps a beacon-city together as one system?", ["gravity", "surface color", "redshift alone", "the Earth's atmosphere"], 0, "Gravity is the binding cause.", ["galaxy_equals_universe_confusion"], ["gravity_bound_galaxy"]),
+        ("M14L3_D7", "A structure contains many stars, gas, and dust bound together. It is strongest as a...", ["galaxy", "single star", "light-year", "planet"], 0, "That is the galaxy definition.", ["galaxy_equals_universe_confusion"], ["identify_galaxy"]),
+        ("M14L3_D8", "Which size ladder is strongest?", ["star < Solar System < galaxy < universe", "galaxy < star < Solar System < universe", "Solar System < star < universe < galaxy", "universe < galaxy < Solar System < star"], 0, "Keep the scales in order.", ["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"], ["scale_hierarchy"]),
     ]) + build_shorts([
-        ("M15L3_D9", "Why is the Solar System not the same thing as the Milky Way?", ["Because the Solar System is one small star system inside the much larger Milky Way galaxy.", "Because the Milky Way contains many star systems, including ours."], "Use inside-the-galaxy language.", ["milky_way_equals_solar_system_confusion"], ["solar_system_in_galaxy", "identify_milky_way"], acceptance_groups(["Solar System"], ["inside", "part of"], ["Milky Way", "galaxy"], ["many stars", "many star systems"])) ,
-        ("M15L3_D10", "Why is a galaxy not the whole universe?", ["Because a galaxy is one gravity-bound system among many in the universe.", "Because the universe contains many galaxies, not just one beacon-city."], "Keep one-galaxy versus all-space separate.", ["galaxy_equals_universe_confusion"], ["identify_galaxy", "scale_hierarchy"], acceptance_groups(["galaxy"], ["one", "single"], ["universe"], ["many galaxies", "not the whole"])) ,
+        ("M14L3_D9", "Why is the Solar System not the same thing as the Milky Way?", ["Because the Solar System is one small star system inside the much larger Milky Way galaxy.", "Because the Milky Way contains many star systems, including ours."], "Use inside-the-galaxy language.", ["milky_way_equals_solar_system_confusion"], ["solar_system_in_galaxy", "identify_milky_way"], acceptance_groups(["Solar System"], ["inside", "part of"], ["Milky Way", "galaxy"], ["many stars", "many star systems"])) ,
+        ("M14L3_D10", "Why is a galaxy not the whole universe?", ["Because a galaxy is one gravity-bound system among many in the universe.", "Because the universe contains many galaxies, not just one beacon-city."], "Keep one-galaxy versus all-space separate.", ["galaxy_equals_universe_confusion"], ["identify_galaxy", "scale_hierarchy"], acceptance_groups(["galaxy"], ["one", "single"], ["universe"], ["many galaxies", "not the whole"])) ,
     ])
     concept_extra = build_mcqs([
-        ("M15L3_C4", "How many distinct scale ideas are named here: star, Solar System, galaxy, universe?", ["4", "2", "3", "5"], 0, "Those are four different scales.", ["galaxy_equals_universe_confusion"], ["scale_hierarchy"]),
-        ("M15L3_C5", "Which statement best makes gravity essential to the galaxy idea?", ["Gravity holds the stars, gas, and dust together as one system.", "Gravity only matters for one planet orbiting the Sun.", "Gravity and galaxy mean exactly the same thing.", "Galaxies are defined only by color."], 0, "Gravity is the binding cause.", ["galaxy_equals_universe_confusion"], ["gravity_bound_galaxy"]),
-        ("M15L3_C6", "If the Sun is marked inside a spiral beacon-city, that city is strongest as the...", ["Milky Way", "entire universe", "core of one planet", "light-year ruler"], 0, "Our home spiral city is the Milky Way.", ["milky_way_equals_solar_system_confusion"], ["identify_milky_way", "solar_system_in_galaxy"]),
+        ("M14L3_C4", "How many distinct scale ideas are named here: star, Solar System, galaxy, universe?", ["4", "2", "3", "5"], 0, "Those are four different scales.", ["galaxy_equals_universe_confusion"], ["scale_hierarchy"]),
+        ("M14L3_C5", "Which statement best makes gravity essential to the galaxy idea?", ["Gravity holds the stars, gas, and dust together as one system.", "Gravity only matters for one planet orbiting the Sun.", "Gravity and galaxy mean exactly the same thing.", "Galaxies are defined only by color."], 0, "Gravity is the binding cause.", ["galaxy_equals_universe_confusion"], ["gravity_bound_galaxy"]),
+        ("M14L3_C6", "If the Sun is marked inside a spiral beacon-city, that city is strongest as the...", ["Milky Way", "entire universe", "core of one planet", "light-year ruler"], 0, "Our home spiral city is the Milky Way.", ["milky_way_equals_solar_system_confusion"], ["identify_milky_way", "solar_system_in_galaxy"]),
     ]) + build_shorts([
-        ("M15L3_C7", "Why does gravity belong in the galaxy definition rather than as an extra detail?", ["Because gravity is what makes the many stars count as one bound system.", "Because without gravity the beacon-city would not be one galaxy."], "Use binding-cause language.", ["galaxy_equals_universe_confusion"], ["gravity_bound_galaxy"], acceptance_groups(["gravity"], ["hold", "bind"], ["many stars", "system"], ["galaxy"])) ,
-        ("M15L3_C8", "Why is a star not the same scale as a galaxy even though both shine?", ["Because one star is one beacon, while a galaxy is a huge system containing many stars.", "Because a galaxy is a collection of stars rather than one star alone."], "Use one-versus-many scale language.", ["galaxy_equals_universe_confusion"], ["star_to_galaxy_bridge", "scale_hierarchy"], acceptance_groups(["star", "one beacon"], ["galaxy"], ["many stars", "collection"], ["scale"])) ,
+        ("M14L3_C7", "Why does gravity belong in the galaxy definition rather than as an extra detail?", ["Because gravity is what makes the many stars count as one bound system.", "Because without gravity the beacon-city would not be one galaxy."], "Use binding-cause language.", ["galaxy_equals_universe_confusion"], ["gravity_bound_galaxy"], acceptance_groups(["gravity"], ["hold", "bind"], ["many stars", "system"], ["galaxy"])) ,
+        ("M14L3_C8", "Why is a star not the same scale as a galaxy even though both shine?", ["Because one star is one beacon, while a galaxy is a huge system containing many stars.", "Because a galaxy is a collection of stars rather than one star alone."], "Use one-versus-many scale language.", ["galaxy_equals_universe_confusion"], ["star_to_galaxy_bridge", "scale_hierarchy"], acceptance_groups(["star", "one beacon"], ["galaxy"], ["many stars", "collection"], ["scale"])) ,
     ])
     mastery_extra = build_mcqs([
-        ("M15L3_M4", "Which object is strongest as a gravity-bound star city?", ["a galaxy", "one star", "one Moon", "one redshift value"], 0, "A galaxy is the beacon-city.", ["galaxy_equals_universe_confusion"], ["identify_galaxy"]),
-        ("M15L3_M5", "Which statement best places our Solar System?", ["It is one small system inside the Milky Way galaxy.", "It contains the whole Milky Way.", "It is the universe itself.", "It is one remnant stage of a star."], 0, "The Solar System belongs inside the Milky Way.", ["milky_way_equals_solar_system_confusion"], ["solar_system_in_galaxy", "identify_milky_way"]),
-        ("M15L3_M6", "Which hierarchy is strongest for astronomy scale?", ["star < Solar System < Milky Way < universe", "universe < star < galaxy < Solar System", "Milky Way < star < universe < Solar System", "Solar System < universe < star < galaxy"], 0, "Keep the hierarchy ordered by scale.", ["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"], ["scale_hierarchy"]),
-        ("M15L3_M7", "Which comparison is strongest if a learner says 'a galaxy is just one star but very big'?", ["A galaxy contains many stars, while one star is only one object.", "Both are the same if they look bright enough.", "Galaxies are only distance units.", "Stars are just small galaxies."], 0, "Use one-versus-many objects.", ["galaxy_equals_universe_confusion"], ["star_to_galaxy_bridge"]),
-        ("M15L3_M9", "Which statement best protects against calling the Milky Way the whole universe?", ["The Milky Way is our home galaxy, but the universe contains many galaxies.", "The Milky Way is the universe because it contains our Sun.", "The universe is just another word for one spiral galaxy.", "Nothing exists beyond the Milky Way."], 0, "Home galaxy is not whole universe.", ["galaxy_equals_universe_confusion"], ["identify_milky_way", "scale_hierarchy"]),
+        ("M14L3_M4", "Which object is strongest as a gravity-bound star city?", ["a galaxy", "one star", "one Moon", "one redshift value"], 0, "A galaxy is the beacon-city.", ["galaxy_equals_universe_confusion"], ["identify_galaxy"]),
+        ("M14L3_M5", "Which statement best places our Solar System?", ["It is one small system inside the Milky Way galaxy.", "It contains the whole Milky Way.", "It is the universe itself.", "It is one remnant stage of a star."], 0, "The Solar System belongs inside the Milky Way.", ["milky_way_equals_solar_system_confusion"], ["solar_system_in_galaxy", "identify_milky_way"]),
+        ("M14L3_M6", "Which hierarchy is strongest for astronomy scale?", ["star < Solar System < Milky Way < universe", "universe < star < galaxy < Solar System", "Milky Way < star < universe < Solar System", "Solar System < universe < star < galaxy"], 0, "Keep the hierarchy ordered by scale.", ["galaxy_equals_universe_confusion", "milky_way_equals_solar_system_confusion"], ["scale_hierarchy"]),
+        ("M14L3_M7", "Which comparison is strongest if a learner says 'a galaxy is just one star but very big'?", ["A galaxy contains many stars, while one star is only one object.", "Both are the same if they look bright enough.", "Galaxies are only distance units.", "Stars are just small galaxies."], 0, "Use one-versus-many objects.", ["galaxy_equals_universe_confusion"], ["star_to_galaxy_bridge"]),
+        ("M14L3_M9", "Which statement best protects against calling the Milky Way the whole universe?", ["The Milky Way is our home galaxy, but the universe contains many galaxies.", "The Milky Way is the universe because it contains our Sun.", "The universe is just another word for one spiral galaxy.", "Nothing exists beyond the Milky Way."], 0, "Home galaxy is not whole universe.", ["galaxy_equals_universe_confusion"], ["identify_milky_way", "scale_hierarchy"]),
     ]) + build_shorts([
-        ("M15L3_M8", "Explain in one sentence why the Milky Way is stronger as a galaxy than as a Solar System.", ["Because the Milky Way is a huge gravity-bound collection of many stars, while the Solar System is only one local star system inside it.", "Because one galaxy contains many star systems, including ours."], "Keep local system inside larger galaxy.", ["milky_way_equals_solar_system_confusion"], ["solar_system_in_galaxy", "gravity_bound_galaxy"], acceptance_groups(["Milky Way"], ["galaxy"], ["many stars", "many systems"], ["Solar System"], ["inside"])) ,
-        ("M15L3_M10", "Why is the universe stronger as the biggest scale in this lesson than as another word for the Milky Way?", ["Because the universe contains many galaxies, and the Milky Way is only one of them.", "Because our home galaxy is not the whole of space."], "Keep one galaxy versus all galaxies separate.", ["galaxy_equals_universe_confusion"], ["scale_hierarchy"], acceptance_groups(["universe"], ["many galaxies"], ["Milky Way"], ["one", "only one"], ["not the same"])) ,
+        ("M14L3_M8", "Explain in one sentence why the Milky Way is stronger as a galaxy than as a Solar System.", ["Because the Milky Way is a huge gravity-bound collection of many stars, while the Solar System is only one local star system inside it.", "Because one galaxy contains many star systems, including ours."], "Keep local system inside larger galaxy.", ["milky_way_equals_solar_system_confusion"], ["solar_system_in_galaxy", "gravity_bound_galaxy"], acceptance_groups(["Milky Way"], ["galaxy"], ["many stars", "many systems"], ["Solar System"], ["inside"])) ,
+        ("M14L3_M10", "Why is the universe stronger as the biggest scale in this lesson than as another word for the Milky Way?", ["Because the universe contains many galaxies, and the Milky Way is only one of them.", "Because our home galaxy is not the whole of space."], "Keep one galaxy versus all galaxies separate.", ["galaxy_equals_universe_confusion"], ["scale_hierarchy"], acceptance_groups(["universe"], ["many galaxies"], ["Milky Way"], ["one", "only one"], ["not the same"])) ,
     ])
     return _quality_pass_lesson(lesson, diagnostic_extra=diagnostic_extra, concept_extra=concept_extra, mastery_extra=mastery_extra, worked_examples=[worked("A learner points to the Milky Way image and says, 'That is our whole universe.' How do you correct the scale story?", ["Place the Milky Way on the scale ladder.", "Separate one galaxy from the universe as a whole.", "State where the Solar System fits inside that ladder."], "The Milky Way is our home galaxy, the Solar System is inside it, and the universe contains many galaxies beyond it.", "Scale is the key idea: one galaxy is not all of space.", "This keeps the astronomy hierarchy explicit and usable.")])
 
 
 def lesson_four_quality_pass(lesson: Dict[str, Any]) -> Dict[str, Any]:
     diagnostic_extra = build_mcqs([
-        ("M15L4_D5", "Case 4: a star is 40 light-years away and another is 4 light-years away. Which is 10 times farther?", ["the 40 light-year star", "the 4 light-year star", "both equally", "neither"], 0, "40 is ten times 4.", ["light_year_time_confusion"], ["compare_distances"]),
-        ("M15L4_D6", "If the question is 'how far away is that galaxy?', which unit family is strongest here?", ["distance units such as light-years", "time units such as seconds", "only color words", "only mass units"], 0, "Use a distance unit to answer how far.", ["light_year_time_confusion"], ["distance_scale", "unit_reasoning"]),
-        ("M15L4_D7", "Which statement best protects the unit meaning?", ["A light-year tells how far light travels in a year.", "A light-year tells how long a star has existed.", "A light-year is a kind of galaxy.", "A light-year is the color of redshift."], 0, "Keep the quantity as distance.", ["light_year_time_confusion"], ["identify_light_year"]),
-        ("M15L4_D8", "If the Milky Way is about 100,000 light-years across, that number is describing its...", ["size", "age", "temperature", "mass only"], 0, "The statement describes size, not age.", ["light_year_time_confusion"], ["distance_scale"]),
+        ("M14L4_D5", "Case 4: a star is 40 light-years away and another is 4 light-years away. Which is 10 times farther?", ["the 40 light-year star", "the 4 light-year star", "both equally", "neither"], 0, "40 is ten times 4.", ["light_year_time_confusion"], ["compare_distances"]),
+        ("M14L4_D6", "If the question is 'how far away is that galaxy?', which unit family is strongest here?", ["distance units such as light-years", "time units such as seconds", "only color words", "only mass units"], 0, "Use a distance unit to answer how far.", ["light_year_time_confusion"], ["distance_scale", "unit_reasoning"]),
+        ("M14L4_D7", "Which statement best protects the unit meaning?", ["A light-year tells how far light travels in a year.", "A light-year tells how long a star has existed.", "A light-year is a kind of galaxy.", "A light-year is the color of redshift."], 0, "Keep the quantity as distance.", ["light_year_time_confusion"], ["identify_light_year"]),
+        ("M14L4_D8", "If the Milky Way is about 100,000 light-years across, that number is describing its...", ["size", "age", "temperature", "mass only"], 0, "The statement describes size, not age.", ["light_year_time_confusion"], ["distance_scale"]),
     ]) + build_shorts([
-        ("M15L4_D9", "Why do astronomers prefer light-years to kilometres for very large cosmic separations?", ["Because the distances are so huge that light-years make the scale easier to express and compare.", "Because light-years are more convenient for enormous astronomy distances."], "Use huge-scale convenience language.", ["light_year_small_distance_confusion"], ["scale_unit_choice", "distance_scale"], acceptance_groups(["huge", "enormous", "very large"], ["distance", "separation", "scale"], ["light-year"], ["convenient", "easier", "manage"])) ,
-        ("M15L4_D10", "Why does 50 light-years mean a greater distance than 5 light-years?", ["Because light-year is a distance unit, so the larger numerical value means the object is farther away.", "Because once the unit is fixed, the bigger number means a larger distance."], "Use same-unit comparison language.", ["light_year_time_confusion"], ["compare_distances", "unit_reasoning"], acceptance_groups(["light-year", "same unit"], ["larger", "bigger", "50"], ["distance", "farther"])) ,
+        ("M14L4_D9", "Why do astronomers prefer light-years to kilometres for very large cosmic separations?", ["Because the distances are so huge that light-years make the scale easier to express and compare.", "Because light-years are more convenient for enormous astronomy distances."], "Use huge-scale convenience language.", ["light_year_small_distance_confusion"], ["scale_unit_choice", "distance_scale"], acceptance_groups(["huge", "enormous", "very large"], ["distance", "separation", "scale"], ["light-year"], ["convenient", "easier", "manage"])) ,
+        ("M14L4_D10", "Why does 50 light-years mean a greater distance than 5 light-years?", ["Because light-year is a distance unit, so the larger numerical value means the object is farther away.", "Because once the unit is fixed, the bigger number means a larger distance."], "Use same-unit comparison language.", ["light_year_time_confusion"], ["compare_distances", "unit_reasoning"], acceptance_groups(["light-year", "same unit"], ["larger", "bigger", "50"], ["distance", "farther"])) ,
     ])
     concept_extra = build_mcqs([
-        ("M15L4_C4", "Which question is a light-year built to answer?", ["How far away is it?", "How old is it?", "How hot is it?", "How bright is it?"], 0, "Light-year answers a distance question.", ["light_year_time_confusion"], ["unit_reasoning"]),
-        ("M15L4_C5", "Which distance is greater?", ["800 light-years", "80 light-years", "they are equal", "they cannot be compared"], 0, "More light-years means farther away.", ["light_year_time_confusion"], ["compare_distances"]),
-        ("M15L4_C6", "Which statement best explains why kilometre counts become awkward in astronomy?", ["Cosmic distances are so large that the numbers become cumbersome.", "Kilometres stop being distance units in space.", "Stars cannot be measured numerically.", "Redshift replaces distance completely."], 0, "The scale is the issue, not the nature of the unit.", ["light_year_small_distance_confusion"], ["scale_unit_choice"]),
+        ("M14L4_C4", "Which question is a light-year built to answer?", ["How far away is it?", "How old is it?", "How hot is it?", "How bright is it?"], 0, "Light-year answers a distance question.", ["light_year_time_confusion"], ["unit_reasoning"]),
+        ("M14L4_C5", "Which distance is greater?", ["800 light-years", "80 light-years", "they are equal", "they cannot be compared"], 0, "More light-years means farther away.", ["light_year_time_confusion"], ["compare_distances"]),
+        ("M14L4_C6", "Which statement best explains why kilometre counts become awkward in astronomy?", ["Cosmic distances are so large that the numbers become cumbersome.", "Kilometres stop being distance units in space.", "Stars cannot be measured numerically.", "Redshift replaces distance completely."], 0, "The scale is the issue, not the nature of the unit.", ["light_year_small_distance_confusion"], ["scale_unit_choice"]),
     ]) + build_shorts([
-        ("M15L4_C7", "Why can the word 'year' trick students when they first hear 'light-year'?", ["Because year sounds like a time word even though the quantity being measured is distance.", "Because the name contains a time interval while the unit itself measures distance."], "Use name-versus-quantity language.", ["light_year_time_confusion"], ["unit_reasoning"], acceptance_groups(["year"], ["sounds", "looks"], ["time"], ["distance"], ["light-year"])) ,
-        ("M15L4_C8", "Why is a light-year still a distance even though time appears in its definition?", ["Because the year is only the travel time used to define how far light goes, so the resulting unit measures distance.", "Because the definition uses time to build a distance unit."], "Keep defining-time and measured-quantity separate.", ["light_year_time_confusion"], ["identify_light_year", "unit_reasoning"], acceptance_groups(["year", "time"], ["define", "definition"], ["distance"], ["light travels"])) ,
+        ("M14L4_C7", "Why can the word 'year' trick students when they first hear 'light-year'?", ["Because year sounds like a time word even though the quantity being measured is distance.", "Because the name contains a time interval while the unit itself measures distance."], "Use name-versus-quantity language.", ["light_year_time_confusion"], ["unit_reasoning"], acceptance_groups(["year"], ["sounds", "looks"], ["time"], ["distance"], ["light-year"])) ,
+        ("M14L4_C8", "Why is a light-year still a distance even though time appears in its definition?", ["Because the year is only the travel time used to define how far light goes, so the resulting unit measures distance.", "Because the definition uses time to build a distance unit."], "Keep defining-time and measured-quantity separate.", ["light_year_time_confusion"], ["identify_light_year", "unit_reasoning"], acceptance_groups(["year", "time"], ["define", "definition"], ["distance"], ["light travels"])) ,
     ])
     mastery_extra = build_mcqs([
-        ("M15L4_M4", "Case 5: one galaxy is 2 million light-years away and another is 8 million light-years away. Which is four times farther?", ["the 8 million light-year galaxy", "the 2 million light-year galaxy", "both equally", "neither"], 0, "8 million is four times 2 million.", ["light_year_time_confusion"], ["compare_distances"]),
-        ("M15L4_M5", "Which statement best protects against calling a light-year a time unit?", ["It is distance defined by how far light travels in a year.", "It is the number of years a star lives.", "It is the time between galaxy births.", "It is the duration of one redshift event."], 0, "Distance is the measured quantity.", ["light_year_time_confusion"], ["identify_light_year", "unit_reasoning"]),
-        ("M15L4_M6", "Which unit choice is strongest for comparing separations between stars and galaxies?", ["light-years", "seconds", "degrees Celsius", "watts"], 0, "Use a large distance unit.", ["light_year_small_distance_confusion"], ["distance_scale", "scale_unit_choice"]),
-        ("M15L4_M7", "Case 6: if star C is 12 light-years away and star D is 3 light-years away, what factor comparison is strongest?", ["C is 4 times farther than D.", "D is 4 times farther than C.", "They are equally far.", "Factor comparisons do not work with light-years."], 0, "12 is four times 3.", ["light_year_time_confusion"], ["compare_distances"]),
-        ("M15L4_M9", "Which statement best explains why astronomy invented special large distance units?", ["Because cosmic scales are enormous and need manageable distance markers.", "Because distance stops mattering in astronomy.", "Because stars only exist for one light-year.", "Because galaxies can only be measured in time."], 0, "The scales are enormous.", ["light_year_small_distance_confusion"], ["scale_unit_choice"]),
+        ("M14L4_M4", "Case 5: one galaxy is 2 million light-years away and another is 8 million light-years away. Which is four times farther?", ["the 8 million light-year galaxy", "the 2 million light-year galaxy", "both equally", "neither"], 0, "8 million is four times 2 million.", ["light_year_time_confusion"], ["compare_distances"]),
+        ("M14L4_M5", "Which statement best protects against calling a light-year a time unit?", ["It is distance defined by how far light travels in a year.", "It is the number of years a star lives.", "It is the time between galaxy births.", "It is the duration of one redshift event."], 0, "Distance is the measured quantity.", ["light_year_time_confusion"], ["identify_light_year", "unit_reasoning"]),
+        ("M14L4_M6", "Which unit choice is strongest for comparing separations between stars and galaxies?", ["light-years", "seconds", "degrees Celsius", "watts"], 0, "Use a large distance unit.", ["light_year_small_distance_confusion"], ["distance_scale", "scale_unit_choice"]),
+        ("M14L4_M7", "Case 6: if star C is 12 light-years away and star D is 3 light-years away, what factor comparison is strongest?", ["C is 4 times farther than D.", "D is 4 times farther than C.", "They are equally far.", "Factor comparisons do not work with light-years."], 0, "12 is four times 3.", ["light_year_time_confusion"], ["compare_distances"]),
+        ("M14L4_M9", "Which statement best explains why astronomy invented special large distance units?", ["Because cosmic scales are enormous and need manageable distance markers.", "Because distance stops mattering in astronomy.", "Because stars only exist for one light-year.", "Because galaxies can only be measured in time."], 0, "The scales are enormous.", ["light_year_small_distance_confusion"], ["scale_unit_choice"]),
     ]) + build_shorts([
-        ("M15L4_M8", "Explain in one sentence why a light-year belongs on a distance ladder instead of a clock face.", ["Because a light-year measures how far light travels, so it belongs to distance comparisons rather than timekeeping.", "Because the unit answers how far, not how long."], "Use ladder-versus-clock language.", ["light_year_time_confusion"], ["distance_scale", "unit_reasoning"], acceptance_groups(["light-year"], ["distance", "how far"], ["not", "rather than"], ["time", "clock"])) ,
-        ("M15L4_M10", "Why is '100,000 light-years across' stronger as a size statement than as an age statement?", ["Because the phrase is measuring the width of the galaxy, and light-year is a distance unit.", "Because the number describes spatial extent rather than years of age."], "Keep width and age separate.", ["light_year_time_confusion"], ["distance_scale", "unit_reasoning"], acceptance_groups(["light-year"], ["size", "width", "across"], ["distance"], ["not age", "rather than age"])) ,
+        ("M14L4_M8", "Explain in one sentence why a light-year belongs on a distance ladder instead of a clock face.", ["Because a light-year measures how far light travels, so it belongs to distance comparisons rather than timekeeping.", "Because the unit answers how far, not how long."], "Use ladder-versus-clock language.", ["light_year_time_confusion"], ["distance_scale", "unit_reasoning"], acceptance_groups(["light-year"], ["distance", "how far"], ["not", "rather than"], ["time", "clock"])) ,
+        ("M14L4_M10", "Why is '100,000 light-years across' stronger as a size statement than as an age statement?", ["Because the phrase is measuring the width of the galaxy, and light-year is a distance unit.", "Because the number describes spatial extent rather than years of age."], "Keep width and age separate.", ["light_year_time_confusion"], ["distance_scale", "unit_reasoning"], acceptance_groups(["light-year"], ["size", "width", "across"], ["distance"], ["not age", "rather than age"])) ,
     ])
     return _quality_pass_lesson(lesson, diagnostic_extra=diagnostic_extra, concept_extra=concept_extra, mastery_extra=mastery_extra, worked_examples=[worked("A galaxy is labeled 2,500 light-years away. What kind of quantity is 2,500 light-years, and why is that useful?", ["Ask whether the question is about how far or how long.", "Use the light-year definition to identify the quantity.", "Explain why large astronomy scales need a large distance unit."], "It is a distance, and the unit is useful because cosmic separations are enormous.", "The unit answers how far while staying manageable for astronomy scales.", "This connects the definition of light-year to why the unit is chosen.")])
 
 
 def lesson_five_quality_pass(lesson: Dict[str, Any]) -> Dict[str, Any]:
     diagnostic_extra = build_mcqs([
-        ("M15L5_D5", "Which comparison is strongest evidence for redshift?", ["observed wavelength longer than emitted wavelength", "the source looks dimmer", "the galaxy is spiral", "the spectrum has any color at all"], 0, "Redshift is a wavelength comparison.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
-        ("M15L5_D6", "If two galaxies emit the same line but one receives at a longer wavelength, which has the larger redshift?", ["the one with the longer observed wavelength", "the one with the shorter observed wavelength", "neither can be compared", "both always match"], 0, "Longer observed wavelength means larger redshift.", ["farther_smaller_redshift_confusion"], ["compare_redshift", "wavelength_comparison"]),
-        ("M15L5_D7", "What changes in cosmological redshift most directly?", ["wavelength", "galaxy mass", "star fusion stage", "planet classification"], 0, "Keep the change on wavelength.", ["redshift_color_only_confusion"], ["stretch_wavelength"]),
-        ("M15L5_D8", "Which statement best protects against the idea that redshift is only a color label?", ["Redshift is read from wavelength stretching.", "Redshift only means something looks orange.", "Redshift is another word for dim light.", "Redshift tells you the object is a planet."], 0, "Use measured wavelength change rather than appearance alone.", ["redshift_color_only_confusion"], ["identify_redshift", "stretch_wavelength"]),
+        ("M14L5_D5", "Which comparison is strongest evidence for redshift?", ["observed wavelength longer than emitted wavelength", "the source looks dimmer", "the galaxy is spiral", "the spectrum has any color at all"], 0, "Redshift is a wavelength comparison.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
+        ("M14L5_D6", "If two galaxies emit the same line but one receives at a longer wavelength, which has the larger redshift?", ["the one with the longer observed wavelength", "the one with the shorter observed wavelength", "neither can be compared", "both always match"], 0, "Longer observed wavelength means larger redshift.", ["farther_smaller_redshift_confusion"], ["compare_redshift", "wavelength_comparison"]),
+        ("M14L5_D7", "What changes in cosmological redshift most directly?", ["wavelength", "galaxy mass", "star fusion stage", "planet classification"], 0, "Keep the change on wavelength.", ["redshift_color_only_confusion"], ["stretch_wavelength"]),
+        ("M14L5_D8", "Which statement best protects against the idea that redshift is only a color label?", ["Redshift is read from wavelength stretching.", "Redshift only means something looks orange.", "Redshift is another word for dim light.", "Redshift tells you the object is a planet."], 0, "Use measured wavelength change rather than appearance alone.", ["redshift_color_only_confusion"], ["identify_redshift", "stretch_wavelength"]),
     ]) + build_shorts([
-        ("M15L5_D9", "Why is 'observed wavelength is longer' stronger than 'the galaxy just looks redder'?", ["Because redshift is defined by a measurable wavelength increase, not just by a vague color impression.", "Because the wavelength comparison gives the physics evidence, while simple color words are too loose."], "Use measurement language.", ["redshift_color_only_confusion"], ["wavelength_comparison", "identify_redshift"], acceptance_groups(["observed wavelength", "wavelength"], ["longer", "increase", "stretched"], ["measure", "measurable", "comparison"], ["not", "rather than"], ["color", "looks red"])) ,
-        ("M15L5_D10", "Why can expansion explain redshift without saying the galaxy itself changed color at the source?", ["Because the light can be stretched during travel through expanding space, so the arriving wavelength becomes longer.", "Because the redder arrival can come from wavelength stretching on the journey, not from the source simply changing color."], "Use travel-stretch language.", ["redshift_color_only_confusion"], ["stretch_wavelength", "redshift_evidence"], acceptance_groups(["light"], ["stretched", "stretching"], ["during travel", "on the way", "during the journey"], ["wavelength"], ["longer", "redshift"])) ,
+        ("M14L5_D9", "Why is 'observed wavelength is longer' stronger than 'the galaxy just looks redder'?", ["Because redshift is defined by a measurable wavelength increase, not just by a vague color impression.", "Because the wavelength comparison gives the physics evidence, while simple color words are too loose."], "Use measurement language.", ["redshift_color_only_confusion"], ["wavelength_comparison", "identify_redshift"], acceptance_groups(["observed wavelength", "wavelength"], ["longer", "increase", "stretched"], ["measure", "measurable", "comparison"], ["not", "rather than"], ["color", "looks red"])) ,
+        ("M14L5_D10", "Why can expansion explain redshift without saying the galaxy itself changed color at the source?", ["Because the light can be stretched during travel through expanding space, so the arriving wavelength becomes longer.", "Because the redder arrival can come from wavelength stretching on the journey, not from the source simply changing color."], "Use travel-stretch language.", ["redshift_color_only_confusion"], ["stretch_wavelength", "redshift_evidence"], acceptance_groups(["light"], ["stretched", "stretching"], ["during travel", "on the way", "during the journey"], ["wavelength"], ["longer", "redshift"])) ,
     ])
     concept_extra = build_mcqs([
-        ("M15L5_C4", "Which statement best links redshift and expansion?", ["Expansion can stretch the light and increase its wavelength.", "Expansion makes stars stop producing light.", "Expansion changes every galaxy into a planet.", "Expansion means wavelength becomes shorter."], 0, "Keep expansion tied to wavelength increase.", ["redshift_color_only_confusion"], ["stretch_wavelength", "redshift_evidence"]),
-        ("M15L5_C5", "Which galaxy trend is strongest in this lesson?", ["farther galaxies usually show larger redshifts", "nearer galaxies always show larger redshifts", "all galaxies show the same redshift", "redshift has no link to distance"], 0, "Use the farther-city bigger-redshift pattern.", ["farther_smaller_redshift_confusion"], ["compare_redshift", "redshift_evidence"]),
-        ("M15L5_C6", "If emitted and observed wavelengths match exactly in a simple comparison, which statement is strongest?", ["there is no redshift in that comparison", "the galaxy must be expanding faster", "the source became bluer", "distance cannot exist"], 0, "No wavelength increase means no redshift read there.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
+        ("M14L5_C4", "Which statement best links redshift and expansion?", ["Expansion can stretch the light and increase its wavelength.", "Expansion makes stars stop producing light.", "Expansion changes every galaxy into a planet.", "Expansion means wavelength becomes shorter."], 0, "Keep expansion tied to wavelength increase.", ["redshift_color_only_confusion"], ["stretch_wavelength", "redshift_evidence"]),
+        ("M14L5_C5", "Which galaxy trend is strongest in this lesson?", ["farther galaxies usually show larger redshifts", "nearer galaxies always show larger redshifts", "all galaxies show the same redshift", "redshift has no link to distance"], 0, "Use the farther-city bigger-redshift pattern.", ["farther_smaller_redshift_confusion"], ["compare_redshift", "redshift_evidence"]),
+        ("M14L5_C6", "If emitted and observed wavelengths match exactly in a simple comparison, which statement is strongest?", ["there is no redshift in that comparison", "the galaxy must be expanding faster", "the source became bluer", "distance cannot exist"], 0, "No wavelength increase means no redshift read there.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
     ]) + build_shorts([
-        ("M15L5_C7", "Why is the farther-city larger-redshift pattern useful rather than just interesting?", ["Because it gives a repeatable evidence trend that supports expansion.", "Because the distance-redshift pattern is one of the reasons astronomers treat redshift as expansion evidence."], "Use evidence-trend language.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "compare_redshift"], acceptance_groups(["farther", "more distant"], ["larger", "bigger"], ["redshift"], ["evidence", "supports"], ["expansion"])) ,
-        ("M15L5_C8", "Why is a wavelength bar comparison a stronger teaching tool than a color word alone?", ["Because it makes the increase in wavelength explicit and measurable.", "Because the bars let you compare emitted and observed wavelength directly instead of relying on color impression."], "Use compare-the-bars language.", ["redshift_color_only_confusion"], ["wavelength_comparison"], acceptance_groups(["wavelength"], ["compare", "comparison", "bars"], ["measurable", "explicit", "direct"], ["color", "impression", "looks"])) ,
+        ("M14L5_C7", "Why is the farther-city larger-redshift pattern useful rather than just interesting?", ["Because it gives a repeatable evidence trend that supports expansion.", "Because the distance-redshift pattern is one of the reasons astronomers treat redshift as expansion evidence."], "Use evidence-trend language.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "compare_redshift"], acceptance_groups(["farther", "more distant"], ["larger", "bigger"], ["redshift"], ["evidence", "supports"], ["expansion"])) ,
+        ("M14L5_C8", "Why is a wavelength bar comparison a stronger teaching tool than a color word alone?", ["Because it makes the increase in wavelength explicit and measurable.", "Because the bars let you compare emitted and observed wavelength directly instead of relying on color impression."], "Use compare-the-bars language.", ["redshift_color_only_confusion"], ["wavelength_comparison"], acceptance_groups(["wavelength"], ["compare", "comparison", "bars"], ["measurable", "explicit", "direct"], ["color", "impression", "looks"])) ,
     ])
     mastery_extra = build_mcqs([
-        ("M15L5_M4", "A line emitted at 500 nm arrives at 700 nm. Which statement is strongest?", ["the light is redshifted", "the light is blueshifted", "there is no wavelength change", "the source must be a planet"], 0, "Longer observed wavelength is redshift.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
-        ("M15L5_M5", "Which statement best keeps cause and evidence together?", ["Expansion stretches traveling light, so farther galaxies usually show larger redshifts.", "Redshift only means galaxies are old.", "Redshift proves a galaxy is bright.", "Expansion is unrelated to wavelength."], 0, "Keep travel stretch and trend together.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "stretch_wavelength"]),
-        ("M15L5_M6", "If galaxy A has a larger redshift than galaxy B in this qualitative model, which broad comparison is strongest?", ["A is usually farther away", "A is always closer", "B must be moving faster away than A", "distance cannot be compared"], 0, "The larger-redshift case usually belongs to the farther galaxy.", ["farther_smaller_redshift_confusion"], ["compare_redshift"]),
-        ("M15L5_M7", "Which statement best corrects 'redshift just means the galaxy looked reddish'?", ["Redshift is read from a longer observed wavelength than emitted wavelength.", "Redshift means every galaxy glows red at the source.", "Redshift is only a camera filter effect.", "Redshift is the same as apparent brightness."], 0, "Use wavelength definition language.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
-        ("M15L5_M9", "Which summary is strongest if one learner says 'distance has nothing to do with redshift'?", ["Across many galaxies, farther ones usually show larger redshifts.", "Distance and redshift are never compared.", "Only galaxy color matters.", "Redshift belongs only to nearby stars."], 0, "Use the trend clearly.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "compare_redshift"]),
+        ("M14L5_M4", "A line emitted at 500 nm arrives at 700 nm. Which statement is strongest?", ["the light is redshifted", "the light is blueshifted", "there is no wavelength change", "the source must be a planet"], 0, "Longer observed wavelength is redshift.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
+        ("M14L5_M5", "Which statement best keeps cause and evidence together?", ["Expansion stretches traveling light, so farther galaxies usually show larger redshifts.", "Redshift only means galaxies are old.", "Redshift proves a galaxy is bright.", "Expansion is unrelated to wavelength."], 0, "Keep travel stretch and trend together.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "stretch_wavelength"]),
+        ("M14L5_M6", "If galaxy A has a larger redshift than galaxy B in this qualitative model, which broad comparison is strongest?", ["A is usually farther away", "A is always closer", "B must be moving faster away than A", "distance cannot be compared"], 0, "The larger-redshift case usually belongs to the farther galaxy.", ["farther_smaller_redshift_confusion"], ["compare_redshift"]),
+        ("M14L5_M7", "Which statement best corrects 'redshift just means the galaxy looked reddish'?", ["Redshift is read from a longer observed wavelength than emitted wavelength.", "Redshift means every galaxy glows red at the source.", "Redshift is only a camera filter effect.", "Redshift is the same as apparent brightness."], 0, "Use wavelength definition language.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"]),
+        ("M14L5_M9", "Which summary is strongest if one learner says 'distance has nothing to do with redshift'?", ["Across many galaxies, farther ones usually show larger redshifts.", "Distance and redshift are never compared.", "Only galaxy color matters.", "Redshift belongs only to nearby stars."], 0, "Use the trend clearly.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "compare_redshift"]),
     ]) + build_shorts([
-        ("M15L5_M8", "Explain in one sentence why redshift is stronger as a wavelength story than as a color-name story.", ["Because redshift is defined by the observed wavelength becoming longer, which is a measurable change rather than a loose color label.", "Because wavelength comparison gives the physics meaning of redshift more clearly than color words alone."], "Use wavelength-over-color language.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"], acceptance_groups(["wavelength"], ["longer", "increase", "stretched"], ["measure", "measurable", "comparison"], ["color", "label", "looks red"], ["not", "rather than"])) ,
-        ("M15L5_M10", "Why does larger redshift count as stronger expansion evidence in this module?", ["Because larger wavelength stretching fits the pattern expected for more distant galaxies in an expanding universe.", "Because a larger redshift means a stronger stretch signal, which supports the expansion picture more strongly."], "Use larger-stretch evidence language.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "compare_redshift"], acceptance_groups(["larger", "bigger"], ["redshift", "wavelength stretch"], ["farther", "more distant", "distance"], ["evidence", "supports"], ["expansion"])) ,
+        ("M14L5_M8", "Explain in one sentence why redshift is stronger as a wavelength story than as a color-name story.", ["Because redshift is defined by the observed wavelength becoming longer, which is a measurable change rather than a loose color label.", "Because wavelength comparison gives the physics meaning of redshift more clearly than color words alone."], "Use wavelength-over-color language.", ["redshift_color_only_confusion"], ["identify_redshift", "wavelength_comparison"], acceptance_groups(["wavelength"], ["longer", "increase", "stretched"], ["measure", "measurable", "comparison"], ["color", "label", "looks red"], ["not", "rather than"])) ,
+        ("M14L5_M10", "Why does larger redshift count as stronger expansion evidence in this module?", ["Because larger wavelength stretching fits the pattern expected for more distant galaxies in an expanding universe.", "Because a larger redshift means a stronger stretch signal, which supports the expansion picture more strongly."], "Use larger-stretch evidence language.", ["farther_smaller_redshift_confusion"], ["redshift_evidence", "compare_redshift"], acceptance_groups(["larger", "bigger"], ["redshift", "wavelength stretch"], ["farther", "more distant", "distance"], ["evidence", "supports"], ["expansion"])) ,
     ])
     return _quality_pass_lesson(lesson, diagnostic_extra=diagnostic_extra, concept_extra=concept_extra, mastery_extra=mastery_extra, worked_examples=[worked("Galaxy A and Galaxy B emit the same spectral line. Galaxy A is observed at a much longer wavelength than Galaxy B. What is the strongest conclusion?", ["Compare emitted and observed wavelengths for both galaxies.", "Identify which one has the larger wavelength stretch.", "Link the larger stretch to larger redshift and the expansion trend."], "Galaxy A has the larger redshift and usually fits the farther-away expansion pattern more strongly.", "In this module, redshift is read from wavelength increase and then interpreted through the distance-expansion trend.", "This connects the definition of redshift to why it matters observationally.")])
 
 
 def lesson_six_quality_pass(lesson: Dict[str, Any]) -> Dict[str, Any]:
     diagnostic_extra = build_mcqs([
-        ("M15L6_D5", "Which phrase best protects the Big Bang idea from the 'one bomb in empty space' mistake?", ["space itself expanded from an early hot dense state", "matter exploded from one point into outside emptiness", "one star exploded and made the universe", "all galaxies came from the Milky Way"], 0, "Use expanding-space language.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands", "identify_big_bang"]),
-        ("M15L6_D6", "If farther galaxies usually show larger redshifts, what broad story is strongest?", ["the universe is expanding", "the universe is completely static", "all galaxies are moving toward us", "the Milky Way is the entire universe"], 0, "This is the expansion-evidence pattern.", ["farther_smaller_redshift_confusion"], ["expansion_evidence"]),
-        ("M15L6_D7", "Which statement best keeps the early-universe model and later evidence connected?", ["A hot dense beginning plus the galaxy redshift pattern supports expansion.", "The Big Bang is just a label for any explosion.", "Redshift removes the need for a model.", "The Big Bang only describes one galaxy."], 0, "Keep model and evidence together.", ["big_bang_center_explosion_confusion"], ["identify_big_bang", "expansion_evidence"]),
-        ("M15L6_D8", "Which wording is weakest in this lesson?", ["a blast from one center into outside space", "an early hot dense universe that expanded", "space itself changing scale", "redshift evidence for expansion"], 0, "The ordinary-explosion wording is the weak model.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands"]),
+        ("M14L6_D5", "Which phrase best protects the Big Bang idea from the 'one bomb in empty space' mistake?", ["space itself expanded from an early hot dense state", "matter exploded from one point into outside emptiness", "one star exploded and made the universe", "all galaxies came from the Milky Way"], 0, "Use expanding-space language.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands", "identify_big_bang"]),
+        ("M14L6_D6", "If farther galaxies usually show larger redshifts, what broad story is strongest?", ["the universe is expanding", "the universe is completely static", "all galaxies are moving toward us", "the Milky Way is the entire universe"], 0, "This is the expansion-evidence pattern.", ["farther_smaller_redshift_confusion"], ["expansion_evidence"]),
+        ("M14L6_D7", "Which statement best keeps the early-universe model and later evidence connected?", ["A hot dense beginning plus the galaxy redshift pattern supports expansion.", "The Big Bang is just a label for any explosion.", "Redshift removes the need for a model.", "The Big Bang only describes one galaxy."], 0, "Keep model and evidence together.", ["big_bang_center_explosion_confusion"], ["identify_big_bang", "expansion_evidence"]),
+        ("M14L6_D8", "Which wording is weakest in this lesson?", ["a blast from one center into outside space", "an early hot dense universe that expanded", "space itself changing scale", "redshift evidence for expansion"], 0, "The ordinary-explosion wording is the weak model.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands"]),
     ]) + build_shorts([
-        ("M15L6_D9", "Why is 'center explosion' weak wording for the Big Bang model?", ["Because the model is about space itself expanding everywhere from an early hot dense state, not about debris flying from one center into outside space.", "Because the Big Bang does not require one special central point in pre-existing empty space."], "Use geometry language.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands"], acceptance_groups(["space"], ["expand", "expanding"], ["not", "rather than"], ["center", "centre", "one point", "explosion"], ["outside", "empty space"])) ,
-        ("M15L6_D10", "Why is the farther-galaxy larger-redshift pattern important in this final lesson?", ["Because it turns the expansion story into evidence rather than a slogan.", "Because the redshift trend is one of the key observation patterns supporting expansion."], "Use model-plus-evidence language.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"], acceptance_groups(["farther", "more distant"], ["larger", "bigger"], ["redshift"], ["evidence", "supports"], ["expansion"])) ,
+        ("M14L6_D9", "Why is 'center explosion' weak wording for the Big Bang model?", ["Because the model is about space itself expanding everywhere from an early hot dense state, not about debris flying from one center into outside space.", "Because the Big Bang does not require one special central point in pre-existing empty space."], "Use geometry language.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands"], acceptance_groups(["space"], ["expand", "expanding"], ["not", "rather than"], ["center", "centre", "one point", "explosion"], ["outside", "empty space"])) ,
+        ("M14L6_D10", "Why is the farther-galaxy larger-redshift pattern important in this final lesson?", ["Because it turns the expansion story into evidence rather than a slogan.", "Because the redshift trend is one of the key observation patterns supporting expansion."], "Use model-plus-evidence language.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"], acceptance_groups(["farther", "more distant"], ["larger", "bigger"], ["redshift"], ["evidence", "supports"], ["expansion"])) ,
     ])
     concept_extra = build_mcqs([
-        ("M15L6_C4", "Which statement best fits the modern expansion picture?", ["space itself expands, changing the separation between distant galaxies", "galaxies fly through fixed empty space from one central cannon", "only the Milky Way changes size", "redshift means stars stop fusing"], 0, "Keep the geometry on space itself.", ["expansion_into_space_confusion"], ["space_expands"]),
-        ("M15L6_C5", "Which observation pattern is strongest support for the Great Unfurling idea?", ["farther galaxies usually show larger redshifts", "all galaxies show identical redshifts", "closer galaxies always show the largest redshifts", "distance and redshift cannot be compared"], 0, "Use the qualitative trend.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"]),
-        ("M15L6_C6", "Which phrase best belongs in a one-sentence Big Bang summary?", ["hot dense early universe", "one local supernova", "the Solar System only", "moon-phase cycle"], 0, "Keep the starting condition explicit.", ["big_bang_center_explosion_confusion"], ["identify_big_bang"]),
+        ("M14L6_C4", "Which statement best fits the modern expansion picture?", ["space itself expands, changing the separation between distant galaxies", "galaxies fly through fixed empty space from one central cannon", "only the Milky Way changes size", "redshift means stars stop fusing"], 0, "Keep the geometry on space itself.", ["expansion_into_space_confusion"], ["space_expands"]),
+        ("M14L6_C5", "Which observation pattern is strongest support for the Great Unfurling idea?", ["farther galaxies usually show larger redshifts", "all galaxies show identical redshifts", "closer galaxies always show the largest redshifts", "distance and redshift cannot be compared"], 0, "Use the qualitative trend.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"]),
+        ("M14L6_C6", "Which phrase best belongs in a one-sentence Big Bang summary?", ["hot dense early universe", "one local supernova", "the Solar System only", "moon-phase cycle"], 0, "Keep the starting condition explicit.", ["big_bang_center_explosion_confusion"], ["identify_big_bang"]),
     ]) + build_shorts([
-        ("M15L6_C7", "Why does 'expanding universe' fit better than 'things moving away in ordinary empty space'?", ["Because the model describes the stretching of space itself, not just objects traveling through pre-existing emptiness.", "Because expansion changes the space between galaxies rather than requiring outside space beyond the universe."], "Keep the space-between-galaxies idea visible.", ["expansion_into_space_confusion"], ["space_expands", "expansion_language"], acceptance_groups(["space"], ["between galaxies", "separation", "itself"], ["stretch", "expand", "expanding"], ["not", "rather than"], ["empty space", "outside"])) ,
-        ("M15L6_C8", "Why is the redshift pattern stronger than a single galaxy case when arguing for expansion?", ["Because the model is supported by the wider trend across many galaxies, not by one isolated case alone.", "Because the repeating distance-redshift pattern across many galaxies is stronger evidence than one example."], "Use many-galaxy trend language.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"], acceptance_groups(["many galaxies", "across many"], ["pattern", "trend"], ["stronger evidence", "evidence"], ["expansion"])) ,
+        ("M14L6_C7", "Why does 'expanding universe' fit better than 'things moving away in ordinary empty space'?", ["Because the model describes the stretching of space itself, not just objects traveling through pre-existing emptiness.", "Because expansion changes the space between galaxies rather than requiring outside space beyond the universe."], "Keep the space-between-galaxies idea visible.", ["expansion_into_space_confusion"], ["space_expands", "expansion_language"], acceptance_groups(["space"], ["between galaxies", "separation", "itself"], ["stretch", "expand", "expanding"], ["not", "rather than"], ["empty space", "outside"])) ,
+        ("M14L6_C8", "Why is the redshift pattern stronger than a single galaxy case when arguing for expansion?", ["Because the model is supported by the wider trend across many galaxies, not by one isolated case alone.", "Because the repeating distance-redshift pattern across many galaxies is stronger evidence than one example."], "Use many-galaxy trend language.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"], acceptance_groups(["many galaxies", "across many"], ["pattern", "trend"], ["stronger evidence", "evidence"], ["expansion"])) ,
     ])
     mastery_extra = build_mcqs([
-        ("M15L6_M4", "Which statement best combines the model and the evidence?", ["The universe began hot and dense, space expanded, and galaxy redshift patterns support that picture.", "The universe is one local explosion and redshift is unrelated.", "The Big Bang means every galaxy exploded from the Milky Way.", "The Big Bang only means the universe is old."], 0, "Keep beginning, expansion, and evidence together.", ["big_bang_center_explosion_confusion"], ["identify_big_bang", "expansion_evidence"]),
-        ("M15L6_M5", "If galaxy X has a much larger cosmological redshift than galaxy Y, which statement is strongest?", ["X more strongly fits the farther-away expansion pattern", "X must be closer than Y", "Y proves expansion while X does not", "redshift size says nothing at all"], 0, "Use the qualitative trend carefully.", ["farther_smaller_redshift_confusion"], ["redshift_pattern_reasoning", "expansion_evidence"]),
-        ("M15L6_M6", "Which phrase is strongest for the geometry of the Big Bang model?", ["expansion of space", "debris blast from one center", "spiral galaxy birth only", "one star failure"], 0, "Use expansion-of-space wording.", ["expansion_into_space_confusion"], ["space_expands"]),
-        ("M15L6_M7", "Which statement best protects against calling the Big Bang 'just one giant explosion'?", ["The model describes the whole universe changing scale from an early hot dense state.", "The model only tracks one galaxy's explosion.", "The model is only about color changes.", "The model says outside space filled with fragments."], 0, "Keep scale-change language visible.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["identify_big_bang", "expansion_language"]),
-        ("M15L6_M9", "Which summary best uses redshift as evidence rather than decoration?", ["Farther galaxies usually show larger redshifts, which supports an expanding universe.", "Redshift is just a nice extra color word in astronomy.", "Redshift means every galaxy is equally distant.", "Redshift replaces the need for any model."], 0, "Use redshift as evidence.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"]),
+        ("M14L6_M4", "Which statement best combines the model and the evidence?", ["The universe began hot and dense, space expanded, and galaxy redshift patterns support that picture.", "The universe is one local explosion and redshift is unrelated.", "The Big Bang means every galaxy exploded from the Milky Way.", "The Big Bang only means the universe is old."], 0, "Keep beginning, expansion, and evidence together.", ["big_bang_center_explosion_confusion"], ["identify_big_bang", "expansion_evidence"]),
+        ("M14L6_M5", "If galaxy X has a much larger cosmological redshift than galaxy Y, which statement is strongest?", ["X more strongly fits the farther-away expansion pattern", "X must be closer than Y", "Y proves expansion while X does not", "redshift size says nothing at all"], 0, "Use the qualitative trend carefully.", ["farther_smaller_redshift_confusion"], ["redshift_pattern_reasoning", "expansion_evidence"]),
+        ("M14L6_M6", "Which phrase is strongest for the geometry of the Big Bang model?", ["expansion of space", "debris blast from one center", "spiral galaxy birth only", "one star failure"], 0, "Use expansion-of-space wording.", ["expansion_into_space_confusion"], ["space_expands"]),
+        ("M14L6_M7", "Which statement best protects against calling the Big Bang 'just one giant explosion'?", ["The model describes the whole universe changing scale from an early hot dense state.", "The model only tracks one galaxy's explosion.", "The model is only about color changes.", "The model says outside space filled with fragments."], 0, "Keep scale-change language visible.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["identify_big_bang", "expansion_language"]),
+        ("M14L6_M9", "Which summary best uses redshift as evidence rather than decoration?", ["Farther galaxies usually show larger redshifts, which supports an expanding universe.", "Redshift is just a nice extra color word in astronomy.", "Redshift means every galaxy is equally distant.", "Redshift replaces the need for any model."], 0, "Use redshift as evidence.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"]),
     ]) + build_shorts([
-        ("M15L6_M8", "Explain in one sentence why the Big Bang is stronger as an expansion model than as a center-blast picture.", ["Because the Big Bang describes the expansion of space from an early hot dense state, not an ordinary explosion from one point into outside space.", "Because expansion of space matches the model better than a center explosion image."], "Use expansion-not-blast language.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands", "expansion_language"], acceptance_groups(["Big Bang"], ["expand", "expansion of space", "space"], ["hot", "dense"], ["not", "rather than"], ["center", "centre", "blast", "explosion"])) ,
-        ("M15L6_M10", "Why does the observed redshift pattern make the Big Bang model stronger rather than weaker?", ["Because the widespread distance-redshift trend is what the expansion picture predicts.", "Because many galaxies showing the farther-bigger-redshift pattern supports the expansion model."], "Use prediction-and-pattern language.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"], acceptance_groups(["pattern", "trend"], ["farther", "more distant"], ["bigger", "larger"], ["redshift"], ["predicts", "supports"], ["expansion"])) ,
+        ("M14L6_M8", "Explain in one sentence why the Big Bang is stronger as an expansion model than as a center-blast picture.", ["Because the Big Bang describes the expansion of space from an early hot dense state, not an ordinary explosion from one point into outside space.", "Because expansion of space matches the model better than a center explosion image."], "Use expansion-not-blast language.", ["big_bang_center_explosion_confusion", "expansion_into_space_confusion"], ["space_expands", "expansion_language"], acceptance_groups(["Big Bang"], ["expand", "expansion of space", "space"], ["hot", "dense"], ["not", "rather than"], ["center", "centre", "blast", "explosion"])) ,
+        ("M14L6_M10", "Why does the observed redshift pattern make the Big Bang model stronger rather than weaker?", ["Because the widespread distance-redshift trend is what the expansion picture predicts.", "Because many galaxies showing the farther-bigger-redshift pattern supports the expansion model."], "Use prediction-and-pattern language.", ["farther_smaller_redshift_confusion"], ["expansion_evidence", "redshift_pattern_reasoning"], acceptance_groups(["pattern", "trend"], ["farther", "more distant"], ["bigger", "larger"], ["redshift"], ["predicts", "supports"], ["expansion"])) ,
     ])
     return _quality_pass_lesson(lesson, diagnostic_extra=diagnostic_extra, concept_extra=concept_extra, mastery_extra=mastery_extra, worked_examples=[worked("A learner says, 'The Big Bang means all matter exploded from one point into empty space.' What correction keeps both the geometry and the evidence right?", ["Replace the center-blast picture with expanding-space language.", "State the hot dense early-universe model.", "Reconnect the corrected model to the galaxy redshift evidence pattern."], "The Big Bang model says the universe began hot and dense and space itself expanded, and the galaxy redshift pattern is one of the key reasons that model is accepted.", "This keeps the cosmology statement tied to both its geometry and its evidence.", "The final lesson should leave students with an evidence-based model, not a slogan.")])
-M15_SPEC = {
+M14_SPEC = {
     "authoring_standard": AUTHORING_STANDARD_V3,
     "module_description": "Stars, stellar lifecycles, galaxies, the Milky Way, light-years, cosmological redshift, and the Big Bang taught through the Beacon-City Stretchmap Model so self-lit stars, gravity-bound galaxies, cosmic distance scale, and expansion evidence stay inside one coherent universe story.",
     "mastery_outcomes": [
@@ -2347,16 +2347,16 @@ RELEASE_CHECKS = [
     "Every lesson keeps the Beacon-City Stretchmap language of beacons, beacon-cities, signal-years, stretch-red drift, and the Great Unfurling coherent.",
     "Every explorer uses lesson-specific controls and readouts instead of the generic simulation fallback.",
     "Every lesson keeps one dedicated authored visual and one lesson-specific simulation contract.",
-    "Every M15 visual keeps star, galaxy, distance, wavelength, and expansion labels readable without clipping or overlap.",
+    "Every M14 visual keeps star, galaxy, distance, wavelength, and expansion labels readable without clipping or overlap.",
 ]
 
 
-M15_MODULE_DOC, M15_LESSONS, M15_SIM_LABS = build_nextgen_module_bundle(
-    module_id=M15_MODULE_ID,
-    module_title=M15_MODULE_TITLE,
-    module_spec=M15_SPEC,
-    allowlist=M15_ALLOWLIST,
-    content_version=M15_CONTENT_VERSION,
+M14_MODULE_DOC, M14_LESSONS, M14_SIM_LABS = build_nextgen_module_bundle(
+    module_id=M14_MODULE_ID,
+    module_title=M14_MODULE_TITLE,
+    module_spec=M14_SPEC,
+    allowlist=M14_ALLOWLIST,
+    content_version=M14_CONTENT_VERSION,
     release_checks=RELEASE_CHECKS,
     sequence=22,
     level="Module 15",
@@ -2368,7 +2368,7 @@ M15_MODULE_DOC, M15_LESSONS, M15_SIM_LABS = build_nextgen_module_bundle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed Module M15 into Firestore")
+    parser = argparse.ArgumentParser(description="Seed Module M14 into Firestore")
     parser.add_argument("--project", default=None)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--compile-assets", action="store_true")
@@ -2379,16 +2379,16 @@ def main() -> None:
     project = get_project_id(args.project)
     init_firebase(project)
     asset_root = args.asset_root or default_asset_root()
-    module_doc = deepcopy(M15_MODULE_DOC)
-    lesson_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M15_LESSONS]
-    sim_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M15_SIM_LABS]
+    module_doc = deepcopy(M14_MODULE_DOC)
+    lesson_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M14_LESSONS]
+    sim_pairs = [(doc_id, deepcopy(payload)) for doc_id, payload in M14_SIM_LABS]
 
     if args.compile_assets:
         render_module_assets(lesson_pairs, sim_pairs, asset_root=asset_root, public_base=args.public_base)
 
     print_preview(module_doc, lesson_pairs, sim_pairs)
     db = init_firebase(project)
-    plan: List[Tuple[str, str]] = [("modules", M15_MODULE_ID)]
+    plan: List[Tuple[str, str]] = [("modules", M14_MODULE_ID)]
     plan.extend(("lessons", doc_id) for doc_id, _ in lesson_pairs)
     plan.extend(("sim_labs", doc_id) for doc_id, _ in sim_pairs)
 

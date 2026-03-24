@@ -76,9 +76,10 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertEqual(row["id"], "A5")
         self.assertEqual(row["title"], "Oscillations")
 
-    def test_catalog_bootstrap_excludes_m15_bundle(self) -> None:
-        self.assertNotIn("M15", get_catalog_module_ids())
-        self.assertIsNone(get_catalog_module_row("M15"))
+    def test_catalog_bootstrap_stops_at_m14_for_core_modules(self) -> None:
+        core_ids = [module_id for module_id in get_catalog_module_ids() if module_id.startswith("M")]
+        self.assertEqual(max(int(module_id[1:]) for module_id in core_ids), 14)
+        self.assertEqual(get_catalog_module_row("M14")["title"], "Stars and the Universe")
 
     def test_revised_m14_bundle_uses_generated_assets_and_space_contracts(self) -> None:
         self.assertEqual(REVISED_M14_MODULE_DOC["id"], "M14")

@@ -2172,8 +2172,8 @@ M13_MODULE_DOC, M13_LESSONS, M13_SIM_LABS = _clone_bundle(
 
 M14_CONTENT_VERSION = "20260323_m14_beacon_city_realigned_v1"
 M14_MODULE_DOC, M14_LESSONS, M14_SIM_LABS = _clone_bundle(
-    module_path="scripts.seed_m15_module",
-    source_prefix="M15",
+    module_path="scripts.seed_m14_stars_universe_module",
+    source_prefix="M14",
     target_prefix="M14",
     module_title="Stars and the Universe",
     module_description="Stars are self-lit beacons, galaxies are beacon-cities, signal-years measure the huge spacing between them, and redshift supports the modern expansion story.",
