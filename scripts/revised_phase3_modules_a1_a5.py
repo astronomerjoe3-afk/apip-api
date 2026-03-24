@@ -6,8 +6,20 @@ from typing import Any, Dict, List, Sequence, Tuple
 
 try:
     from scripts.revised_core_curriculum_modules import _build_generated_bundle, acceptance_groups, auto_blueprint, mcq, short, tw
+    from scripts.revised_advanced_curriculum_modules import (
+        _RIGOUR_OUTCOMES,
+        _append_unique_strings,
+        _bump_version,
+        _enrich_lesson_payload,
+    )
 except ModuleNotFoundError:
     from revised_core_curriculum_modules import _build_generated_bundle, acceptance_groups, auto_blueprint, mcq, short, tw
+    from revised_advanced_curriculum_modules import (
+        _RIGOUR_OUTCOMES,
+        _append_unique_strings,
+        _bump_version,
+        _enrich_lesson_payload,
+    )
 
 
 TermTuple = Tuple[str, str, str]
@@ -1208,6 +1220,240 @@ A5_MODULE_DOC, A5_LESSONS, A5_SIM_LABS = _module(
     lessons=_A5_BLUEPRINTS,
 )
 _upgrade_phase3_lessons("A5", A5_LESSONS, _A5_BLUEPRINTS)
+
+
+_PHASE3_ANALOGY_PACK_META: Dict[str, Dict[str, Any]] = {
+    "A1": {
+        "analogy_model_name": "Particle-Port Exchange Model",
+        "anchor_sentence": "Matter is built from a small cast of travelers and bundles, and every interaction is a swap checked by strict conservation gates.",
+        "curriculum_focus": [
+            "Subatomic structure",
+            "photons",
+            "quarks",
+            "leptons",
+            "hadrons",
+            "mesons",
+            "antiparticles",
+            "interactions",
+            "exchange particles",
+            "conservation rules",
+        ],
+        "family_note": "New advanced module model.",
+        "story_world": "The Particle-Port Exchange world is a busy transit hub for fundamental particles. Some travelers are leptons, some are quark-built cluster travelers, and some are pure exchange messengers. Every gate in the port is controlled by conservation rules, so not every proposed process is allowed even if it sounds plausible.",
+        "why_analogy_fits": "Turns particle classification into a manageable port inventory instead of a memorized zoo. Makes interactions feel like controlled exchanges governed by ledgers, which is exactly the right intuition for conservation laws.",
+        "teaching_moves": [
+            "Sort particles by family first - leptons, hadrons, mesons, baryons - before asking what interactions they take part in.",
+            "Use color-charge and quark-combination ideas qualitatively to explain why some cluster travelers are three-quark bundles and others are quark-antiquark pairs.",
+            "Treat exchange particles as interaction messengers so forces become process rules rather than mysterious action at a distance.",
+        ],
+        "misconception_shields": [
+            "Protons and neutrons are not elementary particles in the modern model.",
+            "Antiparticles are not simply the same particle with opposite charge in every property; the defining idea is the corresponding quantum numbers.",
+            "Conservation rules restrict particle reactions even when the names on each side look similar.",
+        ],
+        "formal_bridge": "Charge, baryon number, and lepton number become the port's non-negotiable ledger rules.",
+        "mission_seed": "Sort the cargo, pair mirror partners, and pass every conservation gate in a particle-event puzzle.",
+    },
+    "A2": {
+        "analogy_model_name": "Ladder-Gate Packet Model of Quantum Atoms",
+        "anchor_sentence": "Atoms hold electrons on locked energy floors, packets of exactly the right size can lift or free them, and the return jumps paint spectral barcodes.",
+        "curriculum_focus": [
+            "Photoelectric effect",
+            "photons",
+            "excitation and ionisation",
+            "energy levels",
+            "emission and absorption spectra",
+            "de Broglie wavelength",
+            "wave-particle duality",
+        ],
+        "family_note": "New integrated module model built from photoelectric and packet ideas.",
+        "story_world": "The Ladder-Gate Packet world puts atoms on discrete energy ladders. Flash packets can only raise an atom when their packet grade matches the gap to a higher rung. Electron collisions can also lift atoms up or kick electrons free altogether. When an atom falls back down, it emits line-pattern packets whose colors reveal the ladder spacing.",
+        "why_analogy_fits": "Keeps spectra, excitation, ionisation, and the photoelectric effect inside one packet-and-level world. Lets wave-particle duality enter through packet events plus track ripples, rather than as a disconnected slogan.",
+        "teaching_moves": [
+            "Use threshold and packet-grade thinking to deepen the photoelectric effect and distinguish intensity from photon energy.",
+            "Treat excitation and ionisation as two different gate outcomes: one stays inside the ladder system, the other escapes it.",
+            "Connect emission and absorption spectra to rung differences so spectral lines become fingerprints of allowed energy gaps.",
+        ],
+        "misconception_shields": [
+            "A brighter beam below threshold still cannot eject photoelectrons.",
+            "Electrons in atoms do not have a continuum of allowed bound energies.",
+            "Spectral lines are not random colors; they come from discrete energy differences.",
+        ],
+        "formal_bridge": "E = hf, hf = phi + K_max, and lambda = h/p become compact rules for the ladder-gate world.",
+        "mission_seed": "Choose the right packet to excite, ionise, or eject, then read the resulting barcode spectrum.",
+    },
+    "A3": {
+        "analogy_model_name": "Phase-Loom Model of Advanced Waves",
+        "anchor_sentence": "Wave trains weave together; matched timing reinforces, mismatched timing cancels, boundaries trap standing patterns, and optical paths compare phase as much as distance.",
+        "curriculum_focus": [
+            "Superposition",
+            "progressive and stationary waves",
+            "standing waves",
+            "oscilloscope use",
+            "phase/path difference",
+            "interference",
+            "diffraction",
+            "gratings",
+            "refraction depth",
+            "total internal reflection",
+        ],
+        "family_note": "New advanced module model; extends Signal-Stadium and Glow-Route.",
+        "story_world": "The Phase-Loom world weaves wave threads together. When threads arrive in step, the loom brightens; when they arrive out of step, the pattern cancels. Under the right boundary conditions the loom locks into standing designs with nodes and antinodes, and with many closely spaced openings it can separate light into sharply ordered lines.",
+        "why_analogy_fits": "Treats superposition as weaving rather than as a separate trick applied only in special cases. Unifies standing waves, interference, diffraction, and optical phase under one timing-language.",
+        "teaching_moves": [
+            "Use phase difference and path difference as the two key bookkeeping tools for deciding reinforcement or cancellation.",
+            "Build standing waves from two opposite-traveling progressive waves so nodes and antinodes feel like locked patterns, not new traveling waves.",
+            "Use slit combs and grating combs to show why many-source interference gives sharper angular separation than a single opening.",
+        ],
+        "misconception_shields": [
+            "A standing wave is not a traveling wave that has merely slowed down.",
+            "Nodes are fixed zero-displacement points created by cancellation, not physical obstacles in the medium.",
+            "Diffraction and interference are not separate magic tricks; both grow from superposition.",
+        ],
+        "formal_bridge": "Path difference, phase difference, and grating rules become loom-geometry rules before formal algebra.",
+        "mission_seed": "Weave two or more trains to hit a target interference pattern or lock a standing mode into place.",
+    },
+    "A4": {
+        "analogy_model_name": "Vector-Rig Model of Mechanics and Materials",
+        "anchor_sentence": "Motion arrows resolve into components, curved motion needs inward turn pull, and loaded bars reveal how internal links turn force into stretch, stress, and strain.",
+        "curriculum_focus": [
+            "Vector resolution",
+            "equilibrium",
+            "1D and 2D motion",
+            "projectiles",
+            "momentum and energy in collisions",
+            "circular motion",
+            "springs",
+            "Young modulus",
+            "stress-strain behavior",
+        ],
+        "family_note": "New integrated module model built from Probe-Field plus material-load ideas.",
+        "story_world": "The Vector-Rig combines a mechanics rig with a materials bench. Force arrows are attached to a common knot so they can be resolved and balanced, projectiles are launched into 2D space, turn pulls keep objects in circular motion, and flex bars reveal how real materials stretch, yield, and sometimes fail under load.",
+        "why_analogy_fits": "Keeps advanced motion and materials inside one rigging-and-load system, so vectors, orbits, and elastic bars feel connected. Supports both problem solving and graph interpretation in a single mechanical language.",
+        "teaching_moves": [
+            "Resolve vectors on the rig before substituting numbers so students see components as chosen descriptions of one arrow, not extra forces.",
+            "Use the same launch world for projectiles, collisions, and circular motion by tracking how the motion arrow changes in direction and magnitude.",
+            "Move from simple Hooke-style behavior to stress-strain curves so material response is seen as a full story with elastic, plastic, and breaking regions.",
+        ],
+        "misconception_shields": [
+            "Components are not extra forces; they are convenient parts of one force vector.",
+            "Centripetal force points inward; there is no separate real outward partner force in inertial analysis.",
+            "A material with a large Young modulus is stiff, but not necessarily the toughest or strongest.",
+        ],
+        "formal_bridge": "Component rules, v^2/r, stress = F/A, strain = delta L/L, and Young modulus become rig-calibration rules.",
+        "mission_seed": "Resolve the force rig, launch to target, then choose the safest bar before it leaves the elastic region.",
+    },
+    "A5": {
+        "analogy_model_name": "Swing-Return Model of Oscillations",
+        "anchor_sentence": "A system displaced from balance stores return pull, overshoots, trades energy rhythmically, and can be tuned, damped, or driven into resonance.",
+        "curriculum_focus": [
+            "Oscillations",
+            "simple harmonic motion",
+            "SHM graphs and equations",
+            "energy in SHM",
+            "free and forced oscillations",
+            "resonance",
+            "damping",
+            "applications",
+        ],
+        "family_note": "New advanced module model.",
+        "story_world": "The Swing-Return world is a return-pull rig. A rider displaced from its balance line is pulled back toward equilibrium, overshoots, and repeats the motion. Brake pads remove energy, outside drivers add it, and when the drive beat matches the natural beat the motion grows strongly in resonance.",
+        "why_analogy_fits": "Makes SHM a balance-and-return process instead of a special graph to memorize. Explains damping and resonance as competing control layers placed on the same oscillator.",
+        "teaching_moves": [
+            "Use the return-pull idea to build SHM as a motion where restoring effect is proportional to displacement and always directed back toward equilibrium.",
+            "Track how energy swaps between motion form and position form over the cycle without needing any loss in the ideal case.",
+            "Separate free, damped, and forced oscillations before introducing resonance as a special case of driven motion.",
+        ],
+        "misconception_shields": [
+            "In SHM, speed is greatest at equilibrium, not at the ends.",
+            "Damping does not remove the restoring tendency; it removes energy.",
+            "Resonance is not any large vibration; it is the strong response near the system's natural frequency.",
+        ],
+        "formal_bridge": "a is proportional to -x and energy swapping between kinetic and potential become the rhythm rules of the swing.",
+        "mission_seed": "Tune the driver tap to find resonance, then add just enough drag veil to control the response.",
+    },
+}
+
+
+def _enrich_phase3_bundle(
+    *,
+    module_id: str,
+    content_version: str,
+    module_doc: Dict[str, Any],
+    lesson_pairs: List[Tuple[str, Dict[str, Any]]],
+    sim_pairs: List[Tuple[str, Dict[str, Any]]],
+) -> Tuple[str, Dict[str, Any], List[Tuple[str, Dict[str, Any]]], List[Tuple[str, Dict[str, Any]]]]:
+    version = _bump_version(content_version)
+    enriched_module_doc = deepcopy(module_doc)
+    enriched_lesson_pairs = deepcopy(lesson_pairs)
+    enriched_sim_pairs = deepcopy(sim_pairs)
+
+    enriched_module_doc["content_version"] = version
+    enriched_module_doc["mastery_outcomes"] = _append_unique_strings(
+        enriched_module_doc.get("mastery_outcomes") or [],
+        _RIGOUR_OUTCOMES,
+    )
+
+    pack_meta = deepcopy(_PHASE3_ANALOGY_PACK_META.get(module_id) or {})
+    enriched_module_doc.update(pack_meta)
+    if pack_meta.get("analogy_model_name"):
+        enriched_module_doc["model_name"] = pack_meta["analogy_model_name"]
+
+    enriched_module_doc["release_checks"] = _append_unique_strings(
+        enriched_module_doc.get("release_checks") or [],
+        [
+            "Every A1-A5 lesson uses 14 diagnostic, 12 concept-gate, and 14 mastery questions before any stem repeats.",
+            "Every A1-A5 explorer keeps the formal condition, units, and comparison logic visible during the task.",
+            "Every A1-A5 lesson includes explicit analogy-to-formal translation steps in both the lesson flow and the worked examples.",
+            "Every A1-A5 module carries analogy-pack anchor, teaching-move, misconception-shield, and formal-bridge metadata.",
+        ],
+    )
+
+    for (_, lesson), (_, sim_doc) in zip(enriched_lesson_pairs, enriched_sim_pairs):
+        _enrich_lesson_payload(lesson, sim_doc)
+
+    return version, enriched_module_doc, enriched_lesson_pairs, enriched_sim_pairs
+
+
+A1_CONTENT_VERSION, A1_MODULE_DOC, A1_LESSONS, A1_SIM_LABS = _enrich_phase3_bundle(
+    module_id="A1",
+    content_version=A1_CONTENT_VERSION,
+    module_doc=A1_MODULE_DOC,
+    lesson_pairs=A1_LESSONS,
+    sim_pairs=A1_SIM_LABS,
+)
+
+A2_CONTENT_VERSION, A2_MODULE_DOC, A2_LESSONS, A2_SIM_LABS = _enrich_phase3_bundle(
+    module_id="A2",
+    content_version=A2_CONTENT_VERSION,
+    module_doc=A2_MODULE_DOC,
+    lesson_pairs=A2_LESSONS,
+    sim_pairs=A2_SIM_LABS,
+)
+
+A3_CONTENT_VERSION, A3_MODULE_DOC, A3_LESSONS, A3_SIM_LABS = _enrich_phase3_bundle(
+    module_id="A3",
+    content_version=A3_CONTENT_VERSION,
+    module_doc=A3_MODULE_DOC,
+    lesson_pairs=A3_LESSONS,
+    sim_pairs=A3_SIM_LABS,
+)
+
+A4_CONTENT_VERSION, A4_MODULE_DOC, A4_LESSONS, A4_SIM_LABS = _enrich_phase3_bundle(
+    module_id="A4",
+    content_version=A4_CONTENT_VERSION,
+    module_doc=A4_MODULE_DOC,
+    lesson_pairs=A4_LESSONS,
+    sim_pairs=A4_SIM_LABS,
+)
+
+A5_CONTENT_VERSION, A5_MODULE_DOC, A5_LESSONS, A5_SIM_LABS = _enrich_phase3_bundle(
+    module_id="A5",
+    content_version=A5_CONTENT_VERSION,
+    module_doc=A5_MODULE_DOC,
+    lesson_pairs=A5_LESSONS,
+    sim_pairs=A5_SIM_LABS,
+)
 
 
 def revised_phase3_bundle(module_id: str) -> Tuple[str, Dict[str, Any], List[Tuple[str, Dict[str, Any]]], List[Tuple[str, Dict[str, Any]]]]:

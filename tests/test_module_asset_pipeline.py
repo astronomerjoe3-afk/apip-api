@@ -218,9 +218,9 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 6,
-                    "concept_gate_pool_min": 4,
-                    "mastery_pool_min": 6,
+                    "diagnostic_pool_min": 14,
+                    "concept_gate_pool_min": 12,
+                    "mastery_pool_min": 14,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
@@ -1298,9 +1298,9 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 6,
-                    "concept_gate_pool_min": 4,
-                    "mastery_pool_min": 6,
+                    "diagnostic_pool_min": 14,
+                    "concept_gate_pool_min": 12,
+                    "mastery_pool_min": 14,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
@@ -1399,9 +1399,9 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 6,
-                    "concept_gate_pool_min": 4,
-                    "mastery_pool_min": 6,
+                    "diagnostic_pool_min": 14,
+                    "concept_gate_pool_min": 12,
+                    "mastery_pool_min": 14,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
@@ -1500,9 +1500,9 @@ class ModuleAssetPipelineTests(unittest.TestCase):
             self.assertEqual(
                 contract["assessment_bank_targets"],
                 {
-                    "diagnostic_pool_min": 6,
-                    "concept_gate_pool_min": 4,
-                    "mastery_pool_min": 6,
+                    "diagnostic_pool_min": 14,
+                    "concept_gate_pool_min": 12,
+                    "mastery_pool_min": 14,
                     "fresh_attempt_policy": "Prefer unseen lesson-owned questions in diagnostic, concept-gate, and mastery before repeating any previous stem.",
                 },
             )
