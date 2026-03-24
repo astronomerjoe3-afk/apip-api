@@ -146,10 +146,10 @@ DEFAULT_TECHNICAL_WORDS_BY_MODULE: Dict[str, List[Dict[str, str]]] = {
         _tw("Redshift", "Redshift is the increase in observed wavelength compared with the emitted wavelength.", "It is evidence in the expansion story."),
     ],
     "A1": [
-        _tw("Projectile motion", "Projectile motion is two-dimensional motion under gravity after launch.", "It helps break a curved path into simpler component stories."),
-        _tw("Horizontal velocity", "Horizontal velocity is the component of velocity parallel to the chosen horizontal axis.", "In simple projectile motion without air resistance, it stays constant."),
-        _tw("Centripetal force", "Centripetal force is the inward resultant force needed to keep an object moving in a circle.", "It is the inward role of the resultant, not a separate extra force."),
-        _tw("Gravitational field", "A gravitational field is the region where masses experience gravitational force.", "It supports orbital and field-based reasoning."),
+        _tw("Photon", "A photon is the quantum messenger of electromagnetic radiation.", "It keeps radiation inside the particle story instead of collapsing everything into matter."),
+        _tw("Lepton", "A lepton is a matter particle such as an electron or neutrino that is not built from quarks.", "It stops every particle from being treated as a hadron."),
+        _tw("Nucleon", "A nucleon is a proton or neutron in the nucleus.", "It separates nuclear particles from electrons and radiation messengers."),
+        _tw("Hadron", "A hadron is a composite particle built from quarks and held together by the strong interaction.", "It is the umbrella family that contains baryons and mesons."),
     ],
     "A2": [
         _tw("Electric field", "An electric field is the force per unit positive charge at a location.", "It belongs to the location, not to the test charge itself."),
