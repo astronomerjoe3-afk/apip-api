@@ -65,7 +65,7 @@ def _bp(
         units=list(units),
         conditions=conditions,
         summary=f"{title} becomes clearer when {focus}.",
-        why_prompt=f"Why is it useful to explain {title.lower()} by keeping {focus} visible?",
+        why_prompt=f"Why does the core physics of {title.lower()} matter more than labels alone?",
         why_answer=reason,
         compare_prompt=f"How is {lead_term.lower()} different from {compare_term.lower()} in {title.lower()}?",
         compare_answer=contrast,
