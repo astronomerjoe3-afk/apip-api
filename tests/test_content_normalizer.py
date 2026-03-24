@@ -149,9 +149,9 @@ class ContentNormalizerTests(unittest.TestCase):
             "title": "Voltage around a loop",
             "sequence": 3,
             "phases": {
-                "analogical_grounding": {},
+                "analogical_grounding": {"analogy_text": "Tokens loop past the lift station and compare the boost around the loop."},
                 "simulation_inquiry": {},
-                "concept_reconstruction": {"capsules": []},
+                "concept_reconstruction": {"prompts": ["Use voltage and loop language first."], "capsules": []},
                 "diagnostic": {"items": []},
                 "transfer": {"items": []},
             },
@@ -184,12 +184,8 @@ class ContentNormalizerTests(unittest.TestCase):
             "level_2",
         )
         self.assertGreaterEqual(len(contract["technical_words"]), 4)
-        self.assertEqual(contract["technical_words"][0]["term"], "Charge")
-        self.assertEqual(
-            contract["technical_words"][1]["term"],
-            "Current",
-        )
-        self.assertTrue(all(entry["source"] == "generated" for entry in contract["technical_words"]))
+        self.assertEqual(contract["technical_words"][0]["term"], "Voltage")
+        self.assertTrue(all(entry["source"] == "lesson_generated" for entry in contract["technical_words"]))
 
     def test_student_view_adds_technical_words_for_advanced_module_aliases(self) -> None:
         lesson = {
@@ -222,7 +218,38 @@ class ContentNormalizerTests(unittest.TestCase):
                 "Time dilation",
             ],
         )
-        self.assertTrue(all(entry["source"] == "generated" for entry in technical_words))
+        self.assertTrue(all(entry["source"] == "lesson_generated" for entry in technical_words))
+
+    def test_student_view_prefers_lesson_specific_generated_words_for_legacy_lessons(self) -> None:
+        lesson = {
+            "id": "M8_L5",
+            "lesson_id": "M8_L5",
+            "module_id": "M8",
+            "title": "Critical angle and total internal reflection",
+            "sequence": 5,
+            "phases": {
+                "analogical_grounding": {
+                    "analogy_text": "Keep the critical angle and total internal reflection boundary story visible.",
+                },
+                "simulation_inquiry": {
+                    "inquiry_prompts": [
+                        {"prompt": "Raise the angle to the critical angle first, then above it."},
+                    ],
+                },
+                "concept_reconstruction": {"capsules": []},
+                "diagnostic": {"items": []},
+                "transfer": {"items": []},
+            },
+            "authoring_contract": {},
+        }
+
+        payload = to_student_lesson_view(lesson)
+        technical_words = payload["authoring_contract"]["technical_words"]
+        terms = [entry["term"] for entry in technical_words]
+
+        self.assertIn("Critical angle", terms[:2])
+        self.assertIn("Total internal reflection", terms[:2])
+        self.assertTrue(all(entry["source"] == "lesson_generated" for entry in technical_words))
 
     def test_student_view_expands_short_answer_acceptance_margin_to_ten_to_fourteen_versions(self) -> None:
         lesson = {

@@ -201,7 +201,11 @@ def build_nextgen_module_bundle(
         contract["worked_examples"] = _cloned_items(list(contract["worked_examples"]))
         contract["visual_assets"] = _cloned_items(list(contract.get("visual_assets") or []))
         contract["animation_assets"] = _cloned_items(list(contract.get("animation_assets") or []))
-        contract["technical_words"] = ensure_minimum_technical_words(contract.get("technical_words") or [], module_id)
+        contract["technical_words"] = ensure_minimum_technical_words(
+            contract.get("technical_words") or [],
+            module_id,
+            lesson=lesson,
+        )
         contract["release_checks"] = list(release_checks)
         contract["assessment_alignment"] = deepcopy(contract.get("assessment_alignment") or default_assessment_alignment())
         contract["competency_mapping"] = deepcopy(contract.get("competency_mapping") or default_competency_mapping())
