@@ -191,7 +191,11 @@ def _extra_question_banks(lesson_id: str, lesson: Dict[str, Any]) -> Dict[str, L
         f"{term_a} = whichever quantity happens to appear first in {equation}.",
     ]
     formal_bridge_statement = f"Use the analogy to identify the mechanism, then translate it back into {equation} with {conditions.lower()}."
-    comparison_statement = f"Keep one variable fixed, change one variable deliberately, and read how {term_a} and {term_b} respond together."
+    comparison_statement = (
+        "Keep photons, leptons, and nucleons in distinct families, then use the charge tag only as supporting evidence."
+        if title.lower() == "subatomic inventory"
+        else f"Keep one variable fixed, change one variable deliberately, and read how {term_a} and {term_b} respond together."
+    )
     analogy_bridge_statement = f"The analogy helps by making {focus.lower()} visible before the formal quantities are named."
     condition_statement = f"Check whether {conditions.lower()} before trusting {equation} in a new case."
     limit_statement = "A strong advanced answer keeps the analogy as a bridge, then switches back to formal physics language, units, and conditions."
