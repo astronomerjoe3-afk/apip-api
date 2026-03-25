@@ -33,6 +33,46 @@ _MOJIBAKE_REPLACEMENTS = {
 
 _SHORT_ACCEPTED_MIN = 10
 _SHORT_ACCEPTED_MAX = 15
+_ASSESSMENT_TEXT_ACRONYMS = {
+    "AC",
+    "DC",
+    "EM",
+    "EMF",
+    "GPE",
+    "IGCSE",
+    "IR",
+    "IV",
+    "KE",
+    "RMS",
+    "SHM",
+    "SI",
+    "SUVAT",
+    "UV",
+}
+_ASSESSMENT_TEXT_LOWERCASE_TOKENS = {
+    "a",
+    "c",
+    "cm",
+    "ev",
+    "g",
+    "gev",
+    "hz",
+    "j",
+    "kg",
+    "km",
+    "m",
+    "ma",
+    "mev",
+    "mm",
+    "ms",
+    "mv",
+    "n",
+    "nm",
+    "pa",
+    "s",
+    "v",
+    "w",
+}
 _LOW_SIGNAL_VARIANT_WORDS = {
     "and",
     "because",
@@ -163,6 +203,55 @@ def _feedback_strings(value: Any) -> List[str]:
     return []
 
 
+def _normalize_assessment_text(value: str) -> str:
+    single_line = " ".join(str(value or "").strip().split())
+    if not single_line:
+        return single_line
+
+    letters = re.findall(r"[A-Za-z]", single_line)
+    if len(letters) < 2:
+        lowered = single_line.lower()
+        if lowered in _ASSESSMENT_TEXT_LOWERCASE_TOKENS:
+            return lowered
+        uppered = single_line.upper()
+        if uppered in _ASSESSMENT_TEXT_ACRONYMS:
+            return uppered
+        return single_line
+
+    uppercase_count = sum(1 for letter in letters if letter.isupper())
+    lowercase_count = sum(1 for letter in letters if letter.islower())
+    is_shouty = lowercase_count == 0 or uppercase_count / len(letters) > 0.92
+    if not is_shouty or re.search(r"[=^_<>]", single_line):
+        return single_line
+
+    normalized = single_line.lower()
+    normalized = re.sub(
+        r'^(\s*["\'“”‘’(\[]*)([a-z])',
+        lambda match: f"{match.group(1)}{match.group(2).upper()}",
+        normalized,
+        count=1,
+    )
+
+    for acronym in _ASSESSMENT_TEXT_ACRONYMS:
+        title_case = acronym[:1] + acronym[1:].lower()
+        normalized = re.sub(rf"\b{re.escape(title_case)}\b", acronym, normalized)
+
+    for token in _ASSESSMENT_TEXT_LOWERCASE_TOKENS:
+        capitalized_token = token[:1].upper() + token[1:]
+        normalized = re.sub(rf"\b{re.escape(capitalized_token)}\b", token, normalized)
+
+    normalized = re.sub(
+        r"\b([a-z]{1,2})-(\d+)\b",
+        lambda match: (
+            f"{match.group(1).upper()}-{match.group(2)}"
+            if len(match.group(1)) == 1
+            else f"{match.group(1)[0].upper()}{match.group(1)[1:].lower()}-{match.group(2)}"
+        ),
+        normalized,
+    )
+    return normalized
+
+
 def _accepted_answers(item: Dict[str, Any], choices: List[str]) -> List[str]:
     accepted = _first_present(item, "accepted_answers", "acceptedAnswers", "correct_answers", "correctAnswers", "acceptable_answers")
     values = _choice_strings(accepted)
@@ -263,12 +352,13 @@ def _student_question_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[
         if not isinstance(item, dict):
             continue
 
-        choices = _choice_strings(_first_present(item, "choices", "options", "answers"))
-        feedback = _feedback_strings(_first_present(item, "feedback", "option_feedback", "optionFeedback", "rationales"))
+        choices = [_normalize_assessment_text(choice) for choice in _choice_strings(_first_present(item, "choices", "options", "answers"))]
+        feedback = [_normalize_assessment_text(entry) for entry in _feedback_strings(_first_present(item, "feedback", "option_feedback", "optionFeedback", "rationales"))]
         if len(feedback) < len(choices):
-            feedback = feedback + [str(_first_present(item, "hint", "explanation", "teaching_focus") or "")] * (len(choices) - len(feedback))
+            normalized_hint = _normalize_assessment_text(str(_first_present(item, "hint", "explanation", "teaching_focus") or ""))
+            feedback = feedback + [normalized_hint] * (len(choices) - len(feedback))
 
-        accepted_answers = _accepted_answers(item, choices)
+        accepted_answers = [_normalize_assessment_text(answer) for answer in _accepted_answers(item, choices)]
         acceptance_rules = _acceptance_rules(item)
         qtype = str(_first_present(item, "type", "item_type") or "").strip().lower()
         if qtype == "short":
@@ -281,9 +371,9 @@ def _student_question_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[
             {
                 "id": _first_present(item, "id", "item_id", "question_id"),
                 "type": _first_present(item, "type", "item_type"),
-                "prompt": _first_present(item, "prompt", "question", "stem"),
+                "prompt": _normalize_assessment_text(str(_first_present(item, "prompt", "question", "stem") or "")),
                 "choices": choices,
-                "hint": _first_present(item, "hint", "explanation", "teaching_focus"),
+                "hint": _normalize_assessment_text(str(_first_present(item, "hint", "explanation", "teaching_focus") or "")),
                 "feedback": feedback,
                 "answer_index": _answer_index(item, choices),
                 "accepted_answers": accepted_answers,

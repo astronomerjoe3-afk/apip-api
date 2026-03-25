@@ -6,6 +6,73 @@ from app.services.content_normalizer import to_student_lesson_view
 
 
 class ContentNormalizerTests(unittest.TestCase):
+    def test_student_view_normalizes_shouty_assessment_text_to_sentence_case(self) -> None:
+        lesson = {
+            "id": "F1_L1",
+            "lesson_id": "F1_L1",
+            "module_id": "F1",
+            "title": "SI Units",
+            "sequence": 1,
+            "phases": {
+                "analogical_grounding": {},
+                "simulation_inquiry": {},
+                "concept_reconstruction": {"capsules": []},
+                "diagnostic": {
+                    "items": [
+                        {
+                            "id": "F1L1_D1",
+                            "type": "multiple_choice",
+                            "prompt": "WHICH UNIT IS MOST SUITABLE FOR THE THICKNESS OF A COIN?",
+                            "choices": ["MM", "KM", "CM", "M", "SI", "U-238", "V = IR"],
+                            "hint": "THINK ABOUT A VERY SMALL LENGTH.",
+                            "feedback": [
+                                "THAT UNIT IS TOO LARGE.",
+                                "THAT UNIT IS TOO LARGE.",
+                                "THAT UNIT IS STILL TOO LARGE.",
+                                "THAT UNIT IS TOO LARGE.",
+                                "SI IS A SYSTEM, NOT A UNIT CHOICE HERE.",
+                                "U-238 IS A NUCLIDE LABEL, NOT A LENGTH UNIT.",
+                                "V = IR IS AN EQUATION, NOT A LENGTH UNIT.",
+                            ],
+                        }
+                    ]
+                },
+                "transfer": {
+                    "items": [
+                        {
+                            "id": "F1L1_T1",
+                            "type": "short",
+                            "prompt": "WRITE THE BEST UNIT FOR A COIN THICKNESS.",
+                            "accepted_answers": ["MM", "MILLIMETRE"],
+                            "hint": "USE THE SMALLEST SUITABLE METRIC LENGTH UNIT.",
+                        }
+                    ]
+                },
+            },
+            "authoring_contract": {},
+        }
+
+        payload = to_student_lesson_view(lesson)
+        diagnostic_item = payload["phases"]["diagnostic"]["items"][0]
+        transfer_item = payload["phases"]["transfer"]["items"][0]
+
+        self.assertEqual(
+            diagnostic_item["prompt"],
+            "Which unit is most suitable for the thickness of a coin?",
+        )
+        self.assertEqual(diagnostic_item["choices"][:5], ["mm", "km", "cm", "m", "SI"])
+        self.assertEqual(diagnostic_item["choices"][5:], ["U-238", "V = IR"])
+        self.assertEqual(
+            diagnostic_item["hint"],
+            "Think about a very small length.",
+        )
+        self.assertEqual(
+            diagnostic_item["feedback"][4],
+            "SI is a system, not a unit choice here.",
+        )
+        self.assertEqual(transfer_item["accepted_answers"][0], "mm")
+        self.assertIn("Millimetre", transfer_item["accepted_answers"])
+
     def test_student_view_keeps_authored_contract_subset_and_short_answer_rules(self) -> None:
         lesson = {
             "id": "M3_L1",
