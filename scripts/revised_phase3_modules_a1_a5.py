@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+import re
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
@@ -29,6 +30,60 @@ ReadoutTuple = Tuple[str, str]
 
 def _terms(items: Sequence[TermTuple]) -> List[Dict[str, str]]:
     return [tw(term, meaning, why) for term, meaning, why in items]
+
+
+def _contrast_subject_label(clause: str) -> str:
+    cleaned = re.sub(r"\s+", " ", str(clause).strip()).rstrip(".")
+    lowered = cleaned.lower()
+    markers = (
+        " is ",
+        " are ",
+        " can ",
+        " uses ",
+        " use ",
+        " keeps ",
+        " keep ",
+        " means ",
+        " measure ",
+        " measures ",
+        " tracks ",
+        " track ",
+        " counts ",
+        " count ",
+        " depends ",
+        " depend ",
+        " stays ",
+        " stay ",
+        " becomes ",
+        " become ",
+        " absorbs ",
+        " absorb ",
+        " joins ",
+        " join ",
+        " splits ",
+        " split ",
+        " circulates ",
+        " circulate ",
+        " remains ",
+        " remain ",
+        " belongs ",
+        " belong ",
+        " has ",
+        " have ",
+    )
+    cut_points = [lowered.find(marker) for marker in markers if lowered.find(marker) > 0]
+    return cleaned[: min(cut_points)].strip() if cut_points else cleaned
+
+
+def _compare_prompt_from_contrast(title: str, lead_term: str, compare_term: str, contrast: str) -> str:
+    contrast_text = re.sub(r"\s+", " ", str(contrast).strip())
+    parts = re.split(r"\bwhile\b", contrast_text, maxsplit=1, flags=re.IGNORECASE)
+    if len(parts) == 2:
+        left = _contrast_subject_label(parts[0])
+        right = _contrast_subject_label(parts[1])
+        if left and right:
+            return f"How is {left.lower()} different from {right.lower()} in {title.lower()}?"
+    return f"How is {lead_term.lower()} different from {compare_term.lower()} in {title.lower()}?"
 
 
 def _bp(
@@ -68,7 +123,7 @@ def _bp(
         summary=f"{title} becomes clearer when {focus}.",
         why_prompt=why_prompt_override.strip() or f"Why does the core physics of {title.lower()} matter more than labels alone?",
         why_answer=reason,
-        compare_prompt=f"How is {lead_term.lower()} different from {compare_term.lower()} in {title.lower()}?",
+        compare_prompt=_compare_prompt_from_contrast(title, lead_term, compare_term, contrast),
         compare_answer=contrast,
         apply_prompt=f"Which statement best matches {title.lower()}?",
         apply_choices=[
