@@ -5,8 +5,15 @@ from fastapi import APIRouter, Depends, Request
 from app.audit import write_audit_log
 from app.common import get_client_ip
 from app.dependencies import require_authenticated_user
-from app.schemas.auth import SessionLoginRequest, SessionLoginResponse, SessionStatusResponse
+from app.schemas.auth import (
+    PasswordPolicyUpdateRequest,
+    PasswordPolicyUpdateResponse,
+    SessionLoginRequest,
+    SessionLoginResponse,
+    SessionStatusResponse,
+)
 from app.services.session_service import issue_session_from_firebase_id_token, revoke_session_token
+from app.services.user_security_service import record_password_policy_completion
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -40,7 +47,23 @@ def current_session(user=Depends(require_authenticated_user)):
             "email": (user or {}).get("email"),
             "email_verified": (user or {}).get("email_verified"),
             "role": (user or {}).get("role"),
+            "security": (user or {}).get("security"),
         },
+    }
+
+
+@router.post("/security/password-policy", response_model=PasswordPolicyUpdateResponse)
+def record_password_policy(payload: PasswordPolicyUpdateRequest, user=Depends(require_authenticated_user)):
+    security = record_password_policy_completion(
+        (user or {}).get("uid"),
+        password_policy_version=payload.password_policy_version,
+        email=(user or {}).get("email"),
+        role=(user or {}).get("role"),
+        email_verified=bool((user or {}).get("email_verified")),
+    )
+    return {
+        "ok": True,
+        "security": security,
     }
 
 

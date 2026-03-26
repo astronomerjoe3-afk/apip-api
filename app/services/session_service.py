@@ -10,6 +10,7 @@ from app.common import get_client_ip, sha256_hex
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.firebase_admin_init import verify_id_token
+from app.services.user_security_service import build_user_security_summary, ensure_user_profile
 
 
 SESSION_TOKEN_PREFIX = "sess_"
@@ -60,13 +61,24 @@ def _normalized_user_claims(decoded: Dict[str, Any]) -> Dict[str, Any]:
     role = _normalized_role(decoded, str(uid))
     claims = dict(decoded)
     claims["role"] = role
-    return {
+    user = {
         "uid": str(uid),
         "email": decoded.get("email"),
         "email_verified": decoded.get("email_verified"),
         "role": role,
         "claims": claims,
     }
+    ensure_user_profile(
+        user["uid"],
+        email=user.get("email"),
+        role=user.get("role"),
+        email_verified=bool(user.get("email_verified")),
+    )
+    user["security"] = build_user_security_summary(
+        user["uid"],
+        email_verified=bool(user.get("email_verified")),
+    )
+    return user
 
 
 def issue_session_from_firebase_id_token(id_token: str, request: Request) -> Dict[str, Any]:
@@ -112,6 +124,7 @@ def issue_session_from_firebase_id_token(id_token: str, request: Request) -> Dic
             "email": user.get("email"),
             "email_verified": user.get("email_verified"),
             "role": user["role"],
+            "security": user.get("security"),
         },
     }
 
@@ -169,13 +182,24 @@ def authenticate_session_token(token: str, request: Request) -> Dict[str, Any]:
         )
 
     claims = session.get("claims") if isinstance(session.get("claims"), dict) else {}
+    uid = _string(session.get("uid")) or ""
+    email = session.get("email")
+    email_verified = bool(session.get("email_verified"))
+    role = session.get("role") or "student"
+    ensure_user_profile(
+        uid,
+        email=email,
+        role=role,
+        email_verified=email_verified,
+    )
     return {
-        "uid": session.get("uid"),
-        "email": session.get("email"),
-        "email_verified": session.get("email_verified"),
-        "role": session.get("role") or "student",
+        "uid": uid,
+        "email": email,
+        "email_verified": email_verified,
+        "role": role,
         "claims": claims,
         "auth_type": "session",
+        "security": build_user_security_summary(uid, email_verified=email_verified),
     }
 
 
