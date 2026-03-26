@@ -74,7 +74,7 @@ class Settings:
     expose_api_docs: bool = _env_bool("EXPOSE_API_DOCS", _default_exposed_in_dev("EXPOSE_API_DOCS"))
     expose_debug_routes: bool = _env_bool("EXPOSE_DEBUG_ROUTES", _default_exposed_in_dev("EXPOSE_DEBUG_ROUTES"))
     expose_build_metadata: bool = _env_bool("EXPOSE_BUILD_METADATA", _default_exposed_in_dev("EXPOSE_BUILD_METADATA"))
-    session_ttl_hours: int = int(_env("SESSION_TTL_HOURS", "24") or "24")
+    session_ttl_hours: int = int(_env("SESSION_TTL_HOURS", "720") or "720")
     session_idle_refresh_minutes: int = int(_env("SESSION_IDLE_REFRESH_MINUTES", "15") or "15")
 
     # Security / operations
