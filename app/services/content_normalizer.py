@@ -73,6 +73,15 @@ _ASSESSMENT_TEXT_LOWERCASE_TOKENS = {
     "v",
     "w",
 }
+_ASSESSMENT_TEXT_LOWERCASE_PREFIXES = {
+    "centi-",
+    "deci-",
+    "kilo-",
+    "mega-",
+    "micro-",
+    "milli-",
+    "nano-",
+}
 _LOW_SIGNAL_VARIANT_WORDS = {
     "and",
     "because",
@@ -205,6 +214,8 @@ def _feedback_strings(value: Any) -> List[str]:
 
 def _normalize_assessment_text(value: str) -> str:
     single_line = " ".join(str(value or "").strip().split())
+    single_line = re.sub(r"\b([A-Za-z]{3,})_([A-Za-z]{3,})\b", r"\1-\2", single_line)
+    single_line = re.sub(r"\b([A-Za-z]{3,})_(?=\s|$|[!?.,:;])", r"\1-", single_line)
     if not single_line:
         return single_line
 
@@ -239,6 +250,10 @@ def _normalize_assessment_text(value: str) -> str:
     for token in _ASSESSMENT_TEXT_LOWERCASE_TOKENS:
         capitalized_token = token[:1].upper() + token[1:]
         normalized = re.sub(rf"\b{re.escape(capitalized_token)}\b", token, normalized)
+
+    for prefix in _ASSESSMENT_TEXT_LOWERCASE_PREFIXES:
+        capitalized_prefix = prefix[:1].upper() + prefix[1:]
+        normalized = re.sub(re.escape(capitalized_prefix), prefix, normalized)
 
     normalized = re.sub(
         r"\b([a-z]{1,2})-(\d+)\b",

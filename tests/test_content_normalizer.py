@@ -34,6 +34,13 @@ class ContentNormalizerTests(unittest.TestCase):
                                 "U-238 IS A NUCLIDE LABEL, NOT A LENGTH UNIT.",
                                 "V = IR IS AN EQUATION, NOT A LENGTH UNIT.",
                             ],
+                        },
+                        {
+                            "id": "F1L1_D2",
+                            "type": "multiple_choice",
+                            "prompt": "WHICH PREFIX MEANS ONE_THOUSANDTH OF THE BASE UNIT?",
+                            "choices": ["KILO_", "CENTI_", "MILLI_", "MEGA_"],
+                            "hint": "ONE_THOUSANDTH CORRESPONDS TO MILLI_.",
                         }
                     ]
                 },
@@ -54,6 +61,7 @@ class ContentNormalizerTests(unittest.TestCase):
 
         payload = to_student_lesson_view(lesson)
         diagnostic_item = payload["phases"]["diagnostic"]["items"][0]
+        prefix_item = payload["phases"]["diagnostic"]["items"][1]
         transfer_item = payload["phases"]["transfer"]["items"][0]
 
         self.assertEqual(
@@ -70,6 +78,12 @@ class ContentNormalizerTests(unittest.TestCase):
             diagnostic_item["feedback"][4],
             "SI is a system, not a unit choice here.",
         )
+        self.assertEqual(
+            prefix_item["prompt"],
+            "Which prefix means one-thousandth of the base unit?",
+        )
+        self.assertEqual(prefix_item["choices"], ["kilo-", "centi-", "milli-", "mega-"])
+        self.assertEqual(prefix_item["hint"], "One-thousandth corresponds to milli-.")
         self.assertEqual(transfer_item["accepted_answers"][0], "mm")
         self.assertIn("Millimetre", transfer_item["accepted_answers"])
 
