@@ -50,28 +50,15 @@ _ASSESSMENT_TEXT_ACRONYMS = {
     "UV",
 }
 _ASSESSMENT_TEXT_LOWERCASE_TOKENS = {
-    "a",
-    "c",
     "cm",
-    "ev",
     "g",
-    "gev",
-    "hz",
-    "j",
     "kg",
     "km",
     "m",
-    "ma",
-    "mev",
     "mm",
     "ms",
-    "mv",
-    "n",
     "nm",
-    "pa",
     "s",
-    "v",
-    "w",
 }
 _ASSESSMENT_TEXT_LOWERCASE_PREFIXES = {
     "centi-",
@@ -221,6 +208,9 @@ def _normalize_assessment_text(value: str) -> str:
 
     letters = re.findall(r"[A-Za-z]", single_line)
     if len(letters) < 2:
+        numeric_lowercase_unit = re.match(r"^([0-9.]+)\s+([GMS])$", single_line)
+        if numeric_lowercase_unit:
+            return f"{numeric_lowercase_unit.group(1)} {numeric_lowercase_unit.group(2).lower()}"
         lowered = single_line.lower()
         if lowered in _ASSESSMENT_TEXT_LOWERCASE_TOKENS:
             return lowered
@@ -232,7 +222,7 @@ def _normalize_assessment_text(value: str) -> str:
     uppercase_count = sum(1 for letter in letters if letter.isupper())
     lowercase_count = sum(1 for letter in letters if letter.islower())
     is_shouty = lowercase_count == 0 or uppercase_count / len(letters) > 0.92
-    if not is_shouty or re.search(r"[=^_<>]", single_line):
+    if not is_shouty or re.search(r"[<>]", single_line):
         return single_line
 
     normalized = single_line.lower()
@@ -245,15 +235,21 @@ def _normalize_assessment_text(value: str) -> str:
 
     for acronym in _ASSESSMENT_TEXT_ACRONYMS:
         title_case = acronym[:1] + acronym[1:].lower()
-        normalized = re.sub(rf"\b{re.escape(title_case)}\b", acronym, normalized)
+        normalized = re.sub(rf"\b{re.escape(title_case)}\b", acronym, normalized, flags=re.IGNORECASE)
 
     for token in _ASSESSMENT_TEXT_LOWERCASE_TOKENS:
         capitalized_token = token[:1].upper() + token[1:]
-        normalized = re.sub(rf"\b{re.escape(capitalized_token)}\b", token, normalized)
+        normalized = re.sub(rf"\b{re.escape(capitalized_token)}\b", token, normalized, flags=re.IGNORECASE)
 
     for prefix in _ASSESSMENT_TEXT_LOWERCASE_PREFIXES:
         capitalized_prefix = prefix[:1].upper() + prefix[1:]
         normalized = re.sub(re.escape(capitalized_prefix), prefix, normalized)
+
+    normalized = re.sub(
+        r"(\d(?:[\d.]*))\s+([GMS])\b",
+        lambda match: f"{match.group(1)} {match.group(2).lower()}",
+        normalized,
+    )
 
     normalized = re.sub(
         r"\b([a-z]{1,2})-(\d+)\b",

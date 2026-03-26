@@ -41,7 +41,20 @@ class ContentNormalizerTests(unittest.TestCase):
                             "prompt": "WHICH PREFIX MEANS ONE_THOUSANDTH OF THE BASE UNIT?",
                             "choices": ["KILO_", "CENTI_", "MILLI_", "MEGA_"],
                             "hint": "ONE_THOUSANDTH CORRESPONDS TO MILLI_.",
-                        }
+                        },
+                        {
+                            "id": "F1L1_D3",
+                            "type": "multiple_choice",
+                            "prompt": "USE 1 KG = 1000 G TO CHECK THIS CONVERSION.",
+                            "choices": ["450 G", "0.45 G", "4500 G", "45 G"],
+                            "hint": "USE 1 KG = 1000 G.",
+                            "feedback": [
+                                "USE 1 KG = 1000 G.",
+                                "USE 1 KG = 1000 G.",
+                                "USE 1 KG = 1000 G.",
+                                "USE 1 KG = 1000 G.",
+                            ],
+                        },
                     ]
                 },
                 "transfer": {
@@ -62,6 +75,7 @@ class ContentNormalizerTests(unittest.TestCase):
         payload = to_student_lesson_view(lesson)
         diagnostic_item = payload["phases"]["diagnostic"]["items"][0]
         prefix_item = payload["phases"]["diagnostic"]["items"][1]
+        equation_item = payload["phases"]["diagnostic"]["items"][2]
         transfer_item = payload["phases"]["transfer"]["items"][0]
 
         self.assertEqual(
@@ -84,6 +98,10 @@ class ContentNormalizerTests(unittest.TestCase):
         )
         self.assertEqual(prefix_item["choices"], ["kilo-", "centi-", "milli-", "mega-"])
         self.assertEqual(prefix_item["hint"], "One-thousandth corresponds to milli-.")
+        self.assertEqual(equation_item["prompt"], "Use 1 kg = 1000 g to check this conversion.")
+        self.assertEqual(equation_item["choices"], ["450 g", "0.45 g", "4500 g", "45 g"])
+        self.assertEqual(equation_item["hint"], "Use 1 kg = 1000 g.")
+        self.assertEqual(equation_item["feedback"][0], "Use 1 kg = 1000 g.")
         self.assertEqual(transfer_item["accepted_answers"][0], "mm")
         self.assertIn("Millimetre", transfer_item["accepted_answers"])
 
