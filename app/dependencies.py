@@ -5,6 +5,7 @@ from fastapi import HTTPException, Request
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.firebase_admin_init import verify_id_token
+from app.services.session_service import SESSION_TOKEN_PREFIX, authenticate_session_token
 
 
 LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
@@ -70,6 +71,9 @@ def require_authenticated_user(request: Request) -> Dict[str, Any]:
 
     token = _get_bearer_token(request)
 
+    if token.startswith(SESSION_TOKEN_PREFIX):
+        return authenticate_session_token(token, request)
+
     try:
         decoded = verify_id_token(token)
     except Exception:
@@ -90,6 +94,7 @@ def require_authenticated_user(request: Request) -> Dict[str, Any]:
         "email_verified": decoded.get("email_verified"),
         "role": role,
         "claims": decoded,
+        "auth_type": "firebase",
     }
 
 

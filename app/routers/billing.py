@@ -44,6 +44,7 @@ def create_checkout_session(
     user=Depends(require_authenticated_user),
 ):
     normalized_module_id = normalize_module_id(payload.module_id)
+    request_origin = request.headers.get("Origin") or payload.origin
     result = create_checkout_session_for_student(
         uid=(user or {}).get("uid"),
         email=(user or {}).get("email"),
@@ -51,7 +52,7 @@ def create_checkout_session(
         purchase_kind=payload.purchase_kind,
         module_id=normalized_module_id,
         plan_id=payload.plan_id,
-        origin=payload.origin,
+        origin=request_origin,
         success_path=payload.success_path,
         cancel_path=payload.cancel_path,
     )
@@ -111,10 +112,11 @@ def create_portal_session(
     request: Request,
     user=Depends(require_authenticated_user),
 ):
+    request_origin = request.headers.get("Origin") or payload.origin
     result = create_portal_session_for_student(
         uid=(user or {}).get("uid"),
         email=(user or {}).get("email"),
-        origin=payload.origin,
+        origin=request_origin,
         return_path=payload.return_path,
     )
     write_audit_log(

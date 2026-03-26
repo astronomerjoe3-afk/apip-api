@@ -9,9 +9,18 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.common import utc_now
 
 
+def _normalized_request_id(raw_value: str | None) -> str:
+    candidate = str(raw_value or "").strip()
+    if not candidate:
+        return str(uuid.uuid4())
+
+    safe = "".join(ch for ch in candidate[:128] if ch.isalnum() or ch in {"-", "_", "."})
+    return safe or str(uuid.uuid4())
+
+
 class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        request_id = request.headers.get("X-Request-Id", str(uuid.uuid4()))
+        request_id = _normalized_request_id(request.headers.get("X-Request-Id"))
         request.state.request_id = request_id
 
         start = time.time()

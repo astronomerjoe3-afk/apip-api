@@ -81,7 +81,7 @@ def enforce_rate_limit(*, db: firestore.Client, key_id: str, policy: Dict[str, A
     global_1h_ref = db.collection("global_abuse_1h").document("global")
     global_24h_ref = db.collection("global_abuse_24h").document("global")
 
-    keys_ref = db.collection("keys").document(key_id)
+    keys_ref = db.collection("api_keys").document(key_id)
 
     def _ttl(hours: int) -> datetime:
         return ts + timedelta(hours=hours)

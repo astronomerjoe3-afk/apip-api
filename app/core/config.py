@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 def _load_local_env_file() -> None:
@@ -35,6 +36,28 @@ def _env(name: str, default: str | None = None) -> str | None:
     return v.strip()
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = _env(name, "true" if default else "false") or ("true" if default else "false")
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _production_environment(environment: str | None) -> bool:
+    return str(environment or "").strip().lower() in {"prod", "production"}
+
+
+def _default_exposed_in_dev(name: str) -> bool:
+    environment = _env("ENVIRONMENT", "dev") or "dev"
+    return not _production_environment(environment)
+
+
+def _default_api_base_url() -> str:
+    for name in ("API_BASE_URL", "SERVICE_BASE_URL", "PUBLIC_API_BASE_URL"):
+        candidate = _env(name)
+        if candidate:
+            return candidate
+    return "https://api.cognispark.tech"
+
+
 @dataclass(frozen=True)
 class Settings:
     # Cloud / runtime
@@ -45,7 +68,14 @@ class Settings:
     environment: str = _env("ENVIRONMENT", "dev") or "dev"
     service_name: str = _env("SERVICE_NAME", "apip-api") or "apip-api"
     app_base_url: str = _env("APP_BASE_URL", "https://app.cognispark.tech") or "https://app.cognispark.tech"
+    api_base_url: str = _env("API_BASE_URL", _default_api_base_url()) or _default_api_base_url()
     allowed_app_origins: str = _env("ALLOWED_APP_ORIGINS", "") or ""
+    allowed_api_hosts: str = _env("ALLOWED_API_HOSTS", "") or ""
+    expose_api_docs: bool = _env_bool("EXPOSE_API_DOCS", _default_exposed_in_dev("EXPOSE_API_DOCS"))
+    expose_debug_routes: bool = _env_bool("EXPOSE_DEBUG_ROUTES", _default_exposed_in_dev("EXPOSE_DEBUG_ROUTES"))
+    expose_build_metadata: bool = _env_bool("EXPOSE_BUILD_METADATA", _default_exposed_in_dev("EXPOSE_BUILD_METADATA"))
+    session_ttl_hours: int = int(_env("SESSION_TTL_HOURS", "24") or "24")
+    session_idle_refresh_minutes: int = int(_env("SESSION_IDLE_REFRESH_MINUTES", "15") or "15")
 
     # Security / operations
     # If you already enforce admin via Firebase custom claims, keep this False.
@@ -63,6 +93,15 @@ class Settings:
     stripe_price_premium_monthly: str | None = _env("STRIPE_PRICE_PREMIUM_MONTHLY", None)
     stripe_price_premium_six_month: str | None = _env("STRIPE_PRICE_PREMIUM_SIX_MONTH", None)
     stripe_price_premium_yearly: str | None = _env("STRIPE_PRICE_PREMIUM_YEARLY", None)
+
+    @property
+    def is_production(self) -> bool:
+        return _production_environment(self.environment)
+
+    @property
+    def api_hostname(self) -> str | None:
+        parsed = urlparse(self.api_base_url)
+        return parsed.hostname.lower() if parsed.hostname else None
 
 
 settings = Settings()

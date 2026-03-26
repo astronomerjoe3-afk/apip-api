@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import os
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.common import utc_now
+from app.core.config import settings
 from app.dependencies import require_authenticated_user
 
 router = APIRouter(tags=["system"])
@@ -23,6 +24,9 @@ def healthz():
 @router.get("/__build")
 @router.get("/_build")
 def build():
+    if not settings.expose_build_metadata:
+        raise HTTPException(status_code=404, detail="Not found")
+
     app_commit = os.getenv("GIT_COMMIT_SHA") or os.getenv("APP_COMMIT") or "dev"
     project_id = (
         os.getenv("GOOGLE_CLOUD_PROJECT")
@@ -51,11 +55,5 @@ def profile(user=Depends(require_authenticated_user)):
         "email": u.get("email"),
         "email_verified": u.get("email_verified"),
         "role": u.get("role"),
-        "firebase_project_id": (
-            os.getenv("GOOGLE_CLOUD_PROJECT")
-            or os.getenv("GCP_PROJECT")
-            or os.getenv("GCLOUD_PROJECT")
-            or "local"
-        ),
         "utc": utc_now(),
     }

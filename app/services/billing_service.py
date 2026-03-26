@@ -13,6 +13,7 @@ from google.cloud.firestore_v1 import DELETE_FIELD
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
+from app.security import allowed_app_origins, normalize_origin
 from app.services.catalog_bootstrap import get_catalog_module_row
 from app.services.monetization_service import (
     FREE_ACCESS_TIER,
@@ -193,28 +194,16 @@ def _plan_id_from_price_id(price_id: Optional[str]) -> Optional[str]:
 
 
 def _allowed_origins() -> set[str]:
-    origins = {
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
-        "https://127.0.0.1:3000",
-        "https://localhost:3000",
-    }
-    base = _string(settings.app_base_url)
-    if base:
-        origins.add(base.rstrip("/"))
-
-    for value in str(settings.allowed_app_origins or "").split(","):
-        origin = _string(value)
-        if origin:
-            origins.add(origin.rstrip("/"))
-
-    return origins
+    return set(allowed_app_origins())
 
 
 def _resolve_origin(origin: Optional[str]) -> str:
     candidate = _string(origin)
     if candidate:
-        candidate = candidate.rstrip("/")
+        try:
+            candidate = normalize_origin(candidate)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"Return origin is invalid: {exc}") from exc
         if candidate in _allowed_origins():
             return candidate
         raise HTTPException(status_code=400, detail="Return origin is not allowed.")
@@ -228,13 +217,19 @@ def _resolve_origin(origin: Optional[str]) -> str:
 def _app_url(origin: Optional[str], path: Optional[str], fallback_path: str) -> str:
     chosen_origin = _resolve_origin(origin)
     raw_path = _string(path) or fallback_path
+    if raw_path.startswith("//"):
+        raise HTTPException(status_code=400, detail="Return path must not be protocol-relative.")
 
     parsed = urlparse(raw_path)
     if parsed.scheme and parsed.netloc:
-        absolute_origin = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+        try:
+            absolute_origin = normalize_origin(f"{parsed.scheme}://{parsed.netloc}")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"Return URL origin is invalid: {exc}") from exc
         if absolute_origin not in _allowed_origins():
             raise HTTPException(status_code=400, detail="Return URL origin is not allowed.")
-        return raw_path
+        normalized_path = parsed.path or "/"
+        return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), normalized_path, "", parsed.query, ""))
 
     if not raw_path.startswith("/"):
         raw_path = "/" + raw_path
