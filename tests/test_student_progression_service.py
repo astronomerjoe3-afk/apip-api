@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from app.services.student_progression_service import get_student_module_progress
+from app.services.student_progression_service import _lesson_has_reflection
 
 
 def _lesson() -> dict:
@@ -27,6 +28,28 @@ def _lesson() -> dict:
             "misconception_focus": [
                 "motion_implies_force_confusion",
                 "balanced_force_rest_confusion",
+            ]
+        },
+    }
+
+
+def _lesson_with_authored_reflection_only() -> dict:
+    return {
+        "id": "F1_L1",
+        "lesson_id": "F1_L1",
+        "module_id": "F1",
+        "title": "SI Units, Prefixes, and Complete Measurements",
+        "sequence": 1,
+        "phases": {
+            "diagnostic": {"items": [{"id": "D1"}]},
+            "analogical_grounding": {"analogy_text": "Shared currency", "micro_prompts": [{"prompt": "P1"}]},
+            "simulation_inquiry": {"lab_id": "f1_metric_prefix_lab"},
+            "concept_reconstruction": {"prompts": [], "capsules": [{"checks": [{"id": "C1"}]}]},
+            "transfer": {"items": [{"id": "T1"}, {"id": "T2"}]},
+        },
+        "authoring_contract": {
+            "reflection_prompts": [
+                "Explain why the same length can be written with different unit sizes."
             ]
         },
     }
@@ -176,3 +199,6 @@ class StudentProgressionServiceTests(unittest.TestCase):
         self.assertEqual(row["status"], "concept_gate_completed")
         self.assertEqual(row["instructional_status"], "concept_gate_completed")
         self.assertTrue(row["concept_gate_completed"])
+
+    def test_reflection_stage_detects_authored_reflection_prompts(self) -> None:
+        self.assertTrue(_lesson_has_reflection(_lesson_with_authored_reflection_only()))

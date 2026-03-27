@@ -35,6 +35,11 @@ def _lesson_has_reflection(lesson: Dict[str, Any]) -> bool:
         if capsule.get("prompt"):
             return True
 
+    authoring = lesson.get("authoring_contract") or {}
+    reflection_prompts = authoring.get("reflection_prompts") or []
+    if isinstance(reflection_prompts, list):
+        return any(str(prompt or "").strip() for prompt in reflection_prompts)
+
     return False
 
 

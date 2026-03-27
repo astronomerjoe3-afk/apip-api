@@ -422,6 +422,7 @@ def _student_authoring_contract(authoring: Any, lesson: Dict[str, Any]) -> Dict[
         "visual_assets": deepcopy(authoring.get("visual_assets") or []),
         "animation_assets": deepcopy(authoring.get("animation_assets") or []),
         "simulation_contract": deepcopy(authoring.get("simulation_contract") or {}),
+        "reflection_prompts": deepcopy(authoring.get("reflection_prompts") or []),
         "assessment_bank_targets": deepcopy(authoring.get("assessment_bank_targets") or {}),
         "scaffold_support": deepcopy(authoring.get("scaffold_support") or {}),
         "visual_clarity_checks": deepcopy(authoring.get("visual_clarity_checks") or []),

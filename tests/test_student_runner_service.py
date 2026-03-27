@@ -32,6 +32,31 @@ def _lesson() -> dict:
     }
 
 
+def _lesson_with_authored_reflection_only() -> dict:
+    return {
+        "id": "F1_L1",
+        "lesson_id": "F1_L1",
+        "module_id": "F1",
+        "title": "SI Units, Prefixes, and Complete Measurements",
+        "sequence": 1,
+        "phases": {
+            "diagnostic": {"items": [{"id": "D1"}]},
+            "analogical_grounding": {"analogy_text": "Shared currency", "micro_prompts": [{"prompt": "P1"}]},
+            "simulation_inquiry": {"lab_id": "f1_metric_prefix_lab"},
+            "concept_reconstruction": {
+                "prompts": [],
+                "capsules": [{"checks": [{"id": "C1"}]}],
+            },
+            "transfer": {"items": [{"id": "T1"}, {"id": "T2"}]},
+        },
+        "authoring_contract": {
+            "reflection_prompts": [
+                "Explain why the same physical quantity can be written with different unit labels."
+            ],
+        },
+    }
+
+
 def _progress(*, status: str, instructional_status: str, lab_used: bool = False, best_score: float = 0.0, latest_score: float | None = None, mastery_check_count: int = 0, can_advance: bool = False) -> dict:
     return {
         "module": {
@@ -76,6 +101,13 @@ class StudentRunnerServiceTests(unittest.TestCase):
             "app.services.student_runner_service.get_student_lesson_progress", return_value=progress_payload
         ):
             payload = build_student_runner_contract(uid="student-1", module_id="M2", lesson_id="M2_L1")
+        return payload["lesson"]
+
+    def _runner_for_lesson(self, lesson_payload: dict, progress_payload: dict, *, module_id: str, lesson_id: str) -> dict:
+        with patch("app.services.student_runner_service._load_lesson", return_value=lesson_payload), patch(
+            "app.services.student_runner_service.get_student_lesson_progress", return_value=progress_payload
+        ):
+            payload = build_student_runner_contract(uid="student-1", module_id=module_id, lesson_id=lesson_id)
         return payload["lesson"]
 
     def test_merged_runner_keeps_legacy_reflection_stage_and_new_instructional_stage(self) -> None:
@@ -136,3 +168,18 @@ class StudentRunnerServiceTests(unittest.TestCase):
             ],
         )
 
+    def test_authored_reflection_prompts_keep_reflection_stage_available(self) -> None:
+        lesson = self._runner_for_lesson(
+            _lesson_with_authored_reflection_only(),
+            _progress(
+                status="simulation_completed",
+                instructional_status="concept_gate_completed",
+                lab_used=True,
+            ),
+            module_id="F1",
+            lesson_id="F1_L1",
+        )
+        self.assertEqual(lesson["active_stage"], "reflection")
+        reflection_stage = next(stage for stage in lesson["stages"] if stage["key"] == "reflection")
+        self.assertTrue(reflection_stage["available"])
+        self.assertTrue(reflection_stage["active"])
