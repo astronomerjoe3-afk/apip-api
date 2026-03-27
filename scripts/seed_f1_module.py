@@ -715,9 +715,9 @@ F1_SPEC["lessons"].append(
         "diagnostic": [
             mcq("F1L3_D1", "Which tool is most suitable for measuring the thickness of a sheet of card?", ["metre rule", "kitchen scale", "caliper", "micrometer screw gauge"], 3, "A very small thickness needs the finest suitable length tool.", ["instrument_choice_confusion"]),
             mcq("F1L3_D2", "What does instrument resolution tell you?", ["How heavy the tool is", "The smallest change the tool can show", "The color of the scale", "The true value of the object"], 1, "Resolution is the smallest step the instrument can show.", ["resolution_uncertainty_confusion"]),
-            mcq("F1L3_D3", "A ruler has 1 mm divisions. A reasonable reading uncertainty is closest to...", ["+/- 5 mm", "+/- 0.5 mm", "+/- 10 mm", "+/- 1 cm"], 1, "A common estimate is about half the smallest division.", ["resolution_uncertainty_confusion"]),
+            mcq("F1L3_D3", "A ruler's smallest division is 1 mm. A reasonable reading uncertainty is closest to...", ["+/- 5 mm", "+/- 0.5 mm", "+/- 10 mm", "+/- 1 cm"], 1, "A common estimate is about half the smallest division.", ["resolution_uncertainty_confusion"]),
             mcq("F1L3_D4", "A balance reads 0.20 g too high every time because of zero error. This is mainly...", ["random scatter", "systematic error", "improved precision", "unit conversion"], 1, "A repeated offset in one direction is systematic.", ["resolution_uncertainty_confusion", "random_systematic_error_confusion"]),
-            short("F1L3_D5", "A scale has 0.2 cm divisions. Give a reasonable uncertainty.", ["0.1 cm", "+/- 0.1 cm"], "Use about half the smallest division.", ["uncertainty_estimation_error"]),
+            short("F1L3_D5", "A scale's smallest division is 0.2 cm. Give a reasonable uncertainty.", ["0.1 cm", "+/- 0.1 cm"], "Use about half the smallest division.", ["uncertainty_estimation_error"]),
             short("F1L3_D6", "A stopwatch records 12.4 s, 12.5 s, and 12.3 s. What is the mean time?", ["12.4 s", "12.4"], "Add the readings and divide by 3.", ["scale_reading_confusion"]),
         ],
         "inquiry": [
@@ -732,14 +732,14 @@ F1_SPEC["lessons"].append(
         "capsule_checks": [
             mcq("F1L3_C1", "Why is a micrometer screw gauge preferred over a ruler for the thickness of a sheet of card?", ["It is always cheaper", "It gives a finer resolution for tiny lengths", "It changes the card thickness", "It removes all uncertainty"], 1, "The finer tool matches the smaller scale of the object.", ["instrument_choice_confusion"]),
             mcq("F1L3_C2", "A reading that shifts every time by the same amount suggests...", ["random error", "systematic error", "better accuracy", "a unit mistake"], 1, "The clue is the repeated same-direction shift.", ["random_systematic_error_confusion"]),
-            short("F1L3_C3", "A thermometer scale has 2 C divisions. Give a reasonable uncertainty.", ["1 C", "+/- 1 C"], "Use about half the smallest division.", ["uncertainty_estimation_error"]),
+            short("F1L3_C3", "A thermometer scale's smallest division is 2 C. Give a reasonable uncertainty.", ["1 C", "+/- 1 C"], "Use about half the smallest division.", ["uncertainty_estimation_error"]),
             mcq("F1L3_C4", "Which statement about repeated readings is best?", ["One reading is always enough", "Closely agreeing repeated readings usually show better precision", "Precision means the reading must equal the textbook answer", "Repeated readings remove all systematic error"], 1, "Small scatter supports better precision.", ["resolution_uncertainty_confusion"]),
             mcq("F1L3_C5", "Why should the reported precision match the tool?", ["Because extra digits make the answer true", "Because reporting more detail than the tool shows is dishonest precision", "Because units become optional", "Because zero error disappears"], 1, "A tool limits the detail you can support.", ["scale_reading_confusion", "resolution_uncertainty_confusion"]),
         ],
         "transfer": [
             mcq("F1L3_T1", "Which tool is best for timing a 100 m race?", ["caliper", "stopwatch", "measuring cylinder", "balance"], 1, "Choose the tool that measures time.", ["instrument_choice_confusion"]),
             mcq("F1L3_T2", "Which tool is best for finding the volume of an irregular stone by displacement?", ["stopwatch", "measuring cylinder", "metre rule", "ammeter"], 1, "The cylinder lets you compare water level changes.", ["instrument_choice_confusion"]),
-            short("F1L3_T3", "A ruler has 0.1 cm divisions. Give a reasonable uncertainty.", ["0.05 cm", "+/- 0.05 cm"], "Half of 0.1 cm is 0.05 cm.", ["uncertainty_estimation_error"]),
+            short("F1L3_T3", "A ruler's smallest division is 0.1 cm. Give a reasonable uncertainty.", ["0.05 cm", "+/- 0.05 cm"], "Half of 0.1 cm is 0.05 cm.", ["uncertainty_estimation_error"]),
             short("F1L3_T4", "The readings 5.1 cm, 5.3 cm, and 5.2 cm are taken. What is the mean?", ["5.2 cm", "5.2"], "Add and divide by 3.", ["scale_reading_confusion"]),
             mcq("F1L3_T5", "Two learners use the same faulty ruler with a zero offset. Their results are close to one another but all too high. Which statement fits best?", ["accurate but not precise", "precise but biased", "random but unbiased", "exact and certain"], 1, "Close agreement can still sit around a biased value.", ["resolution_uncertainty_confusion", "random_systematic_error_confusion"]),
             mcq("F1L3_T6", "Why might a metre rule be a better choice than a caliper for measuring classroom door width?", ["The door width is too large for the caliper to use conveniently", "The caliper has no scale", "Resolution never matters", "Doors do not have length"], 0, "Suitability depends on the object's scale as well as the tool's resolution.", ["instrument_choice_confusion"]),
@@ -769,7 +769,7 @@ F1_SPEC["lessons"].append(
                 "prediction_prompt": "If the line made by the pen is much thicker than the detail you want to mark, what problem will the measurement face?",
             },
             "worked_examples": [
-                example("A thermometer has 2 C divisions. Estimate a reasonable uncertainty.", ["Identify the smallest division on the scale.", "Take about half of that division.", "Keep the same unit in the uncertainty statement."], "+/- 1 C", "This prevents uncertainty from being guessed without reference to the scale."),
+                example("A thermometer scale's smallest division is 2 C. Estimate a reasonable uncertainty.", ["Identify the smallest division on the scale.", "Take about half of that division.", "Keep the same unit in the uncertainty statement."], "+/- 1 C", "This prevents uncertainty from being guessed without reference to the scale."),
                 example("Three readings of a pencil length are 14.2 cm, 14.1 cm, and 14.3 cm. Find the mean and comment briefly on the precision.", ["Add the three readings.", "Divide by 3 to get the mean.", "Notice that the readings are close together, so the set is fairly precise."], "Mean = 14.2 cm", "This ties a numerical average to a qualitative precision judgment."),
             ],
             "visual_assets": [
