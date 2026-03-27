@@ -80,6 +80,17 @@ class StudentProgressionServiceTests(unittest.TestCase):
         self.assertEqual(row["instructional_status"], "concept_gate_completed")
         self.assertTrue(row["concept_gate_completed"])
 
+    def test_concept_gate_event_implies_teaching_completed_even_if_teaching_event_is_missing(self) -> None:
+        row = self._progress_for_events(
+            [
+                _event("diagnostic", score=0.5),
+                _event("reflection", source="student_runner_concept_gate", score=1.0),
+            ]
+        )
+        self.assertEqual(row["status"], "concept_gate_completed")
+        self.assertEqual(row["instructional_status"], "concept_gate_completed")
+        self.assertTrue(row["teaching_completed"])
+
     def test_simulation_only_changes_legacy_status(self) -> None:
         row = self._progress_for_events(
             [
@@ -93,6 +104,18 @@ class StudentProgressionServiceTests(unittest.TestCase):
         self.assertEqual(row["instructional_status"], "concept_gate_completed")
         self.assertTrue(row["simulation_completed"])
         self.assertTrue(row["lab_used"])
+
+    def test_simulation_event_implies_concept_gate_completion_even_if_gate_event_is_missing(self) -> None:
+        row = self._progress_for_events(
+            [
+                _event("diagnostic", score=0.5),
+                _event("simulation", score=1.0),
+            ]
+        )
+        self.assertEqual(row["status"], "simulation_completed")
+        self.assertEqual(row["instructional_status"], "concept_gate_completed")
+        self.assertTrue(row["concept_gate_completed"])
+        self.assertTrue(row["simulation_completed"])
 
     def test_failed_mastery_keeps_instructional_completion_false(self) -> None:
         row = self._progress_for_events(

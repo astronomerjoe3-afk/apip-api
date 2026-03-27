@@ -23,6 +23,21 @@ def _lesson_has_lab(lesson: Dict[str, Any]) -> bool:
     return bool(sim.get("lab_id"))
 
 
+def _lesson_has_reflection(lesson: Dict[str, Any]) -> bool:
+    phases = lesson.get("phases") or {}
+    reconstruction = phases.get("concept_reconstruction") or {}
+    if reconstruction.get("prompts"):
+        return True
+
+    for capsule in reconstruction.get("capsules") or []:
+        if not isinstance(capsule, dict):
+            continue
+        if capsule.get("prompt"):
+            return True
+
+    return False
+
+
 def _derive_instructional_status(
     *,
     diagnostic_count: int,
@@ -206,12 +221,19 @@ def _build_lesson_progress(
     concept_gate_best_score = float(snapshot.get("concept_gate_best_score") or 0.0)
     best_score = float(snapshot.get("best_score") or 0.0)
     completed = best_score >= COMPLETION_THRESHOLD
+    has_lab = _lesson_has_lab(lesson)
+    has_reflection = _lesson_has_reflection(lesson)
+    reached_mastery_stage = mastery_attempt_count >= 1 or completed
+    reached_reflection_stage = teaching_reconstruction_count >= 1 or reached_mastery_stage
+    reached_simulation_stage = lab_used or reached_reflection_stage
+    reached_concept_gate_stage = concept_gate_count >= 1 or reached_simulation_stage
+    reached_teaching_stage = teaching_event_count >= 1 or reached_concept_gate_stage
 
-    teaching_engaged = teaching_event_count >= 1
-    teaching_completed = teaching_event_count >= 1
-    concept_gate_completed = concept_gate_count >= 1
-    simulation_completed = concept_gate_completed and lab_used
-    reflection_completed = simulation_completed and teaching_reconstruction_count >= 1
+    teaching_engaged = teaching_event_count >= 1 or concept_gate_count >= 1 or lab_used or teaching_reconstruction_count >= 1
+    teaching_completed = reached_teaching_stage
+    concept_gate_completed = reached_concept_gate_stage
+    simulation_completed = reached_simulation_stage if has_lab else False
+    reflection_completed = reached_reflection_stage if has_reflection else False
 
     instructional_status = _derive_instructional_status(
         diagnostic_count=diagnostic_count,
@@ -229,8 +251,6 @@ def _build_lesson_progress(
         mastery_attempt_count=mastery_attempt_count,
         completed=completed,
     )
-
-    has_lab = _lesson_has_lab(lesson)
     can_advance = completed or mastery_attempt_count >= 1
 
     return {
