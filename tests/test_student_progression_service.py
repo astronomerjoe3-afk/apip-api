@@ -50,7 +50,10 @@ class StudentProgressionServiceTests(unittest.TestCase):
     def _progress_for_events(self, events: list[dict]) -> dict:
         with patch("app.services.student_progression_service.get_module_lessons", return_value=[_lesson()]), patch(
             "app.services.student_progression_service.get_progress_events", return_value=events
-        ), patch("app.services.student_progression_service.get_module_progress", return_value={}):
+        ), patch("app.services.student_progression_service.get_module_progress", return_value={}), patch(
+            "app.services.student_progression_service.list_lesson_progress",
+            return_value=[],
+        ):
             payload = get_student_module_progress(uid="student-1", module_id="M2")
         return payload["lessons"][0]
 
@@ -120,3 +123,33 @@ class StudentProgressionServiceTests(unittest.TestCase):
         self.assertTrue(row["completed"])
         self.assertTrue(row["instructional_can_advance"])
 
+    def test_stored_lesson_progress_is_used_for_stage_progression(self) -> None:
+        stored_progress = {
+            "lesson_id": "M2_L1",
+            "diagnostic_count": 1,
+            "diagnostic_latest_score": 0.5,
+            "diagnostic_asked_count": 3,
+            "teaching_event_count": 1,
+            "teaching_view_count": 1,
+            "teaching_reconstruction_count": 0,
+            "concept_gate_count": 1,
+            "concept_gate_best_score": 1.0,
+            "lab_used": False,
+            "mastery_check_count": 0,
+            "best_score": 0.0,
+            "latest_score": None,
+            "last_mastery_check_utc": None,
+        }
+        with patch("app.services.student_progression_service.get_module_lessons", return_value=[_lesson()]), patch(
+            "app.services.student_progression_service.get_progress_events",
+            return_value=[],
+        ), patch("app.services.student_progression_service.get_module_progress", return_value={}), patch(
+            "app.services.student_progression_service.list_lesson_progress",
+            return_value=[stored_progress],
+        ):
+            payload = get_student_module_progress(uid="student-1", module_id="M2")
+
+        row = payload["lessons"][0]
+        self.assertEqual(row["status"], "concept_gate_completed")
+        self.assertEqual(row["instructional_status"], "concept_gate_completed")
+        self.assertTrue(row["concept_gate_completed"])

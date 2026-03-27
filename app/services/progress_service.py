@@ -7,14 +7,17 @@ from fastapi import HTTPException
 
 from app.common import clamp01, safe_list_str, utc_now
 from app.repositories.progress_repository import (
+    get_lesson_progress,
     get_module_progress,
     list_recent_progress_events,
     list_recent_transfer_events_for_module,
     list_progress_modules,
     persist_progress_event,
+    set_lesson_progress,
     set_module_progress,
     set_progress_root,
 )
+from app.services.lesson_progress_state import apply_progress_event_to_snapshot, normalize_lesson_id
 
 EventType = Literal["diagnostic", "simulation", "reflection", "transfer", "attempt"]
 
@@ -170,6 +173,7 @@ def process_progress_event(
     now = utc_now()
 
     mp = get_module_progress(uid, module_id)
+    lesson_id = normalize_lesson_id(trimmed_details.get("lesson_id"))
 
     counters = mp.get("counters") or {}
     if not isinstance(counters, dict):
@@ -228,6 +232,17 @@ def process_progress_event(
     }
 
     set_module_progress(uid, module_id, mp_update)
+    if lesson_id:
+        existing_lesson_progress = get_lesson_progress(uid, module_id, lesson_id)
+        lesson_progress_update = apply_progress_event_to_snapshot(
+            existing_lesson_progress,
+            lesson_id=lesson_id,
+            event_type_value=event_type,
+            score=score,
+            details=trimmed_details,
+            utc=now,
+        )
+        set_lesson_progress(uid, module_id, lesson_id, lesson_progress_update)
     set_progress_root(uid, {"uid": uid, "updated_utc": now, "last_event_utc": now})
 
     stored_event = False

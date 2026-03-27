@@ -8,6 +8,10 @@ from app.db.firestore_query import where_eq
 from app.repositories.catalog_repository import list_lessons_for_module
 
 
+def normalize_lesson_id(value: Any) -> str:
+    return str(value or "").replace("-", "_")
+
+
 def get_module_lessons(module_id: str) -> List[Dict[str, Any]]:
     return list_lessons_for_module(normalize_module_id(module_id))
 
@@ -41,6 +45,27 @@ def get_progress_events(uid: str, module_id: str) -> List[Dict[str, Any]]:
     for d in docs:
         data = d.to_dict() or {}
         data["_doc_id"] = d.id
+        result.append(data)
+
+    return result
+
+
+def list_lesson_progress(uid: str, module_id: str) -> List[Dict[str, Any]]:
+    normalized_module_id = normalize_module_id(module_id)
+    db = get_firestore_client()
+    docs = (
+        db.collection("progress")
+        .document(uid)
+        .collection("modules")
+        .document(normalized_module_id)
+        .collection("lessons")
+        .stream()
+    )
+
+    result: List[Dict[str, Any]] = []
+    for d in docs:
+        data = d.to_dict() or {}
+        data["lesson_id"] = normalize_lesson_id(data.get("lesson_id") or d.id)
         result.append(data)
 
     return result

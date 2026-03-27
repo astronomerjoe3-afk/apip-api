@@ -54,6 +54,7 @@ def _restart_student_lesson_progress(uid: str, module_id: str, lesson_id: str) -
             batch.delete(ref)
         batch.commit()
         deleted_events += len(batch_refs)
+    db.collection("progress").document(uid).collection("modules").document(module_id).collection("lessons").document(normalized_lesson_id).delete()
     return {
         "module_id": module_id,
         "lesson_id": normalized_lesson_id,
@@ -78,6 +79,21 @@ def _restart_student_module_progress(uid: str, module_id: str) -> Dict[str, Any]
             batch.delete(ref)
         batch.commit()
         deleted_events += len(batch_refs)
+    lesson_docs = (
+        db.collection("progress")
+        .document(uid)
+        .collection("modules")
+        .document(module_id)
+        .collection("lessons")
+        .stream()
+    )
+    lesson_refs = [doc.reference for doc in lesson_docs]
+    for index in range(0, len(lesson_refs), 400):
+        batch = db.batch()
+        batch_refs = lesson_refs[index : index + 400]
+        for ref in batch_refs:
+            batch.delete(ref)
+        batch.commit()
     return {
         "module_id": module_id,
         "deleted_progress_events": deleted_events,

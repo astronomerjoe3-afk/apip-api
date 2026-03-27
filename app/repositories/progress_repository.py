@@ -9,6 +9,10 @@ from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
 
 
+def normalize_lesson_id(value: Any) -> str:
+    return str(value or "").replace("-", "_")
+
+
 def progress_doc(uid: str):
     db = get_firestore_client()
     return db.collection("progress").document(uid)
@@ -19,13 +23,27 @@ def module_progress_doc(uid: str, module_id: str):
     return progress_doc(uid).collection("modules").document(normalized_module_id)
 
 
+def lesson_progress_doc(uid: str, module_id: str, lesson_id: str):
+    normalized_lesson_id = normalize_lesson_id(lesson_id)
+    return module_progress_doc(uid, module_id).collection("lessons").document(normalized_lesson_id)
+
+
 def get_module_progress(uid: str, module_id: str) -> Dict[str, Any]:
     snap = module_progress_doc(uid, module_id).get()
     return snap.to_dict() if snap.exists else {}
 
 
+def get_lesson_progress(uid: str, module_id: str, lesson_id: str) -> Dict[str, Any]:
+    snap = lesson_progress_doc(uid, module_id, lesson_id).get()
+    return snap.to_dict() if snap.exists else {}
+
+
 def set_module_progress(uid: str, module_id: str, payload: Dict[str, Any]) -> None:
     module_progress_doc(uid, module_id).set(payload, merge=True)
+
+
+def set_lesson_progress(uid: str, module_id: str, lesson_id: str, payload: Dict[str, Any]) -> None:
+    lesson_progress_doc(uid, module_id, lesson_id).set(payload, merge=True)
 
 
 def set_progress_root(uid: str, payload: Dict[str, Any]) -> None:
@@ -44,6 +62,18 @@ def list_progress_modules(uid: str) -> List[Dict[str, Any]]:
     for d in docs:
         data = d.to_dict() or {}
         data["module_id"] = normalize_module_id(d.id) or d.id
+        result.append(data)
+
+    return result
+
+
+def list_lesson_progress(uid: str, module_id: str) -> List[Dict[str, Any]]:
+    docs = list(module_progress_doc(uid, module_id).collection("lessons").stream())
+    result: List[Dict[str, Any]] = []
+
+    for d in docs:
+        data = d.to_dict() or {}
+        data["lesson_id"] = normalize_lesson_id(data.get("lesson_id") or d.id)
         result.append(data)
 
     return result

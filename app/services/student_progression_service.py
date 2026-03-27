@@ -2,57 +2,19 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from app.common import parse_iso_utc
 from app.repositories.student_progression_repository import (
     get_module_lessons,
     get_module_progress,
+    list_lesson_progress,
     get_progress_events,
 )
-
-COMPLETION_THRESHOLD = 0.80
-MASTERY_EVENT_TYPES = {"transfer"}
-
-TEACHING_VIEW_SOURCES = {
-    "student_runner_scaffolded_teaching",
-    "student_runner_scaffolded_teaching_viewed",
-}
-TEACHING_RECONSTRUCTION_SOURCES = {
-    "student_runner_concept_reconstruction",
-}
-CONCEPT_GATE_SOURCES = {
-    "student_runner_concept_gate",
-}
-TEACHING_EVENT_SOURCES = TEACHING_VIEW_SOURCES | TEACHING_RECONSTRUCTION_SOURCES
-
-
-def _safe_score(v: Any) -> float:
-    try:
-        if v is None:
-            return 0.0
-        return max(0.0, min(1.0, float(v)))
-    except Exception:
-        return 0.0
-
-
-def _event_lesson_id(ev: Dict[str, Any]) -> str | None:
-    details = ev.get("details")
-    if not isinstance(details, dict):
-        return None
-    lesson_id = details.get("lesson_id")
-    if not lesson_id:
-        return None
-    return str(lesson_id).replace("-", "_")
-
-
-def _event_type(ev: Dict[str, Any]) -> str:
-    return str(ev.get("event_type") or "").strip().lower()
-
-
-def _event_source(ev: Dict[str, Any]) -> str:
-    details = ev.get("details")
-    if not isinstance(details, dict):
-        return ""
-    return str(details.get("source") or "").strip().lower()
+from app.services.lesson_progress_state import (
+    COMPLETION_THRESHOLD,
+    apply_progress_event_to_snapshot,
+    empty_lesson_progress_snapshot,
+    event_lesson_id,
+    normalize_lesson_progress_snapshot,
+)
 
 
 def _lesson_has_lab(lesson: Dict[str, Any]) -> bool:
@@ -109,63 +71,140 @@ def _derive_legacy_status(
     return "not_started"
 
 
+def _lesson_progress_snapshot_from_events(
+    lesson_id: str,
+    lesson_events: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    snapshot = empty_lesson_progress_snapshot(lesson_id)
+    for ev in lesson_events:
+        snapshot = apply_progress_event_to_snapshot(
+            snapshot,
+            lesson_id=lesson_id,
+            event_type_value=ev.get("event_type"),
+            score=ev.get("score"),
+            details=ev.get("details") if isinstance(ev.get("details"), dict) else {},
+            utc=ev.get("utc"),
+        )
+    return snapshot
+
+
+def _merged_lesson_progress_snapshot(
+    lesson_id: str,
+    lesson_events: List[Dict[str, Any]],
+    stored_progress: Dict[str, Any] | None,
+) -> Dict[str, Any]:
+    event_snapshot = normalize_lesson_progress_snapshot(
+        _lesson_progress_snapshot_from_events(lesson_id, lesson_events),
+        lesson_id,
+    )
+    if not stored_progress:
+        return event_snapshot
+
+    stored_snapshot = normalize_lesson_progress_snapshot(stored_progress, lesson_id)
+
+    diagnostic_prefers_stored = (
+        stored_snapshot.get("diagnostic_last_utc")
+        and stored_snapshot.get("diagnostic_last_utc") >= event_snapshot.get("diagnostic_last_utc")
+    )
+    mastery_prefers_stored = (
+        stored_snapshot.get("last_mastery_check_utc")
+        and stored_snapshot.get("last_mastery_check_utc") >= event_snapshot.get("last_mastery_check_utc")
+    )
+
+    return {
+        "lesson_id": lesson_id,
+        "diagnostic_count": max(
+            int(event_snapshot.get("diagnostic_count") or 0),
+            int(stored_snapshot.get("diagnostic_count") or 0),
+        ),
+        "diagnostic_latest_score": (
+            stored_snapshot.get("diagnostic_latest_score")
+            if diagnostic_prefers_stored
+            else event_snapshot.get("diagnostic_latest_score")
+        ),
+        "diagnostic_asked_count": (
+            int(stored_snapshot.get("diagnostic_asked_count") or 0)
+            if diagnostic_prefers_stored
+            else int(event_snapshot.get("diagnostic_asked_count") or 0)
+        ),
+        "diagnostic_last_utc": (
+            stored_snapshot.get("diagnostic_last_utc")
+            if diagnostic_prefers_stored
+            else event_snapshot.get("diagnostic_last_utc")
+        ),
+        "teaching_event_count": max(
+            int(event_snapshot.get("teaching_event_count") or 0),
+            int(stored_snapshot.get("teaching_event_count") or 0),
+        ),
+        "teaching_view_count": max(
+            int(event_snapshot.get("teaching_view_count") or 0),
+            int(stored_snapshot.get("teaching_view_count") or 0),
+        ),
+        "teaching_reconstruction_count": max(
+            int(event_snapshot.get("teaching_reconstruction_count") or 0),
+            int(stored_snapshot.get("teaching_reconstruction_count") or 0),
+        ),
+        "concept_gate_count": max(
+            int(event_snapshot.get("concept_gate_count") or 0),
+            int(stored_snapshot.get("concept_gate_count") or 0),
+        ),
+        "concept_gate_best_score": max(
+            float(event_snapshot.get("concept_gate_best_score") or 0.0),
+            float(stored_snapshot.get("concept_gate_best_score") or 0.0),
+        ),
+        "lab_used": bool(event_snapshot.get("lab_used")) or bool(stored_snapshot.get("lab_used")),
+        "mastery_check_count": max(
+            int(event_snapshot.get("mastery_check_count") or 0),
+            int(stored_snapshot.get("mastery_check_count") or 0),
+        ),
+        "best_score": max(
+            float(event_snapshot.get("best_score") or 0.0),
+            float(stored_snapshot.get("best_score") or 0.0),
+        ),
+        "latest_score": (
+            stored_snapshot.get("latest_score")
+            if mastery_prefers_stored
+            else event_snapshot.get("latest_score")
+        ),
+        "last_mastery_check_utc": (
+            stored_snapshot.get("last_mastery_check_utc")
+            if mastery_prefers_stored
+            else event_snapshot.get("last_mastery_check_utc")
+        ),
+        "last_event_utc": max(
+            str(event_snapshot.get("last_event_utc") or ""),
+            str(stored_snapshot.get("last_event_utc") or ""),
+        ) or None,
+        "updated_utc": max(
+            str(event_snapshot.get("updated_utc") or ""),
+            str(stored_snapshot.get("updated_utc") or ""),
+        ) or None,
+    }
+
+
 def _build_lesson_progress(
     lesson: Dict[str, Any],
     lesson_events: List[Dict[str, Any]],
+    stored_progress: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     lesson_id = str(lesson.get("lesson_id") or lesson.get("id") or "")
     title = lesson.get("title")
     sequence = lesson.get("sequence")
+    snapshot = _merged_lesson_progress_snapshot(lesson_id, lesson_events, stored_progress)
 
-    mastery_scores: List[float] = []
-    mastery_attempt_count = 0
-    diagnostic_count = 0
-    diagnostic_latest_score = None
-    diagnostic_asked_count = 0
-    lab_used = False
-    last_mastery_check_utc = None
-    latest_mastery_score = None
-
-    teaching_event_count = 0
-    teaching_view_count = 0
-    teaching_reconstruction_count = 0
-    concept_gate_count = 0
-    concept_gate_best_score = 0.0
-
-    for ev in lesson_events:
-        et = _event_type(ev)
-        source = _event_source(ev)
-
-        if et == "diagnostic":
-            diagnostic_count += 1
-            diagnostic_latest_score = _safe_score(ev.get("score"))
-            details = ev.get("details") if isinstance(ev.get("details"), dict) else {}
-            diagnostic_asked_count = int(details.get("asked_count") or 0)
-
-        if et in MASTERY_EVENT_TYPES:
-            mastery_attempt_count += 1
-            score = _safe_score(ev.get("score"))
-            mastery_scores.append(score)
-            ev_utc = ev.get("utc")
-            if last_mastery_check_utc is None or parse_iso_utc(ev_utc) > parse_iso_utc(last_mastery_check_utc):
-                last_mastery_check_utc = ev_utc
-                latest_mastery_score = score
-
-        if et == "simulation":
-            lab_used = True
-
-        if et == "reflection":
-            if source in TEACHING_VIEW_SOURCES:
-                teaching_view_count += 1
-            if source in TEACHING_RECONSTRUCTION_SOURCES:
-                teaching_reconstruction_count += 1
-            if source in TEACHING_EVENT_SOURCES:
-                teaching_event_count += 1
-            if source in CONCEPT_GATE_SOURCES:
-                concept_gate_count += 1
-                concept_gate_best_score = max(concept_gate_best_score, _safe_score(ev.get("score")))
-
-    best_score = max(mastery_scores) if mastery_scores else 0.0
+    mastery_attempt_count = int(snapshot.get("mastery_check_count") or 0)
+    diagnostic_count = int(snapshot.get("diagnostic_count") or 0)
+    diagnostic_latest_score = snapshot.get("diagnostic_latest_score")
+    diagnostic_asked_count = int(snapshot.get("diagnostic_asked_count") or 0)
+    lab_used = bool(snapshot.get("lab_used"))
+    last_mastery_check_utc = snapshot.get("last_mastery_check_utc")
+    latest_mastery_score = snapshot.get("latest_score")
+    teaching_event_count = int(snapshot.get("teaching_event_count") or 0)
+    teaching_view_count = int(snapshot.get("teaching_view_count") or 0)
+    teaching_reconstruction_count = int(snapshot.get("teaching_reconstruction_count") or 0)
+    concept_gate_count = int(snapshot.get("concept_gate_count") or 0)
+    concept_gate_best_score = float(snapshot.get("concept_gate_best_score") or 0.0)
+    best_score = float(snapshot.get("best_score") or 0.0)
     completed = best_score >= COMPLETION_THRESHOLD
 
     teaching_engaged = teaching_event_count >= 1
@@ -242,18 +281,29 @@ def get_student_module_progress(uid: str, module_id: str) -> Dict[str, Any]:
     lessons = get_module_lessons(module_id)
     events = get_progress_events(uid, module_id)
     _ = get_module_progress(uid, module_id)
+    stored_rows = list_lesson_progress(uid, module_id)
 
     by_lesson: Dict[str, List[Dict[str, Any]]] = {}
     for ev in events:
-        lesson_id = _event_lesson_id(ev)
+        lesson_id = event_lesson_id(ev)
         if not lesson_id:
             continue
         by_lesson.setdefault(lesson_id, []).append(ev)
 
+    stored_by_lesson: Dict[str, Dict[str, Any]] = {}
+    for row in stored_rows:
+        normalized_lesson_id = str(row.get("lesson_id") or "")
+        if normalized_lesson_id:
+            stored_by_lesson[normalized_lesson_id] = row
+
     lesson_rows: List[Dict[str, Any]] = []
     for lesson in lessons:
         lesson_id = str(lesson.get("lesson_id") or lesson.get("id") or "")
-        row = _build_lesson_progress(lesson, by_lesson.get(lesson_id, []))
+        row = _build_lesson_progress(
+            lesson,
+            by_lesson.get(lesson_id, []),
+            stored_by_lesson.get(lesson_id),
+        )
         lesson_rows.append(row)
 
     module_mastery = _module_mastery_from_lessons(lesson_rows)
