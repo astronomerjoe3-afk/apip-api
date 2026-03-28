@@ -18,13 +18,13 @@ from app.services.catalog_bootstrap import get_catalog_module_row
 from app.services.monetization_service import (
     FREE_ACCESS_TIER,
     MODULE_UNLOCK_ACCESS_DAYS,
-    REVIEW_BYPASS_ROLES,
     build_module_access,
     get_billing_catalog,
     get_student_entitlements,
     module_access_tier,
     module_offer_for_module,
 )
+from app.roles import is_review_bypass_role
 
 
 ACTIVE_SUBSCRIPTION_STATUSES = {"active", "trialing", "grace_period"}
@@ -689,7 +689,7 @@ def build_billing_summary(uid: str, role: Optional[str] = None) -> Dict[str, Any
     return {
         "configured": stripe_is_configured(),
         "webhook_configured": stripe_webhook_is_configured(),
-        "can_checkout": stripe_is_configured() and _normalized_role(role) not in REVIEW_BYPASS_ROLES,
+        "can_checkout": stripe_is_configured() and not is_review_bypass_role(_normalized_role(role)),
         "portal_enabled": stripe_is_configured() and bool(customer_id),
         "has_customer": bool(customer_id),
         "customer_email": _string(student_billing.get("stripe_customer_email")),
@@ -841,7 +841,7 @@ def create_checkout_session_for_student(
     success_path: Optional[str] = None,
     cancel_path: Optional[str] = None,
 ) -> Dict[str, Any]:
-    if _normalized_role(role) in REVIEW_BYPASS_ROLES:
+    if is_review_bypass_role(_normalized_role(role)):
         raise HTTPException(status_code=403, detail="Review-access accounts do not need student billing checkout.")
 
     stripe_api = _require_stripe()

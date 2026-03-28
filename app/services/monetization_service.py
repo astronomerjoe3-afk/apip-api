@@ -9,13 +9,13 @@ from app.common import normalize_module_id, parse_iso_utc
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.repositories.catalog_repository import get_module_by_id
+from app.roles import is_review_bypass_role
 from app.services.catalog_bootstrap import ensure_catalog_seeded, get_catalog_module_row
 
 MONETIZATION_VERSION = "20260315_module_pass_v3"
 FREE_ACCESS_TIER = "free"
 PREMIUM_ACCESS_TIER = "premium"
 FREE_MODULE_IDS = {"F1"}
-REVIEW_BYPASS_ROLES = {"admin", "instructor"}
 MODULE_UNLOCK_ACCESS_DAYS = 30
 
 DEFAULT_MODULE_UNLOCK = {
@@ -309,7 +309,7 @@ def build_module_access(module: Dict[str, Any], uid: Optional[str], role: Option
             "subscription_expires_utc": None,
         }
 
-    if normalized_role in REVIEW_BYPASS_ROLES:
+    if is_review_bypass_role(normalized_role):
         return {
             "tier": tier,
             "is_unlocked": True,

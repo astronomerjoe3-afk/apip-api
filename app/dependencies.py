@@ -5,11 +5,11 @@ from fastapi import HTTPException, Request
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.firebase_admin_init import verify_id_token
+from app.roles import is_academic_lead_role, is_admin_role, normalize_role, VALID_ROLES
 from app.services.session_service import SESSION_TOKEN_PREFIX, authenticate_session_token
 
 
 LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
-VALID_ROLES = {"student", "instructor", "admin"}
 
 
 def _get_bearer_token(request: Request) -> str:
@@ -54,7 +54,7 @@ def _role_from_user_doc(uid: str) -> str | None:
         return None
 
     data = snapshot.to_dict() or {}
-    role = str(data.get("role") or "").strip().lower()
+    role = normalize_role(data.get("role"), default="")
     if role in VALID_ROLES:
         return role
 
@@ -100,13 +100,13 @@ def require_authenticated_user(request: Request) -> Dict[str, Any]:
 
 def require_admin(request: Request) -> Dict[str, Any]:
     user = require_authenticated_user(request)
-    if user.get("role") != "admin":
+    if not is_admin_role(user.get("role")):
         raise HTTPException(status_code=403, detail="Admin role required")
     return user
 
 
 def require_instructor_or_admin(request: Request) -> Dict[str, Any]:
     user = require_authenticated_user(request)
-    if user.get("role") not in ("instructor", "admin"):
-        raise HTTPException(status_code=403, detail="Instructor/Admin role required")
+    if not is_academic_lead_role(user.get("role")):
+        raise HTTPException(status_code=403, detail="Academic Lead/Admin role required")
     return user

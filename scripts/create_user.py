@@ -29,7 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description="Create Firebase Auth user + set role claim")
     parser.add_argument("--email", required=True)
     parser.add_argument("--password", required=True)
-    parser.add_argument("--role", default="student", choices=["student", "instructor", "admin"])
+    parser.add_argument("--role", default="student", choices=["student", "teacher", "institution_admin", "academic_lead", "instructor", "admin"])
     parser.add_argument("--provision-user-doc", action="store_true")
 
     args = parser.parse_args()

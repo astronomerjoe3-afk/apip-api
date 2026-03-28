@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from app.db.firestore import get_firestore_client
+from app.roles import normalize_role, VALID_ROLES
 
 
 USER_COLLECTION = "users"
 PASSWORD_POLICY_VERSION = 1
-VALID_ROLES = {"student", "instructor", "admin"}
 
 
 def _utc_now_iso() -> str:
@@ -47,8 +47,8 @@ def ensure_user_profile(
         return {}
 
     current = read_user_doc(normalized_uid)
-    current_role = _string(current.get("role"))
-    normalized_role = _string(role)
+    current_role = normalize_role(_string(current.get("role")), default="")
+    normalized_role = normalize_role(_string(role), default="")
     now_iso = _utc_now_iso()
 
     patch: Dict[str, Any] = {

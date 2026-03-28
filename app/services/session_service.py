@@ -10,12 +10,12 @@ from app.common import get_client_ip, sha256_hex
 from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.firebase_admin_init import verify_id_token
+from app.roles import normalize_role, VALID_ROLES
 from app.services.user_security_service import build_user_security_summary, ensure_user_profile
 
 
 SESSION_TOKEN_PREFIX = "sess_"
 SESSION_COLLECTION = "auth_sessions"
-VALID_ROLES = {"student", "instructor", "admin"}
 
 
 def _utc_now() -> datetime:
@@ -47,7 +47,7 @@ def _session_ref(token_hash: str):
 def _normalized_role(decoded: Dict[str, Any], uid: str) -> str:
     from app.dependencies import _role_from_user_doc
 
-    role = _string(decoded.get("role"))
+    role = normalize_role(_string(decoded.get("role")), default="")
     if role in VALID_ROLES:
         return role
     return _role_from_user_doc(uid) or "student"

@@ -12,6 +12,7 @@ import app.routers.billing as billing
 import app.routers.catalog as catalog
 import app.routers.debug_text as debug_text
 import app.routers.instructor as instructor
+import app.routers.institutions as institutions
 import app.routers.progress as progress
 import app.routers.student_support as student_support
 import app.routers.student_progression as student_progression
@@ -81,6 +82,7 @@ app.include_router(auth_router.router)
 app.include_router(catalog.router)
 app.include_router(billing.router)
 app.include_router(instructor.router)
+app.include_router(institutions.router)
 app.include_router(admin_ops.router)
 app.include_router(progress.router)
 app.include_router(student_support.router)
