@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 from importlib import import_module
+import re
 from typing import Any, Dict, List, Sequence, Tuple
 
 try:
@@ -228,6 +229,36 @@ def _relation_prompt(prompt: str, focus: str) -> str:
     return f"{stem} when {cleaned_focus}?"
 
 
+def _worked_example_prompt(prompt: str, final_answer: str) -> str:
+    cleaned_prompt = " ".join(str(prompt).split()).strip()
+    normalized_answer = " ".join(str(final_answer).split()).strip().lower()
+    if not cleaned_prompt:
+        return cleaned_prompt
+
+    if "lit half" in normalized_answer and "dark half" in normalized_answer and "earth spins" in normalized_answer:
+        return "Explain how one city changes from day side to night side as Earth spins."
+    if "day side is the half of earth facing the sun" in normalized_answer:
+        return "State what the day side means in the Earth-Sun model."
+    if "day and night happen because earth rotates" in normalized_answer or "day and night happen because earth spins" in normalized_answer:
+        return "Explain why Earth's rotation causes day and night."
+
+    lesson_meaning_match = re.match(r"Which lesson meaning best matches (.+?)\?$", cleaned_prompt, re.IGNORECASE)
+    if lesson_meaning_match:
+        subject = lesson_meaning_match.group(1).strip()
+        return f"State what {subject} means in this lesson."
+
+    best_statement_match = re.match(
+        r"Which statement best (fits|matches|protects|captures|describes|explains|names) (.+?)\?$",
+        cleaned_prompt,
+        re.IGNORECASE,
+    )
+    if best_statement_match:
+        subject = best_statement_match.group(2).strip()
+        return f"State the clearest physics conclusion about {subject.lower()}."
+
+    return cleaned_prompt
+
+
 def _skills(slug: str) -> List[str]:
     return [
         f"{slug}_summary",
@@ -323,7 +354,7 @@ def _lesson_spec(module_id: str, model_name: str, blueprint: Dict[str, Any], les
             "worked_examples": [
                 worked(str(blueprint["why_prompt"]), ["Name the physical relationship the lesson is protecting.", "Tie that relationship back to the analogy rather than to a memorized slogan.", "State the explanation in one clean sentence."], str(blueprint["why_answers"][0]), "The answer works because it keeps the lesson's main mechanism visible.", "This models what a concise scientific explanation sounds like in this module."),
                 worked(f"Which relation belongs to {blueprint['title'].lower()}?", ["Identify which quantities or ideas the lesson is linking.", "Use the relation only under its stated condition.", "Translate the relation back into words."], str(formula["equation"]), str(formula["meaning"]), "This keeps the relation conceptual before it becomes an algebra step."),
-                worked(str(blueprint["apply_prompt"]), ["Identify the lesson's main contrast or invariant first.", "Check which option keeps that contrast visible.", "Reject label-only answers that hide the mechanism."], str(blueprint["apply_choices"][int(blueprint["apply_answer_index"])]), "The correct choice protects the lesson's specific distinction.", "This gives learners a transfer pattern they can reuse."),
+                worked(_worked_example_prompt(str(blueprint["apply_prompt"]), str(blueprint["apply_choices"][int(blueprint["apply_answer_index"])])), ["Identify the lesson's main contrast or invariant first.", "Check which option keeps that contrast visible.", "Reject label-only answers that hide the mechanism."], str(blueprint["apply_choices"][int(blueprint["apply_answer_index"])]), "The correct choice protects the lesson's specific distinction.", "This gives learners a transfer pattern they can reuse."),
             ],
             "visual_assets": [visual(f"{lesson_id.lower()}_{slug}", str(blueprint.get("visual_concept") or "general_visual_concept"), str(blueprint["title"]), f"Visualise {blueprint['title'].lower()} inside the {model_name}.", str(blueprint["focus"]))],
             "animation_assets": [animation(f"{lesson_id.lower()}_{slug}_motion", str(blueprint.get("visual_concept") or "general_visual_concept"), f"{blueprint['title']} motion", f"Animate the {blueprint['title'].lower()} idea so the changing pattern stays visible over time.")],
