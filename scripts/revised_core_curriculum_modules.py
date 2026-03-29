@@ -136,6 +136,27 @@ def extra_section(heading: str, body: str, check_for_understanding: str) -> Dict
     return {"heading": heading, "body": body, "check_for_understanding": check_for_understanding}
 
 
+def relation_teaching_section(formula: Dict[str, Any]) -> Dict[str, str]:
+    equation_text = str(formula.get("equation") or "").strip()
+    meaning_text = str(formula.get("meaning") or "").strip()
+    condition_text = str(formula.get("conditions") or "").strip()
+
+    body_parts = []
+    if equation_text:
+        body_parts.append(f"The compact lesson relation is {equation_text}.")
+    if meaning_text:
+        body_parts.append(f"It means {meaning_text[0].lower() + meaning_text[1:] if len(meaning_text) > 1 else meaning_text.lower()}.")
+    if condition_text:
+        body_parts.append(f"Use it when {condition_text[0].lower() + condition_text[1:] if len(condition_text) > 1 else condition_text.lower()}.")
+    body_parts.append("Treat this relation as a summary of the physics story before you meet it again in concept checks or mastery.")
+
+    return extra_section(
+        "Lesson relation",
+        " ".join(body_parts).strip(),
+        "What physical relationship does this lesson relation summarize?",
+    )
+
+
 def scaffold(
     core_idea: str,
     reasoning: str,
@@ -332,7 +353,10 @@ def _lesson_spec(module_id: str, model_name: str, blueprint: Dict[str, Any], les
                 str(blueprint["trap"]),
                 f"The {model_name} keeps this lesson readable by making {blueprint['focus'].lower()}.",
                 str(blueprint["analogy_check"]),
-                [extra_section("Lesson bridge", str(blueprint["focus"]), str(blueprint["analogy_check"]))],
+                [
+                    extra_section("Lesson bridge", str(blueprint["focus"]), str(blueprint["analogy_check"])),
+                    relation_teaching_section(formula),
+                ],
             ),
             "visual_clarity_checks": visual_checks(str(blueprint["title"]).lower()),
             "release_checks": [
