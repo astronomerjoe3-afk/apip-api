@@ -472,6 +472,7 @@ def auto_blueprint(
     analogy_check: str,
     analogy_mapping: Sequence[str],
     visual_concept: str = "general_visual_concept",
+    compare_groups: Sequence[Sequence[str]] | None = None,
 ) -> Dict[str, Any]:
     concept_list = [str(item) for item in core_concepts]
     while len(concept_list) < 4:
@@ -512,7 +513,7 @@ def auto_blueprint(
         "why_groups": _token_groups(terms, [slug.replace("_", " ")]),
         "compare_prompt": compare_prompt,
         "compare_answers": [compare_answer],
-        "compare_groups": _token_groups(terms, ["different", "compare"]),
+        "compare_groups": [list(group) for group in compare_groups] if compare_groups is not None else _token_groups(terms, ["different", "compare"]),
         "apply_prompt": apply_prompt,
         "apply_choices": list(apply_choices),
         "apply_answer_index": apply_answer_index,
@@ -986,6 +987,12 @@ _F5_BLUEPRINTS = [
         why_answer="Because the same positions help explain day-night, phases, eclipses, and orbit ideas together.",
         compare_prompt="How is an orbit different from a rigid track?",
         compare_answer="An orbit is a gravity-guided path, not a built rail in space.",
+        compare_groups=[
+            ["orbit", "path", "route"],
+            ["gravity", "pull", "guided", "forces", "motion"],
+            ["track", "rail", "rigid"],
+            ["physical", "built", "constraint", "constraints", "restriction", "restrictions"],
+        ],
         apply_prompt="Which statement best fits the skycourt model?",
         apply_choices=[
             "Earth, Moon, and Sun should be explained as one linked system with gravity and motion.",
