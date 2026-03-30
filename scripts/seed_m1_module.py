@@ -624,7 +624,15 @@ M1_SPEC = json.loads(r'''
           "prompt": "A speed falls from 12 m/s to 6 m/s in 3 s. What average acceleration does this show?",
           "accepted_answers": [
             "-2 m/s^2",
-            "-2"
+            "-2 m/s/s",
+            "-2",
+            "−2 m/s^2",
+            "−2 m/s/s",
+            "−2",
+            "minus 2 m/s^2",
+            "minus 2 m/s/s",
+            "negative 2 m/s^2",
+            "negative 2 m/s/s"
           ],
           "hint": "Use final minus initial over time.",
           "tags": [
