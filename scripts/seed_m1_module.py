@@ -2778,7 +2778,7 @@ def apply_m1_enhancements() -> None:
                     ],
                     "annotations": [
                         {"x": 1.5, "y": 5.3, "text": "flat = constant speed", "color": "#fde68a"},
-                        {"x": 4.3, "y": 9.8, "text": "rising slope = speeding up", "color": "#86efac", "anchor": "start"},
+                        {"x": 3.3, "y": 7.9, "text": "rising slope = speeding up", "color": "#86efac"},
                     ],
                 },
             )
