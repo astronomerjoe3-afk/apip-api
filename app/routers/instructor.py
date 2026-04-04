@@ -3,19 +3,69 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from google.cloud import firestore
 
 from app.audit import write_audit_log
-from app.common import get_client_ip, is_missing_index_error, normalize_module_id, parse_iso_utc
+from app.common import get_client_ip, normalize_module_id, parse_iso_utc
 from app.db.firestore import get_firestore_client
 from app.db.firestore_query import where_eq
 from app.dependencies import require_instructor_or_admin
+from app.repositories.progress_repository import list_lesson_progress
 
 router = APIRouter(tags=["instructor"])
 
 
 def _safe_dict(value: Any) -> Dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _safe_score_snapshot(score: Any, utc: Any) -> Dict[str, Any] | None:
+    try:
+        parsed_score = float(score) if score is not None else None
+    except Exception:
+        parsed_score = None
+
+    if parsed_score is None:
+        return None
+
+    snapshot: Dict[str, Any] = {"score": parsed_score}
+    if utc:
+        snapshot["utc"] = str(utc)
+    return snapshot
+
+
+def _build_activity_snapshots(lesson_rows: List[Dict[str, Any]]) -> tuple[Dict[str, Any] | None, Dict[str, Any] | None, Dict[str, Dict[str, Any]]]:
+    last_diag: Dict[str, Any] | None = None
+    last_transfer: Dict[str, Any] | None = None
+    per_lesson: Dict[str, Dict[str, Any]] = {}
+
+    for row in lesson_rows:
+        if not isinstance(row, dict):
+            continue
+
+        lesson_id = str(row.get("lesson_id") or "").replace("-", "_")
+        diagnostic = _safe_score_snapshot(row.get("diagnostic_latest_score"), row.get("diagnostic_last_utc"))
+        transfer = _safe_score_snapshot(row.get("latest_score"), row.get("last_mastery_check_utc"))
+
+        if lesson_id and (diagnostic or transfer):
+            snapshot: Dict[str, Any] = {}
+            if diagnostic:
+                snapshot["diagnostic"] = diagnostic
+            if transfer:
+                snapshot["transfer"] = transfer
+            per_lesson[lesson_id] = snapshot
+
+        if diagnostic and (
+            last_diag is None or parse_iso_utc(diagnostic.get("utc")) > parse_iso_utc(last_diag.get("utc"))
+        ):
+            last_diag = diagnostic
+
+        if transfer and (
+            last_transfer is None
+            or parse_iso_utc(transfer.get("utc")) > parse_iso_utc(last_transfer.get("utc"))
+        ):
+            last_transfer = transfer
+
+    return last_diag, last_transfer, per_lesson
 
 
 @router.get("/instructor/module/{module_id}/students")
@@ -82,65 +132,14 @@ def instructor_module_students(
             reverse=True,
         )[:8]
 
-        events: List[Dict[str, Any]] = []
+        lesson_rows: List[Dict[str, Any]] = []
         try:
-            q = (
-                where_eq(where_eq(db.collection("progress_events"), "uid", uid), "module_id", normalized_module_id)
-                .order_by("utc", direction=firestore.Query.DESCENDING)
-                .limit(max_events_per_student)
-            )
-            for ev in q.stream():
-                events.append(ev.to_dict() or {})
+            lesson_rows = list_lesson_progress(uid, normalized_module_id)
         except Exception as e:
-            if is_missing_index_error(e):
-                warnings.append(f"events_ordering_missing_index_fallback:{uid}:{str(e)[:160]}")
-                try:
-                    q = (
-                        where_eq(where_eq(db.collection("progress_events"), "uid", uid), "module_id", normalized_module_id)
-                        .limit(max_events_per_student)
-                    )
-                    for ev in q.stream():
-                        events.append(ev.to_dict() or {})
-                    events.sort(key=lambda x: parse_iso_utc(x.get("utc")), reverse=True)
-                except Exception as e2:
-                    warnings.append(f"events_fallback_failed:{uid}:{str(e2)[:160]}")
-                    events = []
-            else:
-                warnings.append(f"events_query_failed:{uid}:{str(e)[:160]}")
-                events = []
+            warnings.append(f"lesson_progress_read_failed:{uid}:{str(e)[:160]}")
+            lesson_rows = []
 
-        last_diag = None
-        last_transfer = None
-        per_lesson: Dict[str, Dict[str, Any]] = {}
-
-        for ev in events:
-            et = str(ev.get("event_type") or "").lower()
-            if et not in ("diagnostic", "transfer"):
-                continue
-
-            details = ev.get("details")
-            lesson_id = details.get("lesson_id") if isinstance(details, dict) else None
-
-            score = ev.get("score")
-            try:
-                score = float(score) if score is not None else None
-            except Exception:
-                score = None
-
-            utc = ev.get("utc")
-
-            if et == "diagnostic" and last_diag is None:
-                last_diag = {"score": score, "utc": utc}
-            if et == "transfer" and last_transfer is None:
-                last_transfer = {"score": score, "utc": utc}
-
-            if lesson_id:
-                pl = per_lesson.get(lesson_id) or {}
-                key = "diagnostic" if et == "diagnostic" else "transfer"
-                existing = pl.get(key)
-                if existing is None or parse_iso_utc(utc) > parse_iso_utc(existing.get("utc")):
-                    pl[key] = {"score": score, "utc": utc}
-                per_lesson[lesson_id] = pl
+        last_diag, last_transfer, per_lesson = _build_activity_snapshots(lesson_rows)
 
         engagement_seconds = int(mp.get("engagement_seconds", 0) or 0)
         attempts_total = int(counters.get("attempts", 0) or 0)
