@@ -40,3 +40,8 @@ class HelpRequestCreateResponse(BaseModel):
 class HelpRequestListResponse(BaseModel):
     ok: bool = True
     inquiries: list[HelpRequestSummary] = Field(default_factory=list)
+
+
+class HelpRequestActionResponse(BaseModel):
+    ok: bool = True
+    request: HelpRequestSummary

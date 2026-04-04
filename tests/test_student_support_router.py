@@ -12,6 +12,7 @@ class _FakeDocSnapshot:
     def __init__(self, doc_id: str, payload: dict):
         self.id = doc_id
         self._payload = payload
+        self.exists = bool(payload)
 
     def to_dict(self) -> dict:
         return dict(self._payload)
@@ -22,7 +23,16 @@ class _FakeDocRef:
         self._store = store
         self.id = doc_id
 
-    def set(self, payload: dict) -> None:
+    def get(self):
+        payload = self._store.get(self.id)
+        return _FakeDocSnapshot(self.id, payload or {})
+
+    def set(self, payload: dict, merge: bool = False) -> None:
+        if merge and self.id in self._store:
+            merged = dict(self._store[self.id])
+            merged.update(payload)
+            self._store[self.id] = merged
+            return
         self._store[self.id] = dict(payload)
 
 
@@ -139,6 +149,38 @@ class StudentSupportRouterTests(unittest.TestCase):
         self.assertEqual(len(response["inquiries"]), 1)
         self.assertEqual(response["inquiries"][0]["module_id"], "F2")
         self.assertEqual(response["inquiries"][0]["status"], "open")
+
+    def test_resolve_help_request_marks_item_resolved(self) -> None:
+        fake_db = _FakeFirestore()
+        fake_db._support = {
+            "help-1": {
+                "student_uid": "student-1",
+                "student_email": "one@example.com",
+                "student_role": "student",
+                "category": "stuck",
+                "subject": "F1 question",
+                "message": "Please help with SI units.",
+                "module_id": "F1",
+                "lesson_id": "F1_L1",
+                "status": "open",
+                "created_utc": "2026-04-03T21:44:12+00:00",
+                "updated_utc": "2026-04-03T21:44:12+00:00",
+            }
+        }
+
+        with patch("app.routers.student_support.get_firestore_client", return_value=fake_db), patch(
+            "app.routers.student_support.write_audit_log"
+        ):
+            response = student_support.resolve_help_request(
+                request_id="help-1",
+                request=self._request(),
+                user={"uid": "teacher-1", "email": "teacher@example.com", "role": "instructor"},
+            )
+
+        self.assertTrue(response["ok"])
+        self.assertEqual(response["request"]["status"], "resolved")
+        self.assertEqual(fake_db._support["help-1"]["status"], "resolved")
+        self.assertEqual(fake_db._support["help-1"]["resolved_by_email"], "teacher@example.com")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ from app.audit import write_audit_log
 from app.common import get_client_ip, normalize_module_id, utc_now
 from app.db.firestore import get_firestore_client
 from app.dependencies import require_authenticated_user, require_instructor_or_admin
-from app.schemas.support import HelpRequestCreateIn, HelpRequestCreateResponse, HelpRequestListResponse
+from app.schemas.support import HelpRequestActionResponse, HelpRequestCreateIn, HelpRequestCreateResponse, HelpRequestListResponse
 
 router = APIRouter(tags=["student-support"])
 
@@ -174,3 +174,44 @@ def list_help_requests(
     )
 
     return {"ok": True, "inquiries": inquiries}
+
+
+@router.post("/instructor/help-requests/{request_id}/resolve", response_model=HelpRequestActionResponse)
+def resolve_help_request(
+    request_id: str,
+    request: Request,
+    user=Depends(require_instructor_or_admin),
+):
+    normalized_request_id = str(request_id or "").strip()
+    if not normalized_request_id:
+        raise HTTPException(status_code=404, detail="Help request not found")
+
+    doc_ref = _support_collection().document(normalized_request_id)
+    snap = doc_ref.get()
+    if not snap.exists:
+        raise HTTPException(status_code=404, detail="Help request not found")
+
+    payload = snap.to_dict() or {}
+    now = utc_now()
+    payload["status"] = "resolved"
+    payload["updated_utc"] = now
+    payload["resolved_utc"] = now
+    payload["resolved_by_uid"] = _trimmed((user or {}).get("uid"), max_len=128)
+    payload["resolved_by_email"] = _trimmed((user or {}).get("email"), max_len=160)
+    doc_ref.set(payload, merge=True)
+
+    write_audit_log(
+        event_type="instructor.help_request.resolve",
+        actor_uid=(user or {}).get("uid"),
+        actor_email=(user or {}).get("email"),
+        role=(user or {}).get("role"),
+        path=f"/instructor/help-requests/{normalized_request_id}/resolve",
+        method="POST",
+        status=200,
+        request_id=getattr(request.state, "request_id", None),
+        ip=get_client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        details={"help_request_id": normalized_request_id},
+    )
+
+    return {"ok": True, "request": _summary(normalized_request_id, payload)}
