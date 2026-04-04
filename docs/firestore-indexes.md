@@ -29,7 +29,9 @@ The command uses your active Google credentials. If you rely on Application Defa
 
 Both Cloud Run deploy workflows apply `firestore.indexes.json` before deploying the API service.
 
-If the workflow fails on the index step, grant the deploy service account permission to manage Firestore indexes in the target project.
+If CI lacks permission to manage indexes, the workflow records a warning in the job summary and continues with the API deploy.
+
+Grant the deploy service account Firestore index administration permissions in the target project to re-enable automatic index rollout from CI.
 
 ## When adding a new query
 

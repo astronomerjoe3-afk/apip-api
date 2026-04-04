@@ -40,11 +40,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          log_file="$(mktemp)"
+          set +e
           npx firebase-tools@14.22.0 deploy \
             --only firestore:indexes \
             --project "${PROJECT_ID}" \
             --config firebase.json \
-            --non-interactive
+            --non-interactive 2>&1 | tee "${log_file}"
+          status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "${status}" -eq 0 ]; then
+            echo "Firestore indexes deployed successfully." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if grep -qiE "caller does not have permission|http error: 403|permission denied" "${log_file}"; then
+            {
+              echo "Firestore index deployment was skipped because the GitHub deploy service account cannot manage Firestore indexes in ${PROJECT_ID}."
+              echo
+              echo "The API deploy continued. Grant Firestore index administration permissions to re-enable automated index rollout from CI."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Skipping Firestore index deployment because the deploy service account lacks index permissions."
+            exit 0
+          fi
+
+          exit "${status}"
 
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
