@@ -1,0 +1,87 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "progress_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "utc",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "progress_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "module_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "utc",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "progress_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "module_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "event_type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "utc",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "lessons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "module_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sequence",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "lessons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "moduleId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

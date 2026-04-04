@@ -31,6 +31,21 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy Firestore indexes
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx firebase-tools@14.22.0 deploy \
+            --only firestore:indexes \
+            --project "${PROJECT_ID}" \
+            --config firebase.json \
+            --non-interactive
+
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
