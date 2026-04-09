@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M7_MODULE_ID = "M7"
-M7_CONTENT_VERSION = "20260408_m7_waves_vibrations_v3"
+M7_CONTENT_VERSION = "20260409_m7_waves_vibrations_v4"
 M7_MODULE_TITLE = "Waves and Vibrations"
 M7_ALLOWLIST = [
     "medium_moves_with_wave_confusion",
@@ -110,6 +110,49 @@ def short(
 
 def acceptance_groups(*groups: Sequence[str]) -> Dict[str, Any]:
     return {"phrase_groups": [list(group) for group in groups]}
+
+
+def _clean_short_answer_text(value: str) -> str:
+    cleaned = " ".join(str(value).split()).strip()
+    if cleaned.lower().startswith("because "):
+        cleaned = cleaned[8:].strip()
+    if cleaned:
+        cleaned = cleaned[:1].upper() + cleaned[1:]
+    return cleaned
+
+
+def _dedupe_preserving_order(values: Sequence[str]) -> List[str]:
+    unique: List[str] = []
+    seen: set[str] = set()
+    for value in values:
+        cleaned = _clean_short_answer_text(value)
+        if not cleaned:
+            continue
+        key = cleaned.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(cleaned)
+    return unique
+
+
+def _polish_m7_short_answers(node: Any) -> None:
+    if isinstance(node, list):
+        for value in node:
+            _polish_m7_short_answers(value)
+        return
+
+    if not isinstance(node, dict):
+        return
+
+    kind = str(node.get("kind") or node.get("type") or "").strip().lower()
+    if kind == "short":
+        polished_answers = _dedupe_preserving_order(node.get("accepted_answers") or [])
+        if polished_answers:
+            node["accepted_answers"] = polished_answers
+
+    for value in node.values():
+        _polish_m7_short_answers(value)
 
 
 def prompt_block(prompt: str, hint: str) -> Dict[str, str]:
@@ -829,6 +872,9 @@ M7_SPEC = {
         lesson_l6(),
     ],
 }
+
+for lesson in M7_SPEC["lessons"]:
+    _polish_m7_short_answers(lesson)
 
 
 RELEASE_CHECKS = [
