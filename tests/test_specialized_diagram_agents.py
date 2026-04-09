@@ -72,6 +72,37 @@ class SpecializedDiagramAgentsTests(unittest.TestCase):
             self.assertIn("Transverse Wave", svg)
             self.assertIn("Wavelength", svg)
 
+    def test_generates_wave_equation_svg_with_separate_formula_badge(self) -> None:
+        req = SimpleNamespace(
+            asset_id="wave_equation_01",
+            phase_key="analogical_grounding",
+            concept="wave_diagram",
+            template="wave_diagram",
+            title="Beat Rate, Pulse Gap, and Ripple Run",
+            description="Shows launch rate, front spacing, and front speed on one board.",
+            width=1280,
+            height=720,
+            meta={
+                "wave_type": "wave_equation",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_wave_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="M7",
+                lesson_id="M7_L3",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn('rect x="440.00" y="118.00" width="400.00" height="70.00"', svg)
+            self.assertIn('rect x="90.00" y="210.00" width="1100.00" height="360.00"', svg)
+            self.assertIn('rect x="130.00" y="280.00" width="280.00" height="210.00"', svg)
+            self.assertIn("v = f lambda", svg)
+
     def test_generates_electromagnetism_svg(self) -> None:
         req = SimpleNamespace(
             asset_id="em_bar_magnet_01",

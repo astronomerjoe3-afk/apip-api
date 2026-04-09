@@ -341,9 +341,13 @@ def _draw_wave_mode_compare(width: int, height: int) -> str:
 
 
 def _draw_wave_equation(width: int, height: int) -> str:
-    card_y = 250
+    badge_y = 118
+    panel_y = 210
+    card_y = 280
     parts = [
-        _panel(90, 180, 1100, 360, title="Wave speed relationship", accent="#bfdbfe"),
+        _rect(440, badge_y, 400, 70, fill="#1e293b", stroke="#475569", stroke_width=3, rx=22),
+        _text(640, badge_y + 44, "v = f lambda", fill="#f8fafc", size=36, weight="bold"),
+        _panel(90, panel_y, 1100, 360, title="Wave speed relationship", accent="#bfdbfe"),
         _rect(130, card_y, 280, 210, fill="#0f172a", stroke="#334155", stroke_width=3, rx=24),
         _text(270, card_y + 56, "Frequency f", fill="#93c5fd", size=28, weight="bold"),
         _text(270, card_y + 112, "launch rate", fill="#cbd5e1", size=22),
@@ -356,8 +360,6 @@ def _draw_wave_equation(width: int, height: int) -> str:
         _text(1010, card_y + 56, "Speed v", fill="#fbbf24", size=28, weight="bold"),
         _text(1010, card_y + 112, "pattern travel rate", fill="#cbd5e1", size=22),
         _arrow(930, card_y + 154, 1080, card_y + 154),
-        _rect(440, 90, 400, 70, fill="#1e293b", stroke="#475569", stroke_width=3, rx=22),
-        _text(640, 134, "v = f lambda", fill="#f8fafc", size=36, weight="bold"),
     ]
     return "".join(parts)
 
