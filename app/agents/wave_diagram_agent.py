@@ -385,6 +385,9 @@ def _draw_reflection(width: int, height: int) -> str:
 def _draw_refraction(width: int, height: int) -> str:
     boundary_x = 690
     hit_y = 360
+    medium_one_center_x = 410
+    medium_two_center_x = 895
+    medium_label_y = 272
     return "".join(
         [
             _panel(90, 180, 1100, 360, title="Refraction in a new medium", accent="#86efac"),
@@ -394,8 +397,8 @@ def _draw_refraction(width: int, height: int) -> str:
             _line(boundary_x - 180, hit_y, boundary_x + 180, hit_y, stroke="#38bdf8", stroke_width=4, dashed=True),
             _path(f"M 320 250 L {boundary_x} {hit_y}", stroke="#fbbf24", stroke_width=6, marker_end="wave-arrow"),
             _path(f"M {boundary_x} {hit_y} L 1010 430", stroke="#34d399", stroke_width=6, marker_end="wave-arrow"),
-            _text(330, 220, "medium 1: faster", fill="#bfdbfe", anchor="start"),
-            _text(1010, 220, "medium 2: slower", fill="#bbf7d0"),
+            _text(medium_one_center_x, medium_label_y, "medium 1: faster", fill="#bfdbfe"),
+            _text(medium_two_center_x, medium_label_y, "medium 2: slower", fill="#bbf7d0"),
             _text(930, 470, "lambda shorter", fill="#86efac"),
             _text(width / 2, 560, "Frequency stays source-set while speed and wavelength change in the new medium.", fill="#cbd5e1", size=21),
         ]

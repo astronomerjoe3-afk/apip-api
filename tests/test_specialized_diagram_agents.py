@@ -226,6 +226,37 @@ class SpecializedDiagramAgentsTests(unittest.TestCase):
             self.assertIn("incident", svg)
             self.assertIn("reflected", svg)
 
+    def test_generates_refraction_wave_svg_with_internal_medium_labels(self) -> None:
+        req = SimpleNamespace(
+            asset_id="wave_refraction_01",
+            phase_key="guided_concept_building",
+            concept="wave_diagram",
+            template="wave_diagram",
+            title="Bend Gate boundary turn",
+            description="Toward the Guide Line in a slower zone, away from it in a faster zone",
+            width=1280,
+            height=720,
+            meta={
+                "wave_type": "refraction",
+            },
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = generate_wave_diagram(
+                req=req,
+                output_dir=tmpdir,
+                public_base="/lesson_assets",
+                module_id="M8",
+                lesson_id="M8_L2",
+            )
+            path = Path(asset.storage_path)
+            self.assertTrue(path.exists())
+            svg = path.read_text(encoding="utf-8")
+            self.assertIn('text x="410.00" y="272.00"', svg)
+            self.assertIn('text x="895.00" y="272.00"', svg)
+            self.assertNotIn('text x="330.00" y="220.00"', svg)
+            self.assertNotIn('text x="1010.00" y="220.00"', svg)
+
     def test_generates_critical_angle_wave_svg(self) -> None:
         req = SimpleNamespace(
             asset_id="wave_critical_angle_01",
