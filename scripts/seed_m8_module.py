@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 M8_MODULE_ID = "M8"
-M8_CONTENT_VERSION = "20260408_m8_light_optics_v5"
+M8_CONTENT_VERSION = "20260409_m8_light_optics_v6"
 M8_MODULE_TITLE = "Light and Optics"
 M8_ALLOWLIST = [
     "angle_from_surface_confusion",
@@ -88,6 +88,63 @@ def short(
 
 def acceptance_groups(*groups: Sequence[str]) -> Dict[str, Any]:
     return {"phrase_groups": [list(group) for group in groups]}
+
+
+def _clean_short_answer_text(value: str) -> str:
+    cleaned = " ".join(str(value).split()).strip()
+    if cleaned.lower().startswith("because "):
+        cleaned = cleaned[8:].strip()
+    if cleaned:
+        cleaned = cleaned[:1].upper() + cleaned[1:]
+    return cleaned
+
+
+def _dedupe_preserving_order(values: Sequence[str]) -> List[str]:
+    unique: List[str] = []
+    seen: set[str] = set()
+    for value in values:
+        cleaned = _clean_short_answer_text(value)
+        if not cleaned:
+            continue
+        key = cleaned.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(cleaned)
+    return unique
+
+
+M8_SHORT_ANSWER_OVERRIDES: Dict[str, List[str]] = {
+    "M8L2_C8": [
+        "The route bends away from the Guide Line because the new medium is faster.",
+        "It bends away from the normal because air is faster than glass.",
+    ],
+    "M8L2_M9": [
+        "Less than 60 degrees: entering a slower medium bends the route toward the Guide Line.",
+        "The refracted angle is smaller than 60 degrees because a slower medium turns the route toward the normal.",
+    ],
+}
+
+
+def _polish_m8_short_answers(node: Any) -> None:
+    if isinstance(node, list):
+        for value in node:
+            _polish_m8_short_answers(value)
+        return
+
+    if not isinstance(node, dict):
+        return
+
+    item_id = str(node.get("id") or node.get("question_id") or "").strip()
+    kind = str(node.get("kind") or node.get("type") or "").strip().lower()
+    if kind == "short":
+        accepted_answers = M8_SHORT_ANSWER_OVERRIDES.get(item_id, node.get("accepted_answers") or [])
+        polished_answers = _dedupe_preserving_order(accepted_answers)
+        if polished_answers:
+            node["accepted_answers"] = polished_answers
+
+    for value in node.values():
+        _polish_m8_short_answers(value)
 
 
 def prompt_block(prompt: str, hint: str) -> Dict[str, str]:
@@ -989,6 +1046,9 @@ M8_SPEC = {
     ],
     "lessons": [mirror_lesson(), refraction_lesson(), gather_lens_lesson(), spread_lens_lesson(), tir_lesson(), route_sketch_lesson()],
 }
+
+for lesson in M8_SPEC["lessons"]:
+    _polish_m8_short_answers(lesson)
 
 
 RELEASE_CHECKS = [
