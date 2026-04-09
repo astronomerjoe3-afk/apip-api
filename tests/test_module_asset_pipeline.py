@@ -473,6 +473,27 @@ class ModuleAssetPipelineTests(unittest.TestCase):
         self.assertIn("ρ = 1000 kg/m^3", diagnostic_prompts)
         self.assertIn("ρ = 1000 kg/m^3", mastery_prompts)
 
+    def test_m4_l4_to_l6_mastery_short_answers_are_specific_and_broader(self) -> None:
+        lessons = {lesson_id: payload for lesson_id, payload in M4_LESSONS}
+        l4_mastery = {item["id"]: item for item in lessons["M4_L4"]["phases"]["transfer"]["items"]}
+        l5_mastery = {item["id"]: item for item in lessons["M4_L5"]["phases"]["transfer"]["items"]}
+        l6_mastery = {item["id"]: item for item in lessons["M4_L6"]["phases"]["transfer"]["items"]}
+
+        self.assertIn("same pressure", l4_mastery["M4L4_M2"]["accepted_answers"][0].lower())
+        self.assertIn("shape", l4_mastery["M4L4_M2"]["accepted_answers"][0].lower())
+        self.assertEqual(l4_mastery["M4L4_M5"]["accepted_answers"][0], "The same pressure p.")
+        self.assertIn("p", l4_mastery["M4L4_M5"]["accepted_answers"])
+        self.assertFalse(l4_mastery["M4L4_M5"]["accepted_answers"][0].lower().startswith("because"))
+
+        self.assertIn("perpendicular", l5_mastery["M4L5_M2"]["accepted_answers"][0].lower())
+        self.assertIn("0.20 square metres", l5_mastery["M4L5_M5"]["accepted_answers"])
+        self.assertIn("2e-1", " ".join(sum(l5_mastery["M4L5_M5"]["acceptance_rules"]["phrase_groups"], [])))
+
+        self.assertIn("130 kPa", l6_mastery["M4L6_M2"]["accepted_answers"])
+        self.assertIn("atmospheric pressure", l6_mastery["M4L6_M5"]["accepted_answers"][0].lower())
+        self.assertIn("open surface", l6_mastery["M4L6_M5"]["accepted_answers"][0].lower())
+        self.assertIn("sky blanket", " ".join(sum(l6_mastery["M4L6_M5"]["acceptance_rules"]["phrase_groups"], [])))
+
     def test_m5_bundle_uses_v3_contract_and_generated_assets(self) -> None:
         self.assertEqual(M5_MODULE_DOC["id"], "M5")
         self.assertEqual(M5_MODULE_DOC["title"], "Particle Model and Internal Energy")
