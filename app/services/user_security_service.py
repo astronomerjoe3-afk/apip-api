@@ -9,6 +9,7 @@ from app.roles import normalize_role, VALID_ROLES
 
 USER_COLLECTION = "users"
 PASSWORD_POLICY_VERSION = 1
+DISPLAY_NAME_MAX_LENGTH = 120
 
 
 def _utc_now_iso() -> str:
@@ -20,6 +21,13 @@ def _string(value: Any) -> Optional[str]:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _display_name(value: Any) -> Optional[str]:
+    text = _string(value)
+    if text is None:
+        return None
+    return text[:DISPLAY_NAME_MAX_LENGTH]
 
 
 def _user_ref(uid: str):
@@ -41,6 +49,7 @@ def ensure_user_profile(
     email: Optional[str] = None,
     role: Optional[str] = None,
     email_verified: Optional[bool] = None,
+    display_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     normalized_uid = _string(uid)
     if not normalized_uid:
@@ -61,6 +70,10 @@ def ensure_user_profile(
     if normalized_email:
         patch["email"] = normalized_email
 
+    normalized_display_name = _display_name(display_name)
+    if normalized_display_name:
+        patch["display_name"] = normalized_display_name
+
     if not _string(current.get("created_utc")):
         patch["created_utc"] = now_iso
 
@@ -77,6 +90,47 @@ def ensure_user_profile(
 
     if security_patch:
         patch["security"] = security_patch
+
+    _user_ref(normalized_uid).set(patch, merge=True)
+    return read_user_doc(normalized_uid)
+
+
+def update_user_profile(
+    uid: str,
+    *,
+    display_name: Optional[str] = None,
+    email: Optional[str] = None,
+    role: Optional[str] = None,
+    email_verified: Optional[bool] = None,
+) -> Dict[str, Any]:
+    normalized_uid = _string(uid)
+    if not normalized_uid:
+        return {}
+
+    now_iso = _utc_now_iso()
+    patch: Dict[str, Any] = {
+        "updated_utc": now_iso,
+        "last_seen_utc": now_iso,
+    }
+
+    normalized_display_name = _display_name(display_name)
+    if normalized_display_name is not None:
+        patch["display_name"] = normalized_display_name
+
+    normalized_email = _string(email)
+    if normalized_email:
+        patch["email"] = normalized_email
+
+    normalized_role = normalize_role(_string(role), default="")
+    if normalized_role in VALID_ROLES:
+        patch["role"] = normalized_role
+
+    if email_verified is True:
+        current = read_user_doc(normalized_uid)
+        security_row = current.get("security") if isinstance(current.get("security"), dict) else {}
+        patch["security"] = {
+            "email_verified_utc": _string(security_row.get("email_verified_utc")) or now_iso,
+        }
 
     _user_ref(normalized_uid).set(patch, merge=True)
     return read_user_doc(normalized_uid)
@@ -119,6 +173,40 @@ def build_user_security_summary(uid: str, *, email_verified: Optional[bool] = No
         "hardening_complete": hardening_complete,
         "recommended_actions": recommended_actions,
         "recommended_next_step": recommended_next_step,
+    }
+
+
+def build_user_profile_summary(
+    uid: str,
+    *,
+    email: Optional[str] = None,
+    role: Optional[str] = None,
+    email_verified: Optional[bool] = None,
+) -> Dict[str, Any]:
+    normalized_uid = _string(uid) or ""
+    user_doc = read_user_doc(normalized_uid)
+    security_row = user_doc.get("security") if isinstance(user_doc.get("security"), dict) else {}
+
+    resolved_email_verified = (
+        bool(email_verified)
+        if email_verified is not None
+        else bool(_string(security_row.get("email_verified_utc")))
+    )
+    resolved_role = normalize_role(
+        _string(user_doc.get("role")) or _string(role),
+        default="unknown",
+    )
+
+    return {
+        "uid": _string(user_doc.get("uid")) or normalized_uid,
+        "email": _string(user_doc.get("email")) or _string(email),
+        "display_name": _display_name(user_doc.get("display_name")),
+        "email_verified": resolved_email_verified,
+        "role": resolved_role or "unknown",
+        "security": build_user_security_summary(
+            normalized_uid,
+            email_verified=resolved_email_verified,
+        ),
     }
 
 

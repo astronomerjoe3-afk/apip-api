@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.db.firestore import get_firestore_client
 from app.firebase_admin_init import verify_id_token
 from app.roles import normalize_role, VALID_ROLES
-from app.services.user_security_service import build_user_security_summary, ensure_user_profile
+from app.services.user_security_service import build_user_profile_summary, ensure_user_profile
 
 
 SESSION_TOKEN_PREFIX = "sess_"
@@ -73,12 +73,18 @@ def _normalized_user_claims(decoded: Dict[str, Any]) -> Dict[str, Any]:
         email=user.get("email"),
         role=user.get("role"),
         email_verified=bool(user.get("email_verified")),
+        display_name=_string(decoded.get("name")),
     )
-    user["security"] = build_user_security_summary(
+    profile = build_user_profile_summary(
         user["uid"],
+        email=user.get("email"),
+        role=user.get("role"),
         email_verified=bool(user.get("email_verified")),
     )
-    return user
+    return {
+        **profile,
+        "claims": claims,
+    }
 
 
 def issue_session_from_firebase_id_token(id_token: str, request: Request) -> Dict[str, Any]:
@@ -104,6 +110,7 @@ def issue_session_from_firebase_id_token(id_token: str, request: Request) -> Dic
             "email": user.get("email"),
             "email_verified": bool(user.get("email_verified")),
             "role": user["role"],
+            "display_name": user.get("display_name"),
             "claims": user["claims"],
             "created_utc": now.isoformat(),
             "updated_utc": now.isoformat(),
@@ -122,6 +129,7 @@ def issue_session_from_firebase_id_token(id_token: str, request: Request) -> Dic
         "user": {
             "uid": user["uid"],
             "email": user.get("email"),
+            "display_name": user.get("display_name"),
             "email_verified": user.get("email_verified"),
             "role": user["role"],
             "security": user.get("security"),
@@ -192,14 +200,16 @@ def authenticate_session_token(token: str, request: Request) -> Dict[str, Any]:
         role=role,
         email_verified=email_verified,
     )
+    profile = build_user_profile_summary(
+        uid,
+        email=email,
+        role=role,
+        email_verified=email_verified,
+    )
     return {
-        "uid": uid,
-        "email": email,
-        "email_verified": email_verified,
-        "role": role,
+        **profile,
         "claims": claims,
         "auth_type": "session",
-        "security": build_user_security_summary(uid, email_verified=email_verified),
     }
 
 

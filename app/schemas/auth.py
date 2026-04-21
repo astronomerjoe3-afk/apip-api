@@ -24,6 +24,7 @@ class SessionSecurityOut(BaseModel):
 class SessionUserOut(BaseModel):
     uid: str
     email: Optional[str] = None
+    display_name: Optional[str] = None
     email_verified: Optional[bool] = None
     role: str
     security: Optional[SessionSecurityOut] = None

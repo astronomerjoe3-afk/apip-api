@@ -13,7 +13,7 @@ from app.schemas.auth import (
     SessionStatusResponse,
 )
 from app.services.session_service import issue_session_from_firebase_id_token, revoke_session_token
-from app.services.user_security_service import record_password_policy_completion
+from app.services.user_security_service import build_user_profile_summary, record_password_policy_completion
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -40,15 +40,15 @@ def login_session(payload: SessionLoginRequest, request: Request):
 
 @router.get("/session", response_model=SessionStatusResponse)
 def current_session(user=Depends(require_authenticated_user)):
+    profile = build_user_profile_summary(
+        (user or {}).get("uid"),
+        email=(user or {}).get("email"),
+        role=(user or {}).get("role"),
+        email_verified=(user or {}).get("email_verified"),
+    )
     return {
         "ok": True,
-        "user": {
-            "uid": (user or {}).get("uid"),
-            "email": (user or {}).get("email"),
-            "email_verified": (user or {}).get("email_verified"),
-            "role": (user or {}).get("role"),
-            "security": (user or {}).get("security"),
-        },
+        "user": profile,
     }
 
 
