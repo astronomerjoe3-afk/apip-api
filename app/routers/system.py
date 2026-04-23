@@ -12,11 +12,18 @@ from app.firebase_admin_init import auth as firebase_auth, init_firebase_admin
 from app.schemas.system import (
     ProfileDeleteRequest,
     ProfileDeleteResponse,
+    ProfileLearningStateUpdateRequest,
+    ProfilePreferencesUpdateRequest,
     ProfileResponse,
     ProfileUpdateRequest,
 )
 from app.services.account_deletion_service import delete_user_account
-from app.services.user_security_service import build_user_profile_summary, update_user_profile
+from app.services.user_security_service import (
+    build_user_profile_summary,
+    update_user_learning_state,
+    update_user_preferences,
+    update_user_profile,
+)
 
 router = APIRouter(tags=["system"])
 
@@ -108,6 +115,113 @@ def update_profile(
         ip=get_client_ip(request) if request else None,
         user_agent=request.headers.get("User-Agent") if request else None,
         details={"display_name": updated.get("display_name")},
+    )
+
+    return {
+        "ok": True,
+        **build_user_profile_summary(
+            uid,
+            email=u.get("email"),
+            role=u.get("role"),
+            email_verified=u.get("email_verified"),
+        ),
+        "utc": utc_now(),
+    }
+
+
+@router.patch("/profile/preferences", response_model=ProfileResponse)
+def update_profile_preferences(
+    request: Request,
+    payload: ProfilePreferencesUpdateRequest = Body(...),
+    user=Depends(require_authenticated_user),
+):
+    u = user or {}
+    uid = str(u.get("uid") or "").strip()
+    if not uid:
+        raise HTTPException(status_code=401, detail="Missing uid")
+
+    updated = update_user_preferences(
+        uid,
+        favorite_modules=payload.favorite_modules,
+        favorite_lessons=payload.favorite_lessons,
+        email=u.get("email"),
+        role=u.get("role"),
+        email_verified=u.get("email_verified"),
+    )
+
+    write_audit_log(
+        event_type="user.profile.preferences.update",
+        actor_uid=uid,
+        actor_email=u.get("email"),
+        role=u.get("role"),
+        path="/profile/preferences",
+        method="PATCH",
+        status=200,
+        request_id=getattr(request.state, "request_id", None) if request else None,
+        ip=get_client_ip(request) if request else None,
+        user_agent=request.headers.get("User-Agent") if request else None,
+        details={
+            "favorite_modules_count": len(updated.get("preferences", {}).get("favorite_modules", []))
+            if isinstance(updated.get("preferences"), dict)
+            else 0,
+            "favorite_lessons_count": len(updated.get("preferences", {}).get("favorite_lessons", []))
+            if isinstance(updated.get("preferences"), dict)
+            else 0,
+        },
+    )
+
+    return {
+        "ok": True,
+        **build_user_profile_summary(
+            uid,
+            email=u.get("email"),
+            role=u.get("role"),
+            email_verified=u.get("email_verified"),
+        ),
+        "utc": utc_now(),
+    }
+
+
+@router.patch("/profile/learning-state", response_model=ProfileResponse)
+def update_profile_learning_state(
+    request: Request,
+    payload: ProfileLearningStateUpdateRequest = Body(...),
+    user=Depends(require_authenticated_user),
+):
+    u = user or {}
+    uid = str(u.get("uid") or "").strip()
+    if not uid:
+        raise HTTPException(status_code=401, detail="Missing uid")
+
+    updated = update_user_learning_state(
+        uid,
+        last_module_id=payload.last_module_id,
+        last_lesson_id=payload.last_lesson_id,
+        last_lesson_title=payload.last_lesson_title,
+        last_route=payload.last_route,
+        email=u.get("email"),
+        role=u.get("role"),
+        email_verified=u.get("email_verified"),
+    )
+
+    learning_state = updated.get("learning_state") if isinstance(updated.get("learning_state"), dict) else {}
+
+    write_audit_log(
+        event_type="user.profile.learning_state.update",
+        actor_uid=uid,
+        actor_email=u.get("email"),
+        role=u.get("role"),
+        path="/profile/learning-state",
+        method="PATCH",
+        status=200,
+        request_id=getattr(request.state, "request_id", None) if request else None,
+        ip=get_client_ip(request) if request else None,
+        user_agent=request.headers.get("User-Agent") if request else None,
+        details={
+            "last_module_id": learning_state.get("last_module_id"),
+            "last_lesson_id": learning_state.get("last_lesson_id"),
+            "last_route": learning_state.get("last_route"),
+        },
     )
 
     return {

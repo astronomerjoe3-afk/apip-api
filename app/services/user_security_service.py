@@ -10,6 +10,10 @@ from app.roles import normalize_role, VALID_ROLES
 USER_COLLECTION = "users"
 PASSWORD_POLICY_VERSION = 1
 DISPLAY_NAME_MAX_LENGTH = 120
+LESSON_TITLE_MAX_LENGTH = 160
+ROUTE_MAX_LENGTH = 256
+PREFERENCE_LIMIT = 200
+PREFERENCE_VALUE_MAX_LENGTH = 96
 
 
 def _utc_now_iso() -> str:
@@ -28,6 +32,51 @@ def _display_name(value: Any) -> Optional[str]:
     if text is None:
         return None
     return text[:DISPLAY_NAME_MAX_LENGTH]
+
+
+def _string_list(value: Any, *, max_items: int = PREFERENCE_LIMIT, max_length: int = PREFERENCE_VALUE_MAX_LENGTH) -> list[str]:
+    if not isinstance(value, list):
+        return []
+
+    seen: set[str] = set()
+    items: list[str] = []
+    for raw in value:
+        text = _string(raw)
+        if not text:
+            continue
+        text = text[:max_length]
+        if text in seen:
+            continue
+        seen.add(text)
+        items.append(text)
+        if len(items) >= max_items:
+            break
+    return items
+
+
+def _student_preferences(value: Any) -> Dict[str, list[str]]:
+    row = value if isinstance(value, dict) else {}
+    return {
+        "favorite_modules": _string_list(row.get("favorite_modules")),
+        "favorite_lessons": _string_list(row.get("favorite_lessons")),
+    }
+
+
+def _student_learning_state(value: Any) -> Dict[str, Optional[str]]:
+    row = value if isinstance(value, dict) else {}
+    lesson_title = _string(row.get("last_lesson_title"))
+
+    last_route = _string(row.get("last_route"))
+    if last_route and not last_route.startswith("/student"):
+        last_route = None
+
+    return {
+        "last_module_id": _string(row.get("last_module_id")),
+        "last_lesson_id": _string(row.get("last_lesson_id")),
+        "last_lesson_title": lesson_title[:LESSON_TITLE_MAX_LENGTH] if lesson_title else None,
+        "last_route": last_route[:ROUTE_MAX_LENGTH] if last_route else None,
+        "last_visited_utc": _string(row.get("last_visited_utc")),
+    }
 
 
 def _user_ref(uid: str):
@@ -176,6 +225,16 @@ def build_user_security_summary(uid: str, *, email_verified: Optional[bool] = No
     }
 
 
+def build_user_preferences_summary(uid: str) -> Dict[str, list[str]]:
+    user_doc = read_user_doc(uid)
+    return _student_preferences(user_doc.get("preferences"))
+
+
+def build_user_learning_state_summary(uid: str) -> Dict[str, Optional[str]]:
+    user_doc = read_user_doc(uid)
+    return _student_learning_state(user_doc.get("learning_state"))
+
+
 def build_user_profile_summary(
     uid: str,
     *,
@@ -207,7 +266,87 @@ def build_user_profile_summary(
             normalized_uid,
             email_verified=resolved_email_verified,
         ),
+        "preferences": _student_preferences(user_doc.get("preferences")),
+        "learning_state": _student_learning_state(user_doc.get("learning_state")),
     }
+
+
+def update_user_preferences(
+    uid: str,
+    *,
+    favorite_modules: Optional[list[str]] = None,
+    favorite_lessons: Optional[list[str]] = None,
+    email: Optional[str] = None,
+    role: Optional[str] = None,
+    email_verified: Optional[bool] = None,
+) -> Dict[str, Any]:
+    normalized_uid = _string(uid)
+    if not normalized_uid:
+        return {}
+
+    ensure_user_profile(
+        normalized_uid,
+        email=email,
+        role=role,
+        email_verified=email_verified,
+    )
+
+    now_iso = _utc_now_iso()
+    patch: Dict[str, Any] = {
+        "updated_utc": now_iso,
+        "last_seen_utc": now_iso,
+        "preferences": {
+            "favorite_modules": _string_list(favorite_modules),
+            "favorite_lessons": _string_list(favorite_lessons),
+        },
+    }
+
+    _user_ref(normalized_uid).set(patch, merge=True)
+    return read_user_doc(normalized_uid)
+
+
+def update_user_learning_state(
+    uid: str,
+    *,
+    last_module_id: Optional[str] = None,
+    last_lesson_id: Optional[str] = None,
+    last_lesson_title: Optional[str] = None,
+    last_route: Optional[str] = None,
+    email: Optional[str] = None,
+    role: Optional[str] = None,
+    email_verified: Optional[bool] = None,
+) -> Dict[str, Any]:
+    normalized_uid = _string(uid)
+    if not normalized_uid:
+        return {}
+
+    ensure_user_profile(
+        normalized_uid,
+        email=email,
+        role=role,
+        email_verified=email_verified,
+    )
+
+    normalized_route = _string(last_route)
+    if normalized_route and not normalized_route.startswith("/student"):
+        normalized_route = None
+    normalized_lesson_title = _string(last_lesson_title)
+
+    now_iso = _utc_now_iso()
+    patch: Dict[str, Any] = {
+        "updated_utc": now_iso,
+        "last_seen_utc": now_iso,
+        "learning_state": {
+            "last_module_id": _string(last_module_id),
+            "last_lesson_id": _string(last_lesson_id),
+            "last_lesson_title": normalized_lesson_title[:LESSON_TITLE_MAX_LENGTH] if normalized_lesson_title else None,
+            "last_route": normalized_route[:ROUTE_MAX_LENGTH] if normalized_route else None,
+            "last_visited_utc": now_iso,
+        },
+    }
+
+    _user_ref(normalized_uid).set(patch, merge=True)
+    return read_user_doc(normalized_uid)
 
 
 def record_password_policy_completion(
