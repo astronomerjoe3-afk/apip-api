@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import HTTPException
 
-from app.common import clamp01, safe_list_str, utc_now
+from app.common import clamp01, parse_iso_utc, safe_list_str, utc_now
 from app.repositories.progress_repository import (
     get_lesson_progress,
     get_module_progress,
@@ -18,6 +18,7 @@ from app.repositories.progress_repository import (
     set_progress_root,
 )
 from app.services.lesson_progress_state import apply_progress_event_to_snapshot, normalize_lesson_id
+from app.services.student_progression_service import get_student_module_progress
 
 EventType = Literal["diagnostic", "simulation", "reflection", "transfer", "attempt"]
 
@@ -151,6 +152,73 @@ def _canonical_mastery_from_transfer_history(
     return round(max(scores), 4)
 
 
+def _top_misconception_tags(modules: List[Dict[str, Any]], limit_tags: int = 6) -> List[str]:
+    aggregate: Dict[str, float] = {}
+
+    for module_row in modules:
+        profile = module_row.get("misconception_profile") or {}
+        tags = profile.get("tags") if isinstance(profile, dict) else {}
+        if not isinstance(tags, dict):
+            continue
+
+        for tag, raw_score in tags.items():
+            normalized_tag = str(tag or "").strip()
+            if not normalized_tag:
+                continue
+            try:
+                aggregate[normalized_tag] = float(aggregate.get(normalized_tag, 0.0)) + float(raw_score)
+            except Exception:
+                continue
+
+    return [
+        tag
+        for tag, _ in sorted(aggregate.items(), key=lambda item: item[1], reverse=True)[:limit_tags]
+    ]
+
+
+def _review_queue_for_modules(uid: str, module_ids: List[str], warnings: List[str]) -> List[Dict[str, Any]]:
+    queue: List[Dict[str, Any]] = []
+
+    for module_id in module_ids:
+        try:
+            module_progress = get_student_module_progress(uid=uid, module_id=module_id)
+        except Exception as exc:
+            warnings.append(f"review_queue_unavailable:{module_id}:{str(exc)[:120]}")
+            continue
+
+        for lesson in module_progress.get("lessons") or []:
+            review_state = str(lesson.get("review_state") or "").strip().lower()
+            review_due_utc = lesson.get("review_due_utc")
+            if review_state not in {"due", "scheduled"} and not review_due_utc:
+                continue
+
+            lesson_id = normalize_lesson_id(lesson.get("lesson_id"))
+            queue.append(
+                {
+                    "module_id": module_id,
+                    "lesson_id": lesson_id,
+                    "title": lesson.get("title"),
+                    "route": f"/student/module/{module_id}?lesson={lesson_id}",
+                    "review_due": bool(lesson.get("review_due")),
+                    "review_state": review_state or ("due" if lesson.get("review_due") else "scheduled"),
+                    "review_due_utc": review_due_utc,
+                    "review_count": int(lesson.get("review_count") or 0),
+                    "last_score": lesson.get("last_review_score"),
+                    "misconception_tags": safe_list_str(lesson.get("misconception_tags"), max_items=4, max_len=64),
+                }
+            )
+
+    queue.sort(
+        key=lambda item: (
+            0 if item.get("review_due") else 1,
+            parse_iso_utc(item.get("review_due_utc")) or 0.0,
+            str(item.get("module_id") or ""),
+            str(item.get("lesson_id") or ""),
+        )
+    )
+    return queue
+
+
 def process_progress_event(
     uid: str,
     module_id: str,
@@ -239,6 +307,7 @@ def process_progress_event(
             lesson_id=lesson_id,
             event_type_value=event_type,
             score=score,
+            misconception_tags=misconception_tags,
             details=trimmed_details,
             utc=now,
         )
@@ -311,9 +380,18 @@ def fetch_progress_me(uid: str, limit_recent_events: int) -> Dict[str, Any]:
             }
         )
 
+    module_ids = [str(module_row.get("module_id") or "").strip() for module_row in modules if str(module_row.get("module_id") or "").strip()]
+    review_queue = _review_queue_for_modules(uid, module_ids, warnings)
+    review_due_count = sum(1 for item in review_queue if item.get("review_due"))
+    next_review_utc = review_queue[0].get("review_due_utc") if review_queue else None
+
     return {
         "warnings": warnings,
         "mastery_map": mastery_map,
         "modules": modules,
         "recent_events": recent,
+        "review_due_count": review_due_count,
+        "next_review_utc": next_review_utc,
+        "review_queue": review_queue[:12],
+        "top_misconception_tags": _top_misconception_tags(modules),
     }

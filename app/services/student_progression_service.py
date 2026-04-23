@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from app.common import parse_iso_utc, utc_now
 from app.repositories.student_progression_repository import (
     get_module_lessons,
     get_module_progress,
@@ -102,6 +103,7 @@ def _lesson_progress_snapshot_from_events(
             lesson_id=lesson_id,
             event_type_value=ev.get("event_type"),
             score=ev.get("score"),
+            misconception_tags=ev.get("misconception_tags") if isinstance(ev.get("misconception_tags"), list) else None,
             details=ev.get("details") if isinstance(ev.get("details"), dict) else {},
             utc=ev.get("utc"),
         )
@@ -129,6 +131,18 @@ def _merged_lesson_progress_snapshot(
     mastery_prefers_stored = (
         stored_snapshot.get("last_mastery_check_utc")
         and stored_snapshot.get("last_mastery_check_utc") >= event_snapshot.get("last_mastery_check_utc")
+    )
+    stored_misconception = stored_snapshot.get("misconception_profile") or {}
+    event_misconception = event_snapshot.get("misconception_profile") or {}
+    misconception_prefers_stored = (
+        stored_misconception.get("updated_utc")
+        and stored_misconception.get("updated_utc") >= event_misconception.get("updated_utc")
+    )
+    stored_spaced_mastery = stored_snapshot.get("spaced_mastery") or {}
+    event_spaced_mastery = event_snapshot.get("spaced_mastery") or {}
+    spaced_prefers_stored = (
+        stored_spaced_mastery.get("updated_utc")
+        and stored_spaced_mastery.get("updated_utc") >= event_spaced_mastery.get("updated_utc")
     )
 
     return {
@@ -195,6 +209,8 @@ def _merged_lesson_progress_snapshot(
             str(event_snapshot.get("last_event_utc") or ""),
             str(stored_snapshot.get("last_event_utc") or ""),
         ) or None,
+        "misconception_profile": stored_misconception if misconception_prefers_stored else event_misconception,
+        "spaced_mastery": stored_spaced_mastery if spaced_prefers_stored else event_spaced_mastery,
         "updated_utc": max(
             str(event_snapshot.get("updated_utc") or ""),
             str(stored_snapshot.get("updated_utc") or ""),
@@ -225,6 +241,23 @@ def _build_lesson_progress(
     concept_gate_count = int(snapshot.get("concept_gate_count") or 0)
     concept_gate_best_score = float(snapshot.get("concept_gate_best_score") or 0.0)
     best_score = float(snapshot.get("best_score") or 0.0)
+    misconception_profile = snapshot.get("misconception_profile") if isinstance(snapshot.get("misconception_profile"), dict) else {}
+    misconception_tags_map = misconception_profile.get("tags") if isinstance(misconception_profile.get("tags"), dict) else {}
+    top_misconception_tags = [
+        tag
+        for tag, _ in sorted(
+            ((str(tag), float(score)) for tag, score in misconception_tags_map.items()),
+            key=lambda item: item[1],
+            reverse=True,
+        )[:4]
+    ]
+    spaced_mastery = snapshot.get("spaced_mastery") if isinstance(snapshot.get("spaced_mastery"), dict) else {}
+    review_due_utc = spaced_mastery.get("due_utc")
+    review_state = str(spaced_mastery.get("state") or "not_started")
+    now_ts = parse_iso_utc(utc_now())
+    review_due = review_state == "due" or (
+        review_state == "scheduled" and parse_iso_utc(review_due_utc) > 0 and parse_iso_utc(review_due_utc) <= now_ts
+    )
     completed = best_score >= COMPLETION_THRESHOLD
     has_lab = _lesson_has_lab(lesson)
     has_reflection = _lesson_has_reflection(lesson)
@@ -287,6 +320,13 @@ def _build_lesson_progress(
         "reflection_completed": reflection_completed,
         "mastery_check_count": mastery_attempt_count,
         "last_mastery_check_utc": last_mastery_check_utc,
+        "misconception_tags": top_misconception_tags,
+        "review_due": review_due,
+        "review_state": "due" if review_due else review_state,
+        "review_due_utc": review_due_utc,
+        "review_interval_days": spaced_mastery.get("interval_days"),
+        "review_count": int(spaced_mastery.get("review_count") or 0),
+        "last_review_score": spaced_mastery.get("last_score"),
     }
 
 
@@ -333,12 +373,32 @@ def get_student_module_progress(uid: str, module_id: str) -> Dict[str, Any]:
 
     module_mastery = _module_mastery_from_lessons(lesson_rows)
     lessons_completed_count = sum(1 for row in lesson_rows if row.get("completed") is True)
+    review_due_count = sum(1 for row in lesson_rows if row.get("review_due") is True)
+    review_due_values = [
+        str(row.get("review_due_utc") or "")
+        for row in lesson_rows
+        if str(row.get("review_due_utc") or "")
+    ]
+    next_review_utc = min(review_due_values) if review_due_values else None
+    top_misconceptions: Dict[str, int] = {}
+    for row in lesson_rows:
+        for tag in row.get("misconception_tags") or []:
+            normalized_tag = str(tag or "").strip()
+            if not normalized_tag:
+                continue
+            top_misconceptions[normalized_tag] = int(top_misconceptions.get(normalized_tag, 0)) + 1
 
     module = {
         "module_id": module_id,
         "module_mastery": module_mastery,
         "lessons_completed_count": lessons_completed_count,
         "total_lessons": len(lesson_rows),
+        "review_due_count": review_due_count,
+        "next_review_utc": next_review_utc,
+        "top_misconception_tags": [
+            tag
+            for tag, _ in sorted(top_misconceptions.items(), key=lambda item: item[1], reverse=True)[:4]
+        ],
     }
 
     return {

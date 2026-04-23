@@ -48,6 +48,19 @@ class MasteryMapItem(BaseModel):
     last_event_utc: Optional[str] = None
 
 
+class ReviewQueueItemOut(BaseModel):
+    module_id: str
+    lesson_id: str
+    title: Optional[str] = None
+    route: str
+    review_due: bool = False
+    review_state: str = "scheduled"
+    review_due_utc: Optional[str] = None
+    review_count: int = 0
+    last_score: Optional[float] = None
+    misconception_tags: List[str] = Field(default_factory=list)
+
+
 class ProgressMeResponse(BaseModel):
     ok: bool = True
     utc: str
@@ -57,3 +70,7 @@ class ProgressMeResponse(BaseModel):
     mastery_map: List[Dict[str, Any]] = Field(default_factory=list)
     modules: List[Dict[str, Any]] = Field(default_factory=list)
     recent_events: List[Dict[str, Any]] = Field(default_factory=list)
+    review_due_count: int = 0
+    next_review_utc: Optional[str] = None
+    review_queue: List[ReviewQueueItemOut] = Field(default_factory=list)
+    top_misconception_tags: List[str] = Field(default_factory=list)

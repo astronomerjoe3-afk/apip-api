@@ -19,6 +19,13 @@ class StudentLessonProgressOut(BaseModel):
     lab_used: bool = False
     status: str = "not_started"
     instructional_status: Optional[str] = "not_started"
+    misconception_tags: List[str] = Field(default_factory=list)
+    review_due: bool = False
+    review_state: str = "not_started"
+    review_due_utc: Optional[str] = None
+    review_interval_days: Optional[int] = None
+    review_count: int = 0
+    last_review_score: Optional[float] = None
 
 
 class StudentModuleProgressOut(BaseModel):
@@ -26,6 +33,9 @@ class StudentModuleProgressOut(BaseModel):
     module_mastery: float = 0.0
     lessons_completed_count: int = 0
     total_lessons: int = 0
+    review_due_count: int = 0
+    next_review_utc: Optional[str] = None
+    top_misconception_tags: List[str] = Field(default_factory=list)
 
 
 class StudentLessonProgressResponse(BaseModel):

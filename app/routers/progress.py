@@ -94,4 +94,8 @@ def get_progress_me(
         "mastery_map": result["mastery_map"],
         "modules": result["modules"],
         "recent_events": result["recent_events"],
+        "review_due_count": result["review_due_count"],
+        "next_review_utc": result["next_review_utc"],
+        "review_queue": result["review_queue"],
+        "top_misconception_tags": result["top_misconception_tags"],
     }
