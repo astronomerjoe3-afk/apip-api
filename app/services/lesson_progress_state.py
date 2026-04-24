@@ -20,6 +20,9 @@ CONCEPT_GATE_SOURCES = {
 }
 TEACHING_EVENT_SOURCES = TEACHING_VIEW_SOURCES | TEACHING_RECONSTRUCTION_SOURCES
 SPACED_REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30]
+NEAR_MASTERY_REVIEW_HOURS = 12
+STRONG_REVIEW_SCORE = 0.92
+EXCELLENT_REVIEW_SCORE = 0.97
 
 
 def normalize_lesson_id(value: Any) -> str:
@@ -134,7 +137,12 @@ def _spaced_due_state(spaced_mastery: Dict[str, Any], event_utc: str) -> str:
 def _next_spaced_review(event_utc: str, review_count: int, score: float) -> Dict[str, Any]:
     if score >= COMPLETION_THRESHOLD:
         next_review_count = max(1, review_count + 1)
-        interval_days = SPACED_REVIEW_INTERVAL_DAYS[min(next_review_count - 1, len(SPACED_REVIEW_INTERVAL_DAYS) - 1)]
+        interval_index = min(next_review_count - 1, len(SPACED_REVIEW_INTERVAL_DAYS) - 1)
+        if score >= EXCELLENT_REVIEW_SCORE and next_review_count >= 2:
+            interval_index = min(interval_index + 1, len(SPACED_REVIEW_INTERVAL_DAYS) - 1)
+        elif score >= STRONG_REVIEW_SCORE and next_review_count >= 3:
+            interval_index = min(interval_index + 1, len(SPACED_REVIEW_INTERVAL_DAYS) - 1)
+        interval_days = SPACED_REVIEW_INTERVAL_DAYS[interval_index]
         try:
             base_time = datetime.fromisoformat(str(event_utc)).astimezone(timezone.utc)
         except Exception:
@@ -146,6 +154,22 @@ def _next_spaced_review(event_utc: str, review_count: int, score: float) -> Dict
             "last_review_utc": event_utc,
             "interval_days": interval_days,
             "review_count": next_review_count,
+            "last_score": round(score, 4),
+            "updated_utc": event_utc,
+        }
+
+    if score >= 0.65:
+        try:
+            base_time = datetime.fromisoformat(str(event_utc)).astimezone(timezone.utc)
+        except Exception:
+            base_time = datetime.now(timezone.utc)
+        due_at = base_time + timedelta(hours=NEAR_MASTERY_REVIEW_HOURS)
+        return {
+            "state": "scheduled",
+            "due_utc": due_at.isoformat(),
+            "last_review_utc": event_utc,
+            "interval_days": 0,
+            "review_count": 0,
             "last_score": round(score, 4),
             "updated_utc": event_utc,
         }
