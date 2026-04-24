@@ -97,6 +97,7 @@ def get_progress_me(
         "review_due_count": result["review_due_count"],
         "next_review_utc": result["next_review_utc"],
         "review_queue": result["review_queue"],
+        "learning_streak": result["learning_streak"],
         "top_misconception_tags": result["top_misconception_tags"],
         "top_misconception_summaries": result["top_misconception_summaries"],
     }

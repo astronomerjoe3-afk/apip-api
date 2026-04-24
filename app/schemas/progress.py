@@ -70,6 +70,16 @@ class MisconceptionSummaryOut(BaseModel):
     notice_next: str
 
 
+class LearningStreakSummaryOut(BaseModel):
+    current_days: int = 0
+    best_days: int = 0
+    total_learning_days: int = 0
+    today_completed: bool = False
+    status: str = "new"
+    last_earned_date_utc: Optional[str] = None
+    last_earned_utc: Optional[str] = None
+
+
 class ProgressMeResponse(BaseModel):
     ok: bool = True
     utc: str
@@ -82,5 +92,6 @@ class ProgressMeResponse(BaseModel):
     review_due_count: int = 0
     next_review_utc: Optional[str] = None
     review_queue: List[ReviewQueueItemOut] = Field(default_factory=list)
+    learning_streak: LearningStreakSummaryOut = Field(default_factory=LearningStreakSummaryOut)
     top_misconception_tags: List[str] = Field(default_factory=list)
     top_misconception_summaries: List[MisconceptionSummaryOut] = Field(default_factory=list)

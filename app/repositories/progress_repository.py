@@ -18,6 +18,11 @@ def progress_doc(uid: str):
     return db.collection("progress").document(uid)
 
 
+def get_progress_root(uid: str) -> Dict[str, Any]:
+    snap = progress_doc(uid).get()
+    return snap.to_dict() if snap.exists else {}
+
+
 def module_progress_doc(uid: str, module_id: str):
     normalized_module_id = normalize_module_id(module_id)
     return progress_doc(uid).collection("modules").document(normalized_module_id)

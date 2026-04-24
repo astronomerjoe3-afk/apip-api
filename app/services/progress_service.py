@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from app.common import clamp01, parse_iso_utc, safe_list_str, utc_now
 from app.repositories.progress_repository import (
+    get_progress_root,
     get_lesson_progress,
     get_module_progress,
     list_recent_progress_events,
@@ -19,6 +20,7 @@ from app.repositories.progress_repository import (
 )
 from app.services.lesson_progress_state import apply_progress_event_to_snapshot, normalize_lesson_id
 from app.services.misconception_catalog import misconception_summaries_for_tags
+from app.services.streak_service import summarize_learning_streak, update_learning_streak
 from app.services.student_progression_service import get_student_module_progress
 
 EventType = Literal["diagnostic", "simulation", "reflection", "transfer", "attempt"]
@@ -317,7 +319,22 @@ def process_progress_event(
             utc=now,
         )
         set_lesson_progress(uid, module_id, lesson_id, lesson_progress_update)
-    set_progress_root(uid, {"uid": uid, "updated_utc": now, "last_event_utc": now})
+    root_progress = get_progress_root(uid)
+    learning_streak = update_learning_streak(
+        root_progress=root_progress,
+        event_type=event_type,
+        details=trimmed_details,
+        utc=now,
+    )
+    set_progress_root(
+        uid,
+        {
+            "uid": uid,
+            "updated_utc": now,
+            "last_event_utc": now,
+            "learning_streak": learning_streak,
+        },
+    )
 
     stored_event = False
     if should_persist_event(event_type):
@@ -357,6 +374,8 @@ def process_progress_event(
 
 def fetch_progress_me(uid: str, limit_recent_events: int) -> Dict[str, Any]:
     warnings: List[str] = []
+    root_progress = get_progress_root(uid)
+    learning_streak = summarize_learning_streak(root_progress.get("learning_streak"), utc_now())
 
     modules = list_progress_modules(uid)
 
@@ -398,6 +417,7 @@ def fetch_progress_me(uid: str, limit_recent_events: int) -> Dict[str, Any]:
         "review_due_count": review_due_count,
         "next_review_utc": next_review_utc,
         "review_queue": review_queue[:12],
+        "learning_streak": learning_streak,
         "top_misconception_tags": _top_misconception_tags(modules),
         "top_misconception_summaries": misconception_summaries_for_tags(_top_misconception_tags(modules), limit=4),
     }
