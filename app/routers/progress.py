@@ -98,4 +98,5 @@ def get_progress_me(
         "next_review_utc": result["next_review_utc"],
         "review_queue": result["review_queue"],
         "top_misconception_tags": result["top_misconception_tags"],
+        "top_misconception_summaries": result["top_misconception_summaries"],
     }

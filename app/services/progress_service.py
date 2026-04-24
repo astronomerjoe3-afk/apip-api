@@ -18,6 +18,7 @@ from app.repositories.progress_repository import (
     set_progress_root,
 )
 from app.services.lesson_progress_state import apply_progress_event_to_snapshot, normalize_lesson_id
+from app.services.misconception_catalog import misconception_summaries_for_tags
 from app.services.student_progression_service import get_student_module_progress
 
 EventType = Literal["diagnostic", "simulation", "reflection", "transfer", "attempt"]
@@ -205,6 +206,10 @@ def _review_queue_for_modules(uid: str, module_ids: List[str], warnings: List[st
                     "review_count": int(lesson.get("review_count") or 0),
                     "last_score": lesson.get("last_review_score"),
                     "misconception_tags": safe_list_str(lesson.get("misconception_tags"), max_items=4, max_len=64),
+                    "misconception_summaries": misconception_summaries_for_tags(
+                        safe_list_str(lesson.get("misconception_tags"), max_items=4, max_len=64),
+                        limit=3,
+                    ),
                 }
             )
 
@@ -394,4 +399,5 @@ def fetch_progress_me(uid: str, limit_recent_events: int) -> Dict[str, Any]:
         "next_review_utc": next_review_utc,
         "review_queue": review_queue[:12],
         "top_misconception_tags": _top_misconception_tags(modules),
+        "top_misconception_summaries": misconception_summaries_for_tags(_top_misconception_tags(modules), limit=4),
     }

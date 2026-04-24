@@ -59,6 +59,15 @@ class ReviewQueueItemOut(BaseModel):
     review_count: int = 0
     last_score: Optional[float] = None
     misconception_tags: List[str] = Field(default_factory=list)
+    misconception_summaries: List[Dict[str, str]] = Field(default_factory=list)
+
+
+class MisconceptionSummaryOut(BaseModel):
+    tag: str
+    title: str
+    diagnosis: str
+    repair: str
+    notice_next: str
 
 
 class ProgressMeResponse(BaseModel):
@@ -74,3 +83,4 @@ class ProgressMeResponse(BaseModel):
     next_review_utc: Optional[str] = None
     review_queue: List[ReviewQueueItemOut] = Field(default_factory=list)
     top_misconception_tags: List[str] = Field(default_factory=list)
+    top_misconception_summaries: List[MisconceptionSummaryOut] = Field(default_factory=list)
